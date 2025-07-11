@@ -45,7 +45,7 @@ export function useOnboarding() {
         email: user.email,
         first_name: values.first_name,
         last_name: values.last_name,
-        id_role: roleData.id,
+        role_id: roleData.id,
       });
 
       if (error) {
