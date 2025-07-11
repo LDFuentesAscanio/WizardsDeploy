@@ -1,0 +1,133 @@
+body {
+    margin: 0;
+    font-family: 'Mulish', sans-serif;
+  }
+  
+  /* INDEX LANDING */
+  .landing-body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background: white;
+  }
+  
+  .landing-container {
+    display: flex;
+    gap: 16px;
+  }
+  
+  .btn-signin {
+    background: none;
+    border: 2px solid black;
+    color: black;
+    font-weight: 600;
+    padding: 12px 24px;
+    border-radius: 12px;
+    cursor: pointer;
+  }
+  
+  .btn-signup {
+    background: black;
+    color: white;
+    font-weight: 600;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+  }
+  
+  .google-logo {
+    width: 20px;
+    height: 20px;
+    margin-right: 8px;
+  }
+  /* LOGIN PAGE */
+  .login-body {
+    background: linear-gradient(135deg, #0f172a, #1e293b);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+  }
+  
+  .login-card {
+    background: rgba(15, 23, 42, 0.95);
+    padding: 40px;
+    border-radius: 24px;
+    text-align: center;
+    color: white;
+    max-width: 400px;
+    width: 100%;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+  }
+  
+  .logo {
+    width: 48px;
+    margin-bottom: 16px;
+  }
+  
+  .btn-email,
+  #email-submit,
+  .gsi-material-button {
+    background-color: #2a2f45;
+    color: white;
+    padding: 14px 28px;
+    border: none;
+    border-radius: 18px;
+    font-weight: bold;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    margin: 10px auto;
+    display: block;
+  }
+  
+  #email-input-wrapper {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    margin-top: 15px;
+    opacity: 0;
+    animation: fadeIn 0.5s ease-in-out forwards;
+  }
+  
+  #email-input {
+    padding: 12px;
+    width: 220px;
+    border-radius: 12px;
+    border: 1px solid #ccc;
+    font-size: 15px;
+  }
+
+  .btn-email:hover,
+  #email-submit:hover,
+  .gsi-material-button:hover {
+  background-color: #3b425e;
+  }
+
+/* Estilo extra para el botón de Google */
+.gsi-material-button-content-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.gsi-material-button-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* Fade effect */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

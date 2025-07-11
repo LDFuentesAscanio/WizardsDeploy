@@ -1,0 +1,20 @@
+@import "tailwindcss";
+
+:root {
+  --color-primary: #2c3d5a;
+  --color-secondary: #67ff94;
+  --color-tertiary-1: #8effd2;
+  --color-tertiary-2: #e7e7e7;
+
+  --background: #2c3d5a;
+  --foreground: #ededed;
+
+  --font-sans: 'Mulish', sans-serif;
+}
+
+
+body {
+  background: #2c3d5a; /* Color principal directamente */
+  color: #ededed;       /* Color de texto claro */
+  font-family: 'Mulish', sans-serif;
+}

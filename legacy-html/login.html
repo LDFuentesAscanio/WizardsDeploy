@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Login - Wizards</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="login-body">
+  <div class="login-card">
+    <img src="logo.png" alt="Logo" class="logo" />
+    <h1>Welcome to Wizards</h1>
+
+    <!-- Google Login Button -->
+    <button id="google-login-btn" class="gsi-material-button">
+      <div class="gsi-material-button-state"></div>
+      <div class="gsi-material-button-content-wrapper">
+        <div class="gsi-material-button-icon">
+          <!-- Google Icon SVG -->
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+            <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+            <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+            <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+            <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+            <path fill="none" d="M0 0h48v48H0z"/>
+          </svg>
+        </div>
+        <span class="gsi-material-button-contents">Sign in with Google</span>
+        <span style="display: none;">Sign in with Google</span>
+      </div>
+    </button>
+
+    <!-- Email Section -->
+    <div id="email-section">
+        <button id="email-button" class="btn-email" onclick="showEmailInput()">Continue with email</button>
+        <div id="email-input-wrapper" style="display: none;">
+          <input type="email" id="email-input" placeholder="Enter your email" />
+        <button id="email-submit">Next</button>
+    </div>
+</div>
+  </div>
+
+  <script>
+    const supabaseUrl = 'https://yxmrdhgsqpzknagfldgz.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl4bXJkaGdzcXB6a25hZ2ZsZGd6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkwNzQ4NjMsImV4cCI6MjA2NDY1MDg2M30.mg0Gv4suP0C6ie-7uek2QMl6Jv31mLxnF7KhZ_Ykuzo';
+    const { createClient } = supabase;
+    const supabaseClient = createClient(supabaseUrl, supabaseKey);
+
+    // Login con Google
+    document.getElementById('google-login-btn').addEventListener('click', async () => {
+      console.log('Botón Google clickeado');
+      const { error } = await supabaseClient.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: 'http://localhost/login' // ⚠️ Asegurate que este URL está en tus credenciales de Google
+        }
+      });
+      if (error) alert('Error en login con Google: ' + error.message);
+    });
+
+    // Detectar cambios en la sesión y redirigir
+    supabaseClient.auth.onAuthStateChange((event, session) => {
+      if (session) {
+        console.log('Usuario logueado:', session.user.email);
+        window.location.href = '/dashboard.html'; // Redirige si está autenticado
+      } else {
+        console.log('Usuario no logueado');
+      }
+    });
+
+    // (Opcional) función para cambiar UI si querés usar login por email más adelante
+    function showEmailInput() {
+        document.getElementById('email-button').style.display = 'none';
+        document.getElementById('email-input-wrapper').style.display = 'flex';
+        } 
+  </script>
+</body>
+</html>
+

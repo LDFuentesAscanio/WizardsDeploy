@@ -1,0 +1,41 @@
+export interface Experience {
+  platform: string;
+  rating: number;
+  experienceTime: string;
+}
+
+export interface UserExpertiseRow {
+  rating: number;
+  experience_time: string;
+  platforms: {
+    name: string;
+  };
+}
+
+export interface DashboardData {
+  firstName: string;
+  lastName: string;
+  avatarUrl: string;
+  profession: string;
+  linkedin: string | null;
+  otherLink: string | null;
+  bio: string;
+  skills: string[];
+  tools: string[];
+  experiences: Experience[];
+  completion: number;
+  missingFields: string[];
+}
+
+export interface UserRow {
+  first_name: string;
+  last_name: string;
+  country_id: string | null;
+  linkedin_profile: string | null;
+  other_link: string | null;
+}
+
+export interface AboutRow {
+  bio: string | null;
+  profession: string | null;
+}
