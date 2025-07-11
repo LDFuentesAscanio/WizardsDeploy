@@ -22,10 +22,11 @@ export function useProfileFormData() {
         const { initialValues, countries, roles } = await fetchProfileFormData(
           user.id
         );
+        const filteredRoles = roles.filter((role) => role.name !== 'admin');
 
         setInitialValues(initialValues);
         setCountries(countries);
-        setRoles(roles);
+        setRoles(filteredRoles);
       } catch (err) {
         console.error('❌ Error loading profile form:', err);
       } finally {

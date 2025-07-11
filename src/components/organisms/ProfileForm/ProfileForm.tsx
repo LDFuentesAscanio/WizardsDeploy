@@ -13,9 +13,17 @@ import SkillsSection from './SkillsSection';
 import ToolsSection from './ToolsSection';
 import ProfileImageUpload from '@/components/molecules/ProfileImageUpload';
 import UploadDocumentField from '@/components/molecules/UploadDocumentField';
+import { useRouter } from 'next/navigation';
+import {
+  forcedToCompleteProfile,
+  useForceProfileCompletion,
+} from '@/hooks/useForceProfileCompletion';
 
 export default function ProfileForm() {
   const { initialValues, countries, roles, loading } = useProfileFormData();
+  const router = useRouter();
+
+  useForceProfileCompletion();
 
   const handleSubmit = async (values: ProfileFormValues) => {
     const { data: auth } = await supabase.auth.getUser();
@@ -110,6 +118,9 @@ export default function ProfileForm() {
       alert('Error al guardar el perfil');
     } else {
       alert('¡Perfil actualizado con éxito!');
+      if (forcedToCompleteProfile) {
+        router.push('/dashboard');
+      }
     }
   };
 

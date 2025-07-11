@@ -4,6 +4,8 @@ import { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { supabase } from '@/utils/supabase/client';
 
+export let forcedToCompleteProfile = false;
+
 export function useForceProfileCompletion() {
   const router = useRouter();
   const pathname = usePathname();
@@ -46,14 +48,9 @@ export function useForceProfileCompletion() {
           const isIncomplete =
             !countryId || !bio?.trim() || !profession?.trim();
 
-          if (isIncomplete) {
-            // Solo redirigir si no estamos en la página de edición
-            if (pathname !== '/profile/edit') {
-              console.info(
-                '🔁 Redirecting to /profile/edit due to incomplete profile'
-              );
-              router.replace('/profile/edit');
-            }
+          if (isIncomplete && pathname !== '/profile/edit') {
+            forcedToCompleteProfile = true; // 👈 marcamos que fue redirigido forzadamente
+            router.replace('/profile/edit');
           }
         } catch (err) {
           console.error('❌ Error while checking profile completion:', err);
