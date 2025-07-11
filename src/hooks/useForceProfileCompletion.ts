@@ -12,7 +12,12 @@ export function useForceProfileCompletion() {
 
   useEffect(() => {
     const checkProfileCompletion = async () => {
-      if (!pathname || pathname === '/profile/edit' || pathname === '/auth')
+      if (
+        !pathname ||
+        pathname === '/profile/edit' ||
+        pathname === '/force-profile/edit' ||
+        pathname === '/auth'
+      )
         return;
 
       try {
@@ -48,9 +53,9 @@ export function useForceProfileCompletion() {
           const isIncomplete =
             !countryId || !bio?.trim() || !profession?.trim();
 
-          if (isIncomplete && pathname !== '/profile/edit') {
-            forcedToCompleteProfile = true; // 👈 marcamos que fue redirigido forzadamente
-            router.replace('/profile/edit');
+          if (isIncomplete && pathname !== '/force-profile/edit') {
+            forcedToCompleteProfile = true;
+            router.replace('/force-profile/edit');
           }
         } catch (err) {
           console.error('❌ Error while checking profile completion:', err);
