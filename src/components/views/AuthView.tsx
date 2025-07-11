@@ -19,7 +19,7 @@ export default function AuthView() {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: 'http://localhost:3000/auth/callback',
+        redirectTo: 'https://wizards-deploy.vercel.app/auth/callback',
       },
     });
 
