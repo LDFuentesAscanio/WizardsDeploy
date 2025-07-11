@@ -7,6 +7,7 @@ import { onboardingSchema } from '@/validations/onboarding-validations';
 import { useOnboarding } from '@/hooks/useOnboarding';
 import FormInput from '@/components/atoms/FormInput';
 import FormSelect from '@/components/atoms/FormSelect';
+import Image from 'next/image';
 
 function GoogleAutofillHandler() {
   const { setFieldValue } = useFormikContext();
@@ -32,14 +33,14 @@ function GoogleAutofillHandler() {
     autofill();
   }, [setFieldValue]);
 
-  return null; // 👈 No renderiza nada visible
+  return null;
 }
 
 export default function OnboardingView() {
   const { saveUserProfile, loading } = useOnboarding();
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-[#0F172A] px-4 text-white">
+    <main className="min-h-screen flex items-center justify-center bg-[#2c3d5a] px-4 text-[#e7e7e7]">
       <Formik
         initialValues={{
           first_name: '',
@@ -52,15 +53,22 @@ export default function OnboardingView() {
         }}
       >
         {({ isSubmitting, isValid }) => (
-          <Form className="max-w-md w-full bg-white/10 backdrop-blur p-8 rounded-2xl shadow-xl">
-            {/* Autofill invisible logic */}
+          <Form className="max-w-xl w-full bg-white/10 backdrop-blur p-10 rounded-3xl shadow-lg text-center">
             <GoogleAutofillHandler />
 
-            <h1 className="text-2xl font-bold mb-6 text-center">
+            <Image
+              src="/icons/carga.svg"
+              alt="Wizards logo"
+              width={64}
+              height={64}
+              className="mx-auto mb-6"
+            />
+
+            <h1 className="text-3xl font-bold text-[#67ff94] mb-6">
               Complete your profile
             </h1>
 
-            <div className="space-y-4">
+            <div className="space-y-4 text-left">
               <FormInput name="first_name" placeholder="First Name" />
               <FormInput name="last_name" placeholder="Last Name" />
               <FormSelect
@@ -70,14 +78,15 @@ export default function OnboardingView() {
                   { value: 'customer', label: 'Customer' },
                 ]}
               />
-              <button
-                type="submit"
-                disabled={loading || isSubmitting || !isValid}
-                className="w-full bg-green-500 py-3 rounded-xl font-semibold hover:bg-green-400 disabled:opacity-50"
-              >
-                {loading || isSubmitting ? 'Saving...' : 'Continue'}
-              </button>
             </div>
+
+            <button
+              type="submit"
+              disabled={loading || isSubmitting || !isValid}
+              className="mt-6 w-full bg-[#67ff94] text-[#0F172A] py-3 rounded-xl font-semibold hover:bg-[#8effd2] transition-colors disabled:opacity-50"
+            >
+              {loading || isSubmitting ? 'Saving...' : 'Continue'}
+            </button>
           </Form>
         )}
       </Formik>
