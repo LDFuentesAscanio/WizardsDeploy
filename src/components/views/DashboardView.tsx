@@ -8,7 +8,6 @@ import TasksOverview from '@/components/organisms/dashboard/TasksOverview';
 import SkillsSection from '@/components/organisms/dashboard/SkillsSection';
 import ExperienceSection from '@/components/organisms/dashboard/ExperienceSection';
 import BioSection from '@/components/organisms/dashboard/BioSection';
-import DashboardNavbar from '../organisms/dashboard/DashboardNavbar';
 import ClockWidget from '../molecules/ClockWidget';
 import ProfileCompletionCard from '../organisms/dashboard/ProfileCompletionCard';
 import { fetchDashboardData } from '@/utils/fetchDashboardData';
@@ -43,8 +42,6 @@ export default function DashboardView() {
 
   return (
     <main className="min-h-screen bg-[#2c3d5a] text-white">
-      <DashboardNavbar />
-
       <div className="w-full px-6 py-8 max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="col-span-1 space-y-6">
           <UserCard
