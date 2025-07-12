@@ -1,8 +1,9 @@
 'use client';
-
+//External libraries
 import { useState } from 'react';
-import { supabase } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
+//Utilities
+import { supabase } from '@/utils/supabase/client';
 
 interface FormValues {
   first_name: string;

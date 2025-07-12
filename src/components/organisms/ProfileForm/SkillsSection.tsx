@@ -1,9 +1,10 @@
 'use client';
-
-import { useFormikContext, FieldArray } from 'formik';
-import { ProfileFormValues } from './types';
+//External libraries
 import { useState } from 'react';
+import { useFormikContext, FieldArray } from 'formik';
 import { motion } from 'framer-motion';
+//Validations, types and interfaces
+import { ProfileFormValues } from './types';
 
 export default function SkillsSection() {
   const { values } = useFormikContext<ProfileFormValues>();

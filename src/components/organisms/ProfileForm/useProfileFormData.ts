@@ -1,8 +1,11 @@
 'use client';
+//External libraries
 import { useEffect, useState } from 'react';
-import { fetchProfileFormData } from './helpers';
+//Validations, types and interfaces
 import { ProfileFormValues, Country, Role } from './types';
+//Utilities
 import { supabase } from '@/utils/supabase/client';
+import { fetchProfileFormData } from './helpers';
 
 export function useProfileFormData() {
   const [initialValues, setInitialValues] = useState<ProfileFormValues | null>(

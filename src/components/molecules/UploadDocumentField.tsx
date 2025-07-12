@@ -1,9 +1,11 @@
 'use client';
-
+//External libraries
 import { ChangeEvent, useState } from 'react';
-import { supabase } from '@/utils/supabase/client';
 import { useFormikContext } from 'formik';
+//Validations, types and interfaces
 import { ProfileFormValues } from '../organisms/ProfileForm/types';
+//Utilities
+import { supabase } from '@/utils/supabase/client';
 
 export default function UploadDocumentField() {
   const [uploading, setUploading] = useState(false);

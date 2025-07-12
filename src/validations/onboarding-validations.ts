@@ -1,3 +1,4 @@
+//External libraries
 import * as Yup from 'yup';
 
 export const onboardingSchema = Yup.object({

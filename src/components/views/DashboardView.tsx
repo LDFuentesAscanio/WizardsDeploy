@@ -1,17 +1,20 @@
 'use client';
-
+//External libraries
 import { useEffect, useState } from 'react';
+//Validations, types and interfaces
+import { DashboardData } from '../organisms/dashboard/types';
+//Utilities
 import { supabase } from '@/utils/supabase/client';
+import { fetchDashboardData } from '@/utils/fetchDashboardData';
+//UI local components
+import ClockWidget from '../molecules/ClockWidget';
 import UserCard from '@/components/organisms/dashboard/UserCard';
+import BioSection from '@/components/organisms/dashboard/BioSection';
 import StatsSection from '@/components/organisms/dashboard/StatsSection';
 import TasksOverview from '@/components/organisms/dashboard/TasksOverview';
 import SkillsSection from '@/components/organisms/dashboard/SkillsSection';
-import ExperienceSection from '@/components/organisms/dashboard/ExperienceSection';
-import BioSection from '@/components/organisms/dashboard/BioSection';
-import ClockWidget from '../molecules/ClockWidget';
 import ProfileCompletionCard from '../organisms/dashboard/ProfileCompletionCard';
-import { fetchDashboardData } from '@/utils/fetchDashboardData';
-import { DashboardData } from '../organisms/dashboard/types';
+import ExperienceSection from '@/components/organisms/dashboard/ExperienceSection';
 
 export default function DashboardView() {
   const [loading, setLoading] = useState(true);

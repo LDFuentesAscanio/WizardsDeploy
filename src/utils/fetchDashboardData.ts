@@ -1,4 +1,6 @@
+//External libraries
 import { supabase } from '@/utils/supabase/client';
+//Validations, types and interfaces
 import {
   AboutRow,
   DashboardData,

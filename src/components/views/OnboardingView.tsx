@@ -1,13 +1,16 @@
 'use client';
-
-import { Formik, Form, useFormikContext } from 'formik';
+//External libraries
+import Image from 'next/image';
 import { useEffect } from 'react';
-import { supabase } from '@/utils/supabase/client';
+import { Formik, Form, useFormikContext } from 'formik';
+//Validations, types and interfaces
 import { onboardingSchema } from '@/validations/onboarding-validations';
+//Utilities
+import { supabase } from '@/utils/supabase/client';
 import { useOnboarding } from '@/hooks/useOnboarding';
+//UI global components
 import FormInput from '@/components/atoms/FormInput';
 import FormSelect from '@/components/atoms/FormSelect';
-import Image from 'next/image';
 
 function GoogleAutofillHandler() {
   const { setFieldValue } = useFormikContext();

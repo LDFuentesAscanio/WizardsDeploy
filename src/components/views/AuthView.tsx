@@ -1,8 +1,10 @@
 'use client';
-
+//External libraries
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useState } from 'react';
+//Utilities
 import { supabase } from '@/utils/supabase/client';
+//UI global components
 import LoginCard from '@/components/organisms/LoginCard';
 
 export default function AuthView() {

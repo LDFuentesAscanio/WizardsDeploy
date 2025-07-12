@@ -1,5 +1,7 @@
-import { supabase } from '@/utils/supabase/client';
+//Validations, types and interfaces
 import { About, ProfileFormValues } from './types';
+//Utilities
+import { supabase } from '@/utils/supabase/client';
 
 export async function fetchProfileFormData(userId: string) {
   const [

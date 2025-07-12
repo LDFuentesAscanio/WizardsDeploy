@@ -1,5 +1,5 @@
 'use client';
-
+//Validations, types and interfaces
 import { Experience } from './types';
 
 interface ExperienceSectionProps {

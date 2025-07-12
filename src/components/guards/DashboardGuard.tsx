@@ -1,9 +1,10 @@
 'use client';
-
+//External libraries
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { supabase } from '@/utils/supabase/client';
 import Image from 'next/image';
+//Utilities
+import { supabase } from '@/utils/supabase/client';
 
 interface Props {
   children: React.ReactNode;

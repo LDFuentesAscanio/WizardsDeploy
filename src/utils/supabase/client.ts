@@ -1,5 +1,5 @@
 'use client';
-
+//External libraries
 import { createBrowserClient } from '@supabase/ssr';
 
 export const supabase = createBrowserClient(

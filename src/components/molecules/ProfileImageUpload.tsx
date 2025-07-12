@@ -1,11 +1,13 @@
 'use client';
-
-import { useState } from 'react';
-import { PostgrestError } from '@supabase/supabase-js';
-import { useFormikContext } from 'formik';
+//External libraries
 import Image from 'next/image';
-import { supabase } from '@/utils/supabase/client';
+import { useState } from 'react';
+import { useFormikContext } from 'formik';
+import { PostgrestError } from '@supabase/supabase-js';
+//Validations, types and interfaces
 import { ProfileFormValues } from '../organisms/ProfileForm/types';
+//Utilities
+import { supabase } from '@/utils/supabase/client';
 
 export default function ProfileImageUpload() {
   const { setFieldValue, values } = useFormikContext<ProfileFormValues>();
@@ -83,30 +85,37 @@ export default function ProfileImageUpload() {
   const imageUrl = preview || values.photo_url;
 
   return (
-    <div className="flex flex-col items-center space-y-2">
-      {imageUrl ? (
-        <div className="relative w-[120px] h-[120px]">
-          <Image
-            src={imageUrl}
-            alt="Profile"
-            fill
-            className="rounded-full object-cover border border-white"
-            priority
-            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-          />
-        </div>
-      ) : (
-        <div className="w-[120px] h-[120px] rounded-full bg-white/10" />
-      )}
+  <div className="flex flex-col items-center space-y-3">
+    {imageUrl ? (
+      <div className="relative w-[120px] h-[120px]">
+        <Image
+          src={imageUrl}
+          alt="Profile picture"
+          fill
+          className="rounded-2xl object-cover border border-white"
+          priority
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+        />
+      </div>
+    ) : (
+      <div className="w-[120px] h-[120px] rounded-2xl bg-white/10 flex items-center justify-center text-sm text-white text-center">
+        No photo
+      </div>
+    )}
 
+    <label className="cursor-pointer text-[#67ff94] font-semibold underline hover:opacity-80 transition">
+      {imageUrl ? 'Edit photo' : 'Upload photo'}
       <input
         type="file"
         accept="image/*"
         onChange={handleImageChange}
-        className="text-sm text-white"
+        className="hidden"
         disabled={uploading}
       />
-      {uploading && <p className="text-sm text-gray-300">Uploading...</p>}
-    </div>
-  );
+    </label>
+
+    {uploading && <p className="text-sm text-gray-300">Uploading...</p>}
+  </div>
+);
+
 }

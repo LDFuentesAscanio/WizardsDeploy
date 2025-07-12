@@ -1,9 +1,13 @@
-import { useFormikContext, FieldArray } from 'formik';
+//External libraries
 import { useEffect, useState } from 'react';
-import { supabase } from '@/utils/supabase/client';
-import { Platform, ProfileFormValues } from './types';
-import { ExpertiseItem } from './ExpertiseItem';
+import { useFormikContext, FieldArray } from 'formik';
 import { AnimatePresence, motion } from 'framer-motion';
+//Validations, types and interfaces
+import { Platform, ProfileFormValues } from './types';
+//Utilities
+import { supabase } from '@/utils/supabase/client';
+//UI local components
+import { ExpertiseItem } from './ExpertiseItem';
 
 const EXPERIENCE_OPTIONS = [
   { value: 'less than 1 year', label: 'Less than 1 year' },

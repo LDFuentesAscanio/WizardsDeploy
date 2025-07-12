@@ -1,23 +1,28 @@
 'use client';
-
-import { Formik, Form } from 'formik';
-import FormInput from '@/components/atoms/FormInput';
-import FormSelect from '@/components/atoms/FormSelect';
-import { profileSchema } from '@/validations/profile-validations';
-import { useProfileFormData } from './useProfileFormData';
-import { supabase } from '@/utils/supabase/client';
-import { ProfileFormValues } from './types';
+//external libraries
 import Image from 'next/image';
-import ExpertiseSection from './ExpertiseSection';
-import SkillsSection from './SkillsSection';
-import ToolsSection from './ToolsSection';
-import ProfileImageUpload from '@/components/molecules/ProfileImageUpload';
-import UploadDocumentField from '@/components/molecules/UploadDocumentField';
+import { Formik, Form } from 'formik';
+//Utilities
+import { supabase } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
+import { useProfileFormData } from './useProfileFormData';
 import {
   forcedToCompleteProfile,
   useForceProfileCompletion,
 } from '@/hooks/useForceProfileCompletion';
+//Validations, types and interfaces
+import { profileSchema } from '@/validations/profile-validations';
+import { ProfileFormValues } from './types';
+//UI local components
+import ExpertiseSection from './ExpertiseSection';
+import SkillsSection from './SkillsSection';
+import ToolsSection from './ToolsSection';
+//UI global components
+import FormInput from '@/components/atoms/FormInput';
+import FormSelect from '@/components/atoms/FormSelect';
+import ProfileImageUpload from '@/components/molecules/ProfileImageUpload';
+import UploadDocumentField from '@/components/molecules/UploadDocumentField';
+
 
 export default function ProfileForm() {
   const { initialValues, countries, roles, loading } = useProfileFormData();
@@ -156,9 +161,7 @@ export default function ProfileForm() {
               height={64}
               className="mb-2"
             />
-            <h1 className="text-2xl font-bold text-center mb-4">
-              Edit Your Profile
-            </h1>
+            <h1 className="text-2xl font-bold text-center mb-4">Profile</h1>
           </div>
           <ProfileImageUpload />
           <FormInput name="first_name" label="First Name" />

@@ -1,7 +1,8 @@
 'use client';
-
+//External libraries
 import { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+//Utilities
 import { supabase } from '@/utils/supabase/client';
 
 export function useRedirectIfProfileComplete() {

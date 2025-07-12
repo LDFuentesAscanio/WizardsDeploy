@@ -1,5 +1,5 @@
 'use client';
-
+//External libraries
 import Image from 'next/image';
 
 interface OAuthGoogleButtonProps {

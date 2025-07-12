@@ -1,5 +1,3 @@
-// src/components/organisms/ProfileForm/types.ts
-
 export interface ProfileFormValues {
   first_name: string;
   last_name: string;

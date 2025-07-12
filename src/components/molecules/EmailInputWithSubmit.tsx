@@ -1,5 +1,5 @@
 'use client';
-
+//External libraries
 import { useState } from 'react';
 
 interface EmailInputWithSubmitProps {

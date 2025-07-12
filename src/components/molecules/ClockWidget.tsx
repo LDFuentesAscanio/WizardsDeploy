@@ -1,5 +1,5 @@
 'use client';
-
+//External libraries
 import { useEffect, useState } from 'react';
 
 export default function ClockWidget() {

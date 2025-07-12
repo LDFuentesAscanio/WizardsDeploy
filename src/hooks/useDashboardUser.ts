@@ -1,6 +1,7 @@
 'use client';
-
+//External libraries
 import { useEffect, useState } from 'react';
+//Utilities
 import { supabase } from '@/utils/supabase/client';
 
 interface UserData {

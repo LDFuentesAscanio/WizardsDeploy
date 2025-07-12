@@ -1,7 +1,8 @@
 'use client';
-
-import StatCard from '@/components/molecules/StatCard';
+//External libraries
 import { motion } from 'framer-motion';
+//UI global components
+import StatCard from '@/components/molecules/StatCard';
 
 interface StatItem {
   label: string;
