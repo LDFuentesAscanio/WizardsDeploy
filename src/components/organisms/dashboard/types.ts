@@ -4,14 +4,6 @@ export interface Experience {
   experienceTime: string;
 }
 
-export interface UserExpertiseRow {
-  rating: number;
-  experience_time: string;
-  platforms: {
-    name: string;
-  };
-}
-
 export interface DashboardData {
   firstName: string;
   lastName: string;
