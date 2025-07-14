@@ -5,18 +5,16 @@ import { useFormikContext } from 'formik';
 // Validations, types and interfaces
 import { ProfileFormValues } from '../organisms/ProfileForm/types';
 // Utilities
+import { showSuccess, showError, showInfo } from '@/utils/toastService';
 import { supabase } from '@/utils/supabase/client';
 
 export default function UploadDocumentField() {
   const [uploading, setUploading] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const { setFieldValue, values } = useFormikContext<ProfileFormValues>();
 
   const handleUpload = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    setError(null);
-
     if (!file) return;
 
     const allowedTypes = [
@@ -25,16 +23,17 @@ export default function UploadDocumentField() {
     ];
 
     if (!allowedTypes.includes(file.type)) {
-      setError('Only PDF or DOCX files are allowed.');
+      showError('Only PDF or DOCX files are allowed.');
       return;
     }
 
     if (file.size > 10 * 1024 * 1024) {
-      setError('File must be less than 10MB.');
+      showError('File must be less than 10MB.');
       return;
     }
 
     setUploading(true);
+    showInfo('Uploading file...');
 
     try {
       const {
@@ -67,9 +66,10 @@ export default function UploadDocumentField() {
 
       setFieldValue('cv_url', filePath);
       setFileName(file.name);
+      showSuccess('File uploaded successfully', file.name);
     } catch (err) {
       console.error('Error uploading document:', err);
-      setError('Failed to upload file. Please try again.');
+      showError('Upload failed', 'Please try again later.');
     } finally {
       setUploading(false);
     }
@@ -91,14 +91,7 @@ export default function UploadDocumentField() {
         disabled={uploading}
       />
 
-      {uploading && <p className="text-sm text-gray-300">Uploading file...</p>}
-
-      {uploadedFileName && !uploading && !error && (
-        <p className="text-sm text-green-400">✅ File: {uploadedFileName}</p>
-      )}
-
-      {error && <p className="text-sm text-red-400">{error}</p>}
-
+      {/* Mostrar enlace si ya había un documento cargado */}
       {values.cv_url && !fileName && (
         <p className="text-sm text-blue-300 mt-1">
           📎 View current file:{' '}
