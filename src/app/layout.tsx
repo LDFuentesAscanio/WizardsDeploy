@@ -25,7 +25,14 @@ export default function RootLayout({
   return (
     <html lang="es" className={mulish.variable}>
       <body className="antialiased">
-        <Toaster position="top-right" richColors closeButton duration={3000} />
+        <Toaster
+          position="top-right"
+          toastOptions={{
+            classNames: {
+              toast: 'toaster-slide-right',
+            },
+          }}
+        />
         {children}
       </body>
     </html>
