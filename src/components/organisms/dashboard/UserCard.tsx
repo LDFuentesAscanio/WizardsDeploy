@@ -1,9 +1,7 @@
 'use client';
-//External libraries
-import Image from 'next/image';
 import { motion } from 'framer-motion';
-import Link from 'next/link';
-import { FaLinkedin, FaGithub } from 'react-icons/fa';
+import Image from 'next/image';
+import SocialIcon from '@/components/atoms/SocialIcon';
 
 interface UserCardProps {
   firstName: string;
@@ -43,16 +41,8 @@ export default function UserCard({
         <p className="text-sm text-gray-200">{profession || 'No profession'}</p>
 
         <div className="mt-2 flex space-x-4">
-          {linkedin && (
-            <Link href={linkedin} target="_blank">
-              <FaLinkedin className="w-6 h-6 hover:text-secondary" />
-            </Link>
-          )}
-          {otherLink && (
-            <Link href={otherLink} target="_blank">
-              <FaGithub className="w-6 h-6 hover:text-secondary" />
-            </Link>
-          )}
+          {linkedin && <SocialIcon url={linkedin} />}
+          {otherLink && <SocialIcon url={otherLink} />}
         </div>
       </div>
     </motion.div>

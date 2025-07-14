@@ -83,13 +83,6 @@ export default function DashboardView() {
           <BioSection bio={data.bio} />
           <SkillsSection skills={data.skills} tools={data.tools} />
           <ExperienceSection experiences={data.experiences} />
-
-          <div className="bg-primary text-secondary p-6 rounded-sonner font-sans">
-            <h2 className="text-lg font-bold">Prueba de Tema Personalizado</h2>
-            <p className="mt-2">
-              Este bloque usa colores, tipografía y bordes del tema.
-            </p>
-          </div>
         </div>
       </div>
     </main>
