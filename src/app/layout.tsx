@@ -27,9 +27,12 @@ export default function RootLayout({
       <body className="antialiased">
         <Toaster
           position="top-right"
+          richColors
+          closeButton
+          duration={3000}
           toastOptions={{
             classNames: {
-              toast: 'toaster-slide-right',
+              toast: 'toast-slide-in rounded-lg shadow-xl', // Tu animación personalizada
             },
           }}
         />
