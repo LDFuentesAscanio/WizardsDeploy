@@ -1,10 +1,10 @@
 'use client';
-//External libraries
+// External libraries
 import { ChangeEvent, useState } from 'react';
 import { useFormikContext } from 'formik';
-//Validations, types and interfaces
+// Validations, types and interfaces
 import { ProfileFormValues } from '../organisms/ProfileForm/types';
-//Utilities
+// Utilities
 import { supabase } from '@/utils/supabase/client';
 
 export default function UploadDocumentField() {
@@ -23,13 +23,14 @@ export default function UploadDocumentField() {
       'application/pdf',
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     ];
+
     if (!allowedTypes.includes(file.type)) {
-      setError('Solo se permiten archivos PDF o DOCX.');
+      setError('Only PDF or DOCX files are allowed.');
       return;
     }
 
     if (file.size > 10 * 1024 * 1024) {
-      setError('El archivo debe pesar menos de 10MB.');
+      setError('File must be less than 10MB.');
       return;
     }
 
@@ -42,7 +43,7 @@ export default function UploadDocumentField() {
       } = await supabase.auth.getUser();
 
       if (authError || !user) {
-        throw new Error('No autenticado');
+        throw new Error('Not authenticated');
       }
 
       const uniqueFilename = `${Date.now()}_${file.name}`;
@@ -65,20 +66,22 @@ export default function UploadDocumentField() {
       if (insertError) throw insertError;
 
       setFieldValue('cv_url', filePath);
-
       setFileName(file.name);
     } catch (err) {
       console.error('Error uploading document:', err);
-      setError('Error al subir el archivo. Intenta nuevamente.');
+      setError('Failed to upload file. Please try again.');
     } finally {
       setUploading(false);
     }
   };
 
+  const uploadedFileName =
+    fileName || (values.cv_url ? values.cv_url.split('/').pop() : null);
+
   return (
     <div className="space-y-1">
       <label className="block text-sm font-medium">
-        Curriculum (PDF o DOCX)
+        Curriculum (PDF or DOCX)
       </label>
       <input
         type="file"
@@ -87,18 +90,18 @@ export default function UploadDocumentField() {
         className="block w-full text-sm text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-[#67ff94] file:text-[#2c3d5a] hover:file:bg-[#8effd2]"
         disabled={uploading}
       />
-      {uploading && (
-        <p className="text-sm text-gray-300">Subiendo archivo...</p>
+
+      {uploading && <p className="text-sm text-gray-300">Uploading file...</p>}
+
+      {uploadedFileName && !uploading && !error && (
+        <p className="text-sm text-green-400">✅ File: {uploadedFileName}</p>
       )}
-      {fileName && !error && (
-        <p className="text-sm text-green-400">✅ Archivo subido: {fileName}</p>
-      )}
+
       {error && <p className="text-sm text-red-400">{error}</p>}
 
-      {/* Mostrar enlace si ya había un documento cargado */}
       {values.cv_url && !fileName && (
         <p className="text-sm text-blue-300 mt-1">
-          📎 Documento actual:{' '}
+          📎 View current file:{' '}
           <a
             href={
               supabase.storage
@@ -109,7 +112,7 @@ export default function UploadDocumentField() {
             rel="noopener noreferrer"
             className="underline hover:text-blue-400"
           >
-            Ver archivo
+            {uploadedFileName}
           </a>
         </p>
       )}
