@@ -42,10 +42,10 @@ export default function UserCard({
         </h1>
         <p className="text-sm text-gray-200">{profession || 'No profession'}</p>
 
-        <div className="mt-2 space-x-2 text-sm">
+        <div className="mt-2 flex space-x-4">
           {linkedin && (
             <Link href={linkedin} target="_blank">
-              <FaLinkedin className="w-6 h-6 hover:text-secon" />
+              <FaLinkedin className="w-6 h-6 hover:text-secondary" />
             </Link>
           )}
           {otherLink && (
