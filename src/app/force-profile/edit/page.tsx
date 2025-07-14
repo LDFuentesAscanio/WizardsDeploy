@@ -5,7 +5,7 @@ import ProfileForm from '@/components/organisms/ProfileForm/ProfileForm';
 
 export default function ProfileEditPage() {
   return (
-    <main className="min-h-screen flex items-center justify-center bg-[#2c3d5a] px-4 text-white">
+    <main className="min-h-screen flex items-center justify-center bg-prim px-4 text-white">
       <Suspense
         fallback={<div className="text-white">Loading profile form...</div>}
       >

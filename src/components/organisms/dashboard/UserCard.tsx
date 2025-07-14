@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
+import { FaLinkedin, FaGithub } from 'react-icons/fa';
 
 interface UserCardProps {
   firstName: string;
@@ -43,21 +44,13 @@ export default function UserCard({
 
         <div className="mt-2 space-x-2 text-sm">
           {linkedin && (
-            <Link
-              href={linkedin}
-              target="_blank"
-              className="underline hover:text-[#67ff94]"
-            >
-              LinkedIn
+            <Link href={linkedin} target="_blank">
+              <FaLinkedin className="w-6 h-6 hover:text-secon" />
             </Link>
           )}
           {otherLink && (
-            <Link
-              href={otherLink}
-              target="_blank"
-              className="underline hover:text-[#67ff94]"
-            >
-              Link
+            <Link href={otherLink} target="_blank">
+              <FaGithub className="w-6 h-6 hover:text-secondary" />
             </Link>
           )}
         </div>

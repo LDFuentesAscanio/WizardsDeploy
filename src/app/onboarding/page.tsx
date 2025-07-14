@@ -5,7 +5,7 @@ import OnboardingView from '@/components/views/OnboardingView';
 
 export default function OnboardingPage() {
   return (
-    <Suspense fallback={<div className="text-white">Cargando...</div>}>
+    <Suspense fallback={<div className="text-white">Loading...</div>}>
       <OnboardingView />
     </Suspense>
   );

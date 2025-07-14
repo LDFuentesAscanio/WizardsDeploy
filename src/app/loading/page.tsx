@@ -13,8 +13,10 @@ export default function LoadingPage() {
           height={100}
           className="mx-auto mb-4"
         />
-        <h2 className="text-xl font-semibold mb-2">Verificando tu cuenta...</h2>
-        <p className="text-gray-600">Por favor, espera un momento...</p>
+        <h2 className="text-xl font-semibold mb-2">
+          Verifying your account...
+        </h2>
+        <p className="text-gray-600">Please, wait while we load the page...</p>
       </div>
     </div>
   );

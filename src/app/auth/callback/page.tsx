@@ -5,7 +5,7 @@ import AuthCallbackView from '@/components/views/AuthCallbackView';
 
 export default function AuthCallbackPage() {
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center bg-[#2c3d5a] text-white gap-6">
+    <main className="min-h-screen flex flex-col items-center justify-center bg-prim text-white gap-6">
       {/* Logo de carga mientras se valida la sesión */}
       <Image
         src="/icons/carga.svg"
