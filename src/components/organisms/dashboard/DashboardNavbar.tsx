@@ -58,7 +58,6 @@ export default function DashboardNavbar() {
             {[
               { label: 'Dashboard', href: '/dashboard' },
               { label: 'Profile', href: '/profile/edit' },
-              { label: 'Calendar', href: '#' },
               { label: 'Projects', href: '#' },
               { label: 'Search', href: '#' },
             ].map((item) => (

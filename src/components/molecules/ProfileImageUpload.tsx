@@ -22,12 +22,12 @@ export default function ProfileImageUpload() {
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      showError('Archivo no válido', 'Solo se permiten imágenes.');
+      showError('Invalid file', 'Only images are allowed.');
       return;
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      showError('Archivo demasiado grande', 'Debe pesar menos de 5MB.');
+      showError('file too large', 'Must be less than 5MB.');
       return;
     }
 
@@ -41,7 +41,7 @@ export default function ProfileImageUpload() {
       } = await supabase.auth.getUser();
 
       if (authError || !user) {
-        throw new Error('Usuario no autenticado');
+        throw new Error('User not authenticated');
       }
 
       const filename = `${user.id}_${Date.now()}.${file.name.split('.').pop()}`;
@@ -68,7 +68,7 @@ export default function ProfileImageUpload() {
 
       setFieldValue('photo_url', fullUrl);
       setPreview(fullUrl);
-      showSuccess('Foto actualizada con éxito');
+      showSuccess('Photo updated successfully');
     } catch (error: unknown) {
       handleUploadError(error);
     } finally {
@@ -78,15 +78,15 @@ export default function ProfileImageUpload() {
 
   function handleUploadError(error: unknown) {
     if (error instanceof Error) {
-      console.error('Error conocido:', error.message);
-      showError('Error al subir imagen', error.message);
+      console.error('Known error:', error.message);
+      showError('Error uploading image', error.message);
     } else if (typeof error === 'object' && error !== null) {
       const supabaseError = error as PostgrestError;
       console.error('Error Supabase:', supabaseError.message);
-      showError('Error en Supabase', supabaseError.message);
+      showError('Error in Supabase', supabaseError.message);
     } else {
-      console.error('Error desconocido:', error);
-      showError('Ocurrió un error desconocido');
+      console.error('Unknown error:', error);
+      showError('An unknown error occurred');
     }
   }
 
@@ -112,7 +112,7 @@ export default function ProfileImageUpload() {
       )}
 
       <label className="cursor-pointer text-[#67ff94] font-semibold underline hover:opacity-80 transition">
-        {imageUrl ? 'Editar foto' : 'Subir foto'}
+        {imageUrl ? 'Edit photo' : 'Upload photo'}
         <input
           type="file"
           accept="image/*"
@@ -122,7 +122,7 @@ export default function ProfileImageUpload() {
         />
       </label>
 
-      {uploading && <p className="text-sm text-gray-300">Subiendo imagen...</p>}
+      {uploading && <p className="text-sm text-gray-300">Updating image...</p>}
     </div>
   );
 }

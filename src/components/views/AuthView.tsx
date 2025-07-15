@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { supabase } from '@/utils/supabase/client';
 //UI global components
 import LoginCard from '@/components/organisms/LoginCard';
+import { showError } from '@/utils/toastService';
 
 export default function AuthView() {
   const router = useRouter();
@@ -42,8 +43,8 @@ export default function AuthView() {
     setLoading(false);
 
     if (error) {
-      console.error('❌ Error al enviar Magic Link:', error);
-      alert(`Error al enviar Magic Link: ${error.message}`);
+      console.error('❌ Error sending magic link:', error);
+      showError('Error al enviar Magic Link');
     } else {
       router.push('/auth/verify');
     }

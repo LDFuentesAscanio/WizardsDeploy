@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 //Utilities
 import { supabase } from '@/utils/supabase/client';
+import { showError } from '@/utils/toastService';
 
 interface FormValues {
   first_name: string;
@@ -50,7 +51,8 @@ export function useOnboarding() {
       });
 
       if (error) {
-        alert(`Error saving profile: ${error.message}`);
+        console.error('❌ Error saving profile:', error);
+        showError('Error saving profile');
       } else {
         // Redirige al Dashboard
         router.push('/dashboard');
