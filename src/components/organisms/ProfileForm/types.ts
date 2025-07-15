@@ -16,6 +16,7 @@ export interface ProfileFormValues {
   tools: string[];
   photo_url?: string;
   cv_url?: string;
+  filename?: string;
 }
 
 export interface Platform {

@@ -1,30 +1,38 @@
 'use client';
-//External libraries
+// External libraries
 import Image from 'next/image';
 import { useState } from 'react';
 import { useFormikContext } from 'formik';
 import { PostgrestError } from '@supabase/supabase-js';
-//Validations, types and interfaces
+// Validations, types and interfaces
 import { ProfileFormValues } from '../organisms/ProfileForm/types';
-//Utilities
+// Utilities
 import { supabase } from '@/utils/supabase/client';
+import { showError, showInfo, showSuccess } from '@/utils/toastService';
 
 export default function ProfileImageUpload() {
   const { setFieldValue, values } = useFormikContext<ProfileFormValues>();
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
 
-  interface StorageError {
-    message: string;
-    statusCode?: string;
-    error?: string;
-  }
+  const storageBaseUrl = process.env.NEXT_PUBLIC_SUPABASE_STORAGE_BASE_URL;
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    if (!file.type.startsWith('image/')) {
+      showError('Archivo no válido', 'Solo se permiten imágenes.');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      showError('Archivo demasiado grande', 'Debe pesar menos de 5MB.');
+      return;
+    }
+
     setUploading(true);
+    showInfo('Subiendo imagen...');
 
     try {
       const {
@@ -32,34 +40,35 @@ export default function ProfileImageUpload() {
         error: authError,
       } = await supabase.auth.getUser();
 
-      if (authError) throw authError;
-      if (!user) throw new Error('Usuario no autenticado');
+      if (authError || !user) {
+        throw new Error('Usuario no autenticado');
+      }
 
       const filename = `${user.id}_${Date.now()}.${file.name.split('.').pop()}`;
       const filePath = `profile-images/${filename}`;
 
-      // Subir imagen con tipado específico
       const { error: uploadError } = await supabase.storage
         .from('expert-documents')
-        .upload(filePath, file, { cacheControl: '3600', upsert: true });
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: true,
+        });
 
       if (uploadError) throw uploadError;
 
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from('expert-documents').getPublicUrl(filePath);
+      const fullUrl = `${storageBaseUrl}/${filePath}`;
 
-      // Upsert con tipado
       const { error: mediaError } = await supabase.rpc('upsert_user_media', {
         p_user_id: user.id,
         p_filename: file.name,
-        p_url_storage: publicUrl,
+        p_url_storage: fullUrl,
       });
 
       if (mediaError) throw mediaError;
 
-      setFieldValue('photo_url', publicUrl);
-      setPreview(publicUrl);
+      setFieldValue('photo_url', fullUrl);
+      setPreview(fullUrl);
+      showSuccess('Foto actualizada con éxito');
     } catch (error: unknown) {
       handleUploadError(error);
     } finally {
@@ -67,55 +76,53 @@ export default function ProfileImageUpload() {
     }
   };
 
-  // Función auxiliar para manejo de errores
   function handleUploadError(error: unknown) {
     if (error instanceof Error) {
       console.error('Error conocido:', error.message);
-      alert(`Error: ${error.message}`);
+      showError('Error al subir imagen', error.message);
     } else if (typeof error === 'object' && error !== null) {
-      const supabaseError = error as PostgrestError | StorageError;
+      const supabaseError = error as PostgrestError;
       console.error('Error Supabase:', supabaseError.message);
-      alert(`Error en Supabase: ${supabaseError.message}`);
+      showError('Error en Supabase', supabaseError.message);
     } else {
       console.error('Error desconocido:', error);
-      alert('Ocurrió un error desconocido');
+      showError('Ocurrió un error desconocido');
     }
   }
 
   const imageUrl = preview || values.photo_url;
 
   return (
-  <div className="flex flex-col items-center space-y-3">
-    {imageUrl ? (
-      <div className="relative w-[120px] h-[120px]">
-        <Image
-          src={imageUrl}
-          alt="Profile picture"
-          fill
-          className="rounded-2xl object-cover border border-white"
-          priority
-          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+    <div className="flex flex-col items-center space-y-3">
+      {imageUrl ? (
+        <div className="relative w-[120px] h-[120px]">
+          <Image
+            src={imageUrl}
+            alt="Profile picture"
+            fill
+            className="rounded-2xl object-cover border border-white"
+            priority
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+          />
+        </div>
+      ) : (
+        <div className="w-[120px] h-[120px] rounded-2xl bg-white/10 flex items-center justify-center text-sm text-white text-center">
+          No photo
+        </div>
+      )}
+
+      <label className="cursor-pointer text-[#67ff94] font-semibold underline hover:opacity-80 transition">
+        {imageUrl ? 'Editar foto' : 'Subir foto'}
+        <input
+          type="file"
+          accept="image/*"
+          onChange={handleImageChange}
+          className="hidden"
+          disabled={uploading}
         />
-      </div>
-    ) : (
-      <div className="w-[120px] h-[120px] rounded-2xl bg-white/10 flex items-center justify-center text-sm text-white text-center">
-        No photo
-      </div>
-    )}
+      </label>
 
-    <label className="cursor-pointer text-[#67ff94] font-semibold underline hover:opacity-80 transition">
-      {imageUrl ? 'Edit photo' : 'Upload photo'}
-      <input
-        type="file"
-        accept="image/*"
-        onChange={handleImageChange}
-        className="hidden"
-        disabled={uploading}
-      />
-    </label>
-
-    {uploading && <p className="text-sm text-gray-300">Uploading...</p>}
-  </div>
-);
-
+      {uploading && <p className="text-sm text-gray-300">Subiendo imagen...</p>}
+    </div>
+  );
 }
