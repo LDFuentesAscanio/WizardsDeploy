@@ -46,7 +46,7 @@ export async function fetchProfileFormData(userId: string) {
       .maybeSingle(),
     supabase
       .from('user_documents')
-      .select('url_storage')
+      .select('url_storage, filename')
       .eq('user_id', userId)
       .order('id', { ascending: false }) // si hay más de uno, agarramos el último
       .limit(1),
@@ -78,6 +78,7 @@ export async function fetchProfileFormData(userId: string) {
     tools: toolsData?.map((t) => t.tool_name) ?? [],
     photo_url: mediaData?.url_storage ?? '',
     cv_url: documentData?.[0]?.url_storage || '',
+    filename: documentData?.[0]?.filename || '',
   };
 
   return {
