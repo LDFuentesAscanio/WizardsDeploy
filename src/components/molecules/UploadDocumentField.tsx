@@ -13,6 +13,7 @@ export default function UploadDocumentField() {
   const [fileName, setFileName] = useState<string | null>(null);
   const { setFieldValue, values } = useFormikContext<ProfileFormValues>();
 
+  // ✅ URL base correctamente definida (sin barra final)
   const storageBaseUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/expert-documents`;
 
   const handleUpload = async (e: ChangeEvent<HTMLInputElement>) => {
@@ -56,20 +57,21 @@ export default function UploadDocumentField() {
 
       if (uploadError) throw uploadError;
 
+      // ✅ URL bien formada
       const fullUrl = `${storageBaseUrl}/${filePath}`;
 
       const { error: insertError } = await supabase
         .from('user_documents')
         .insert({
           user_id: user.id,
-          filename: file.name,
+          filename: file.name, // este es el nombre limpio, sin ID
           url_storage: fullUrl,
         });
 
       if (insertError) throw insertError;
 
       setFieldValue('cv_url', fullUrl);
-      setFieldValue('filename', file.name);
+      setFieldValue('filename', file.name); // mostramos solo el nombre, no la URL
       setFileName(file.name);
 
       showSuccess('File uploaded successfully', file.name);
@@ -81,10 +83,8 @@ export default function UploadDocumentField() {
     }
   };
 
-  const uploadedFileName =
-    values.filename ||
-    fileName ||
-    (values.cv_url ? values.cv_url.split('/').pop() : 'Document');
+  // ✅ Mostrar solo el nombre de archivo limpio, nunca el user ID
+  const uploadedFileName = values.filename || fileName || 'Document';
 
   return (
     <div className="space-y-1" lang="en">
