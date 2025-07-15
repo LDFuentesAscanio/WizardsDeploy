@@ -87,7 +87,7 @@ export default function UploadDocumentField() {
     (values.cv_url ? values.cv_url.split('/').pop() : 'Document');
 
   return (
-    <div className="space-y-1">
+    <div className="space-y-1" lang="en">
       <label className="block text-sm font-medium">Resume (PDF or DOCX)</label>
       <input
         type="file"
