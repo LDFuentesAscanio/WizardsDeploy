@@ -25,17 +25,17 @@ export default function UploadDocumentField() {
     ];
 
     if (!allowedTypes.includes(file.type)) {
-      showError('Formato no válido', 'Solo se permiten archivos PDF o DOCX.');
+      showError('Invalid format', 'Only PDF or DOCX files are allowed.');
       return;
     }
 
     if (file.size > 10 * 1024 * 1024) {
-      showError('Archivo muy grande', 'Debe pesar menos de 10MB.');
+      showError('File too large', 'Must be less than 10MB.');
       return;
     }
 
     setUploading(true);
-    showInfo('Subiendo archivo...');
+    showInfo('Uploading file...');
 
     try {
       const {
@@ -44,7 +44,7 @@ export default function UploadDocumentField() {
       } = await supabase.auth.getUser();
 
       if (authError || !user) {
-        throw new Error('No autenticado');
+        throw new Error('Not authenticated');
       }
 
       const uniqueFilename = `${Date.now()}_${file.name}`;
@@ -72,10 +72,10 @@ export default function UploadDocumentField() {
       setFieldValue('filename', file.name);
       setFileName(file.name);
 
-      showSuccess('Archivo subido', file.name);
+      showSuccess('File uploaded successfully', file.name);
     } catch (err) {
       console.error('Error uploading document:', err);
-      showError('Error al subir', 'Intenta nuevamente más tarde.');
+      showError('Upload failed', 'Please try again later.');
     } finally {
       setUploading(false);
     }
@@ -84,13 +84,11 @@ export default function UploadDocumentField() {
   const uploadedFileName =
     values.filename ||
     fileName ||
-    (values.cv_url ? values.cv_url.split('/').pop() : 'Documento');
+    (values.cv_url ? values.cv_url.split('/').pop() : 'Document');
 
   return (
     <div className="space-y-1">
-      <label className="block text-sm font-medium">
-        Curriculum (PDF o DOCX)
-      </label>
+      <label className="block text-sm font-medium">Resume (PDF or DOCX)</label>
       <input
         type="file"
         accept=".pdf,.doc,.docx"
@@ -99,17 +97,15 @@ export default function UploadDocumentField() {
         disabled={uploading}
       />
 
-      {uploading && (
-        <p className="text-sm text-gray-300">Subiendo archivo...</p>
-      )}
+      {uploading && <p className="text-sm text-gray-300">Uploading file...</p>}
 
       {fileName && (
-        <p className="text-sm text-green-400">✅ Archivo subido: {fileName}</p>
+        <p className="text-sm text-green-400">✅ File uploaded: {fileName}</p>
       )}
 
       {values.cv_url && !fileName && (
         <p className="text-sm text-blue-300 mt-1">
-          📎 Archivo actual:{' '}
+          📎 Current file:{' '}
           <a
             href={values.cv_url}
             target="_blank"
