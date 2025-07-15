@@ -32,7 +32,7 @@ export default function ProfileImageUpload() {
     }
 
     setUploading(true);
-    showInfo('Subiendo imagen...');
+    showInfo('Uploading image...');
 
     try {
       const {
