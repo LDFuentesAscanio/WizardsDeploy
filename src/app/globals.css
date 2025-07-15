@@ -1,5 +1,13 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: 'display';
+  src: url('/fonts/roc-grotesk-wide-black.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 @theme {
   --color-prim: #2c3d5a;
   --color-secon: #67ff94;
@@ -9,6 +17,7 @@
   --color-foreground: #ededed;
   
   --font-family-sans: 'Mulish', sans-serif;
+  --font-family-display: 'display', sans-serif;
   
   /* Configuración de Sonner */
   --color-sonner-bg: #e7e7e7;

@@ -36,7 +36,7 @@ export default function ProfileForm() {
     if (!user) return;
 
     if (JSON.stringify(values) === JSON.stringify(initialValues)) {
-      showInfo('No hay cambios para guardar.');
+      showInfo('There are no changes to save.');
       return;
     }
 
@@ -119,16 +119,16 @@ export default function ProfileForm() {
           skillsError,
           toolsError,
         });
-        showError('Error al guardar el perfil');
+        showError('Error saving profile');
       } else {
-        showSuccess('Perfil actualizado con éxito');
+        showSuccess('Profile updated successfully');
         if (forcedToCompleteProfile) {
           router.push('/dashboard');
         }
       }
     } catch (error) {
-      console.error('Error inesperado en handleSubmit:', error);
-      showError('Error inesperado al guardar el perfil');
+      console.error('Unexpected error in handleSubmit:', error);
+      showError('Unexpected error saving profile');
     }
   };
 
@@ -164,7 +164,9 @@ export default function ProfileForm() {
               height={64}
               className="mb-2"
             />
-            <h1 className="text-2xl font-bold text-center mb-4">Profile</h1>
+            <h1 className="text-2xl font-display font-bold text-center mb-4">
+              Profile
+            </h1>
           </div>
           <ProfileImageUpload />
           <FormInput name="first_name" label="First Name" />

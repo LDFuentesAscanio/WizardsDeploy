@@ -54,7 +54,7 @@ export default function DashboardNavbar() {
             md:flex bg-[#8effd2] rounded-xl px-6 py-3 shadow-md
           `}
         >
-          <ul className="flex flex-col md:flex-row gap-4 md:gap-6 text-sm font-medium">
+          <ul className="flex flex-col md:flex-row gap-4 md:gap-6 text-sm font-display font-medium">
             {[
               { label: 'Dashboard', href: '/dashboard' },
               { label: 'Profile', href: '/profile/edit' },
