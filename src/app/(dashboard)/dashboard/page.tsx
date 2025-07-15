@@ -3,15 +3,21 @@
 import { Suspense } from 'react';
 import DashboardView from '@/components/views/DashboardView';
 import DashboardGuard from '@/components/guards/DashboardGuard';
+import Image from 'next/image';
 
 export default function DashboardPage() {
   return (
     <DashboardGuard>
       <Suspense
         fallback={
-          <div className="text-white text-center mt-10">
-            Loading dashboard...
-          </div>
+          <Image
+            src="/icons/carga.svg"
+            alt="Loading"
+            width={160}
+            height={160}
+            className="animate-pulse w-auto h-auto"
+            priority
+          />
         }
       >
         <DashboardView />

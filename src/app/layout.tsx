@@ -23,7 +23,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="es" className={mulish.variable}>
+    <html lang="en" className={mulish.variable}>
       <body className="antialiased">
         <Toaster
           position="top-right"
