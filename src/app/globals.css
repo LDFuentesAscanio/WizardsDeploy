@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 @font-face {
-  font-family: 'display';
+  font-family:'display';
   src: url('/fonts/roc-grotesk-wide-black.woff2') format('woff2');
   font-weight: normal;
   font-style: normal;

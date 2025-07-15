@@ -15,7 +15,7 @@ export default function ProfileImageUpload() {
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
 
-  const storageBaseUrl = process.env.NEXT_PUBLIC_SUPABASE_STORAGE_BASE_URL;
+  const storageBaseUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/expert-documents`;
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

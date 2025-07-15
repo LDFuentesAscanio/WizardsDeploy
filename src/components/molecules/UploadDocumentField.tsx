@@ -13,7 +13,7 @@ export default function UploadDocumentField() {
   const [fileName, setFileName] = useState<string | null>(null);
   const { setFieldValue, values } = useFormikContext<ProfileFormValues>();
 
-  const storageBaseUrl = process.env.NEXT_PUBLIC_SUPABASE_STORAGE_BASE_URL;
+  const storageBaseUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/expert-documents`;
 
   const handleUpload = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
