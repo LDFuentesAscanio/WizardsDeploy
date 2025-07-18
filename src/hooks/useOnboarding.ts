@@ -33,14 +33,17 @@ export function useOnboarding() {
         values.role.charAt(0).toUpperCase() +
         values.role.slice(1).toLowerCase();
       // 2️⃣ Obtiene el role_id para "customer" o "expert"
-      const { data: roleData, error: roleError } = await supabase
+      const { data, error: roleError } = await supabase
         .from('user_role')
         .select('id')
         .eq('name', normalizedRole)
-        .single();
+        .limit(1); // <--- el cambio
+
+      const roleData = data?.[0]; // <-- accedemos al primer resultado
 
       if (roleError) console.error('❌ Supabase role error:', roleError);
-      if (!roleData) console.warn('⚠️ No se encontró role con:', values.role);
+      if (!roleData)
+        console.warn('⚠️ No se encontró role con:', normalizedRole);
 
       if (roleError || !roleData) {
         alert('Invalid role selected');
