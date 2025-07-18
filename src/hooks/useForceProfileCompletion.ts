@@ -1,8 +1,6 @@
 'use client';
-//External libraries
 import { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-//Utilities
 import { supabase } from '@/utils/supabase/client';
 
 export let forcedToCompleteProfile = false;
@@ -13,13 +11,14 @@ export function useForceProfileCompletion() {
 
   useEffect(() => {
     const checkProfileCompletion = async () => {
+      // Excluir rutas que no necesitan verificación
       if (
         !pathname ||
-        pathname === '/profile/edit' ||
-        pathname === '/force-profile/edit' ||
-        pathname === '/auth'
-      )
+        pathname.startsWith('/profile') ||
+        pathname.startsWith('/auth')
+      ) {
         return;
+      }
 
       try {
         const {
@@ -28,41 +27,34 @@ export function useForceProfileCompletion() {
         } = await supabase.auth.getUser();
 
         if (userError || !user) {
-          console.warn('🔒 No session found or error:', userError);
+          console.warn('No session found:', userError);
+          return router.replace('/auth');
+        }
+
+        // Verificar solo los campos esenciales
+        const { data: userData, error: userDataError } = await supabase
+          .from('users')
+          .select('first_name, last_name, country_id, role_id')
+          .eq('id', user.id)
+          .single();
+
+        if (userDataError) {
+          console.error('Error fetching user data:', userDataError);
           return;
         }
 
-        try {
-          const [userRes, aboutRes] = await Promise.all([
-            supabase
-              .from('users')
-              .select('country_id')
-              .eq('id', user.id)
-              .single(),
-            supabase
-              .from('about')
-              .select('bio, profession')
-              .eq('user_id', user.id) // ✅ Correcto
-              .single(),
-          ]);
+        const isProfileComplete =
+          userData?.first_name &&
+          userData?.last_name &&
+          userData?.country_id &&
+          userData?.role_id;
 
-          // Si hay un error en la petición de about, asumimos que la tabla está vacía
-          const countryId = userRes?.data?.country_id;
-          const bio = aboutRes?.data?.bio ?? '';
-          const profession = aboutRes?.data?.profession ?? '';
-
-          const isIncomplete =
-            !countryId || !bio?.trim() || !profession?.trim();
-
-          if (isIncomplete && pathname !== '/force-profile/edit') {
-            forcedToCompleteProfile = true;
-            router.replace('/force-profile/edit');
-          }
-        } catch (err) {
-          console.error('❌ Error while checking profile completion:', err);
+        if (!isProfileComplete && !pathname.startsWith('/onboarding')) {
+          forcedToCompleteProfile = true;
+          return router.replace('/onboarding');
         }
-      } catch (err) {
-        console.error('❌ Error while getting user:', err);
+      } catch (error) {
+        console.error('Error checking profile completion:', error);
       }
     };
 

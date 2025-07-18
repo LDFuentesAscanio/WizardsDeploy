@@ -6,14 +6,10 @@ import { useRouter } from 'next/navigation';
 // Utilities
 import { supabase } from '@/utils/supabase/client';
 import { useProfileFormData } from './useProfileFormData';
-import {
-  forcedToCompleteProfile,
-  useForceProfileCompletion,
-} from '@/hooks/useForceProfileCompletion';
+import { forcedToCompleteProfile } from '@/hooks/useForceProfileCompletion';
 import { showSuccess, showError, showInfo } from '@/utils/toastService';
 // Validations, types and interfaces
 import { profileSchema } from '@/validations/profile-validations';
-import { ProfileFormValues } from './types';
 // UI local components
 import ExpertiseSection from './ExpertiseSection';
 import SkillsSection from './SkillsSection';
@@ -23,25 +19,30 @@ import FormInput from '@/components/atoms/FormInput';
 import FormSelect from '@/components/atoms/FormSelect';
 import ProfileImageUpload from '@/components/molecules/ProfileImageUpload';
 import UploadDocumentField from '@/components/molecules/UploadDocumentField';
+import { ProfileFormValues } from './types';
 
 export default function ProfileForm() {
   const { initialValues, countries, roles, loading } = useProfileFormData();
   const router = useRouter();
 
-  useForceProfileCompletion();
-
   const handleSubmit = async (values: ProfileFormValues) => {
-    const { data: auth } = await supabase.auth.getUser();
-    const user = auth.user;
-    if (!user) return;
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      console.error('Authentication error:', authError);
+      return;
+    }
 
     if (JSON.stringify(values) === JSON.stringify(initialValues)) {
-      showInfo('There are no changes to save.');
+      showInfo('No changes detected');
       return;
     }
 
     try {
-      // 🧩 Actualizar datos del usuario
+      // 1. Actualizar datos básicos del usuario
       const { error: userError } = await supabase.from('users').upsert({
         id: user.id,
         first_name: values.first_name,
@@ -52,101 +53,102 @@ export default function ProfileForm() {
         other_link: values.other_link,
       });
 
-      await supabase.from('user_media').upsert(
-        {
-          user_id: user.id,
-          url_storage: values.photo_url,
-          filename: values.photo_url?.split('/').pop() || '',
-        },
-        { onConflict: 'user_id' }
-      );
+      if (userError) throw userError;
 
+      // 2. Actualizar about
       const { error: aboutError } = await supabase.from('about').upsert(
         {
           user_id: user.id,
-          bio: values.bio,
-          profession: values.profession,
+          bio: values.bio || 'Not provided',
+          profession: values.profession || 'Not provided',
         },
         { onConflict: 'user_id' }
       );
 
-      // 🔄 Reemplazar toda la experticia
-      await supabase.from('user_expertise').delete().eq('user_id', user.id);
+      if (aboutError) throw aboutError;
 
-      const insertExpertise = values.expertise.map((e) => ({
-        user_id: user.id,
-        platform_id: e.platform_id,
-        rating: Number(e.rating),
-        experience_time: e.experience_time,
-      }));
-
-      const { error: expertiseError } = await supabase
-        .from('user_expertise')
-        .insert(insertExpertise);
-
-      // 🔄 Reemplazar skills y tools
-      await supabase.from('skills').delete().eq('user_id', user.id);
-      await supabase.from('tools').delete().eq('user_id', user.id);
-
-      const skillsPayload = values.skills.map((skill) => ({
-        user_id: user.id,
-        skill_name: skill,
-      }));
-
-      const toolsPayload = values.tools.map((tool) => ({
-        user_id: user.id,
-        tool_name: tool,
-      }));
-
-      const { error: skillsError } = await supabase
-        .from('skills')
-        .insert(skillsPayload);
-      const { error: toolsError } = await supabase
-        .from('tools')
-        .insert(toolsPayload);
-
-      if (
-        userError ||
-        aboutError ||
-        expertiseError ||
-        skillsError ||
-        toolsError
-      ) {
-        console.error({
-          userError,
-          aboutError,
-          expertiseError,
-          skillsError,
-          toolsError,
-        });
-        showError('Error saving profile');
-      } else {
-        showSuccess('Profile updated successfully');
-        if (forcedToCompleteProfile) {
-          router.push('/dashboard');
-        }
+      // 3. Actualizar user_media (foto de perfil)
+      if (values.photo_url) {
+        await supabase.from('user_media').upsert(
+          {
+            user_id: user.id,
+            url_storage: values.photo_url,
+            filename: values.photo_url.split('/').pop() || 'profile.jpg',
+          },
+          { onConflict: 'user_id' }
+        );
       }
-    } catch (error) {
-      console.error('Unexpected error in handleSubmit:', error);
-      showError('Unexpected error saving profile');
+
+      // 4. Manejo de expertise (eliminar y recrear)
+      await supabase.from('user_expertise').delete().eq('user_id', user.id);
+      if (values.expertise?.length > 0) {
+        const { error: expertiseError } = await supabase
+          .from('user_expertise')
+          .insert(
+            values.expertise.map((e) => ({
+              user_id: user.id,
+              platform_id: e.platform_id,
+              rating: Number(e.rating),
+              experience_time: e.experience_time,
+            }))
+          );
+
+        if (expertiseError) throw expertiseError;
+      }
+
+      // 5. Manejo de skills (eliminar y recrear)
+      await supabase.from('skills').delete().eq('user_id', user.id);
+      if (values.skills?.length > 0) {
+        const { error: skillsError } = await supabase.from('skills').insert(
+          values.skills.map((skill) => ({
+            user_id: user.id,
+            skill_name: skill,
+          }))
+        );
+
+        if (skillsError) throw skillsError;
+      }
+
+      // 6. Manejo de tools (eliminar y recrear)
+      await supabase.from('tools').delete().eq('user_id', user.id);
+      if (values.tools?.length > 0) {
+        const { error: toolsError } = await supabase.from('tools').insert(
+          values.tools.map((tool) => ({
+            user_id: user.id,
+            tool_name: tool,
+          }))
+        );
+
+        if (toolsError) throw toolsError;
+      }
+
+      // 7. Manejo de documentos (CV)
+      if (values.cv_url) {
+        await supabase.from('user_documents').upsert(
+          {
+            user_id: user.id,
+            url_storage: values.cv_url,
+            filename: values.filename || 'document.pdf',
+          },
+          { onConflict: 'user_id' }
+        );
+      }
+
+      showSuccess('Profile updated successfully');
+
+      if (forcedToCompleteProfile) {
+        router.push('/dashboard');
+      }
+    } catch (error: unknown) {
+      console.error('Error saving profile:', error);
+      const message =
+        error instanceof Error ? error.message : 'Error updating profile';
+      showError(message);
     }
   };
 
-  if (loading) {
-    return (
-      <main className="min-h-screen flex items-center justify-center bg-[#2c3d5a] text-white">
-        <p>Loading profile...</p>
-      </main>
-    );
-  }
-
-  if (!initialValues) {
-    return (
-      <main className="min-h-screen flex items-center justify-center bg-[#2c3d5a] text-white">
-        <p>Error loading profile. Please refresh.</p>
-      </main>
-    );
-  }
+  if (loading) return <div>Loading...</div>;
+  if (!initialValues) return <div>Error loading profile</div>;
 
   return (
     <Formik
