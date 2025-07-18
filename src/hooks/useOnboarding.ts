@@ -24,47 +24,39 @@ export function useOnboarding() {
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      if (!user) throw new Error('No user found');
+      if (!user) throw new Error('Usuario no autenticado');
 
-      // 2. Consulta MEJORADA con debug
-      const { data: role, error: roleError } = await supabase
+      // 2. Consulta de rol
+      const { data: role } = await supabase
         .from('user_role')
         .select('id')
-        .ilike('name', values.role) // <- Usamos ilike para case-insensitive
-        .single(); // <- single() en lugar de limit(1)
+        .ilike('name', values.role)
+        .single();
 
-      console.log('Consulta rol:', {
-        role,
-        error: roleError,
-        query: `SELECT id FROM user_role WHERE name ILIKE '${values.role}'`,
-      });
+      if (!role?.id) throw new Error('Rol no encontrado');
 
-      if (roleError || !role?.id) {
-        // Debug adicional
-        const { data: allRoles } = await supabase.from('user_role').select('*');
-        console.log('Roles disponibles:', allRoles);
-        throw new Error(
-          `Rol no válido. Roles existentes: ${
-            allRoles?.map((r) => r.name).join(', ') || 'ninguno'
-          }`
-        );
-      }
-
-      // 3. Upsert
-      const { error } = await supabase.from('users').upsert({
-        id: user.id,
-        email: user.email,
-        first_name: values.first_name,
-        last_name: values.last_name,
-        role_id: role.id,
-      });
+      // 3. Upsert CORREGIDO (sin 'returning')
+      const { error } = await supabase.from('users').upsert(
+        {
+          id: user.id,
+          email: user.email,
+          first_name: values.first_name,
+          last_name: values.last_name,
+          role_id: role.id,
+        },
+        {
+          onConflict: 'id', // Solo esta opción es válida
+        }
+      );
 
       if (error) throw error;
       router.push('/dashboard');
     } catch (error) {
       console.error('Error completo:', error);
       showError(
-        error instanceof Error ? error.message : 'Error guardando perfil'
+        error instanceof Error
+          ? error.message
+          : 'Error guardando perfil. Contacta al soporte.'
       );
     } finally {
       setLoading(false);
