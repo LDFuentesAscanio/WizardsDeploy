@@ -77,8 +77,8 @@ export default function OnboardingView() {
               <FormSelect
                 name="role"
                 options={[
-                  { value: 'expert', label: 'Expert' },
-                  { value: 'customer', label: 'Customer' },
+                  { value: 'Expert', label: 'Expert' },
+                  { value: 'Customer', label: 'Customer' },
                 ]}
               />
             </div>
