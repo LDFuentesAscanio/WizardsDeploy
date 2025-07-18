@@ -29,21 +29,19 @@ export function useOnboarding() {
         alert('No user found');
         return;
       }
-      const normalizedRole =
-        values.role.charAt(0).toUpperCase() +
-        values.role.slice(1).toLowerCase();
-      // 2️⃣ Obtiene el role_id para "customer" o "expert"
+      const roleName = values.role; // "Expert" o "Customer" exactamente como en DB
+
+      // 2️⃣ Obtiene el role_id para "Customer" o "Expert"
       const { data, error: roleError } = await supabase
         .from('user_role')
         .select('id')
-        .eq('name', normalizedRole)
-        .limit(1); // <--- el cambio
+        .eq('name', roleName) // Busca exactamente el valor recibido
+        .limit(1);
 
-      const roleData = data?.[0]; // <-- accedemos al primer resultado
+      const roleData = data?.[0];
 
       if (roleError) console.error('❌ Supabase role error:', roleError);
-      if (!roleData)
-        console.warn('⚠️ No se encontró role con:', normalizedRole);
+      if (!roleData) console.warn('⚠️ No se encontró role con:', roleName);
 
       if (roleError || !roleData) {
         alert('Invalid role selected');
