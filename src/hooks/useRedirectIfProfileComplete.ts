@@ -11,11 +11,7 @@ export function useRedirectIfProfileComplete() {
 
   useEffect(() => {
     const checkProfile = async () => {
-      if (
-        pathname === '/dashboard' ||
-        pathname === '/profile/edit' ||
-        pathname === '/force-profile/edit'
-      )
+      if (pathname === '/dashboard' || pathname === '/force-profile/edit')
         return;
 
       const {
