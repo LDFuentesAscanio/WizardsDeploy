@@ -12,5 +12,5 @@ export const onboardingSchema = Yup.object({
 
   role: Yup.string()
     .required('Role is required')
-    .oneOf(['expert', 'customer'], 'Invalid role'),
+    .oneOf(['Expert', 'Customer'], 'Invalid role'),
 });
