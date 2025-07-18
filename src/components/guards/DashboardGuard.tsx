@@ -41,23 +41,17 @@ export default function DashboardGuard({ children }: Props) {
       ]);
 
       const countryId = userData?.country_id;
-      const roleId = userData?.role_id;
       const bio = aboutData?.bio ?? '';
       const profession = aboutData?.profession ?? '';
 
       const incomplete = !countryId || !bio.trim() || !profession.trim();
 
       if (incomplete) {
-        // Redirigir según el rol
-        if (roleId === 'customer' || roleId === 'expert') {
-          router.replace('/force-profile/edit');
-        } else {
-          router.replace('/profile/edit');
-        }
+        router.replace('/force-profile/edit'); // ✅ Solo esta ruta
         return;
       }
 
-      setChecking(false); // ✅ Perfil completo, puede continuar
+      setChecking(false); // ✅ Perfil completo
     };
 
     checkProfileCompletion();
