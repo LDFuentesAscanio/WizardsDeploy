@@ -4,6 +4,12 @@ import { supabase } from '@/utils/supabase/client';
 import ProfileForm from '@/components/organisms/ProfileForm/ProfileForm';
 import CustomerProfileForm from '@/components/organisms/ProfileForm/CustomerProfileForm';
 
+type RoleData = {
+  role_id: {
+    name: string;
+  };
+};
+
 export default function ForceProfilePage() {
   const [role, setRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -13,26 +19,21 @@ export default function ForceProfilePage() {
       const {
         data: { user },
       } = await supabase.auth.getUser();
+
       if (!user) return;
 
       const { data, error } = await supabase
         .from('users')
-        .select('role_id')
+        .select('role_id(name)')
         .eq('id', user.id)
-        .single();
+        .single<RoleData>();
 
-      if (error) {
+      if (error || !data?.role_id?.name) {
         console.error('Error fetching role:', error);
         return;
       }
 
-      const { data: roleData } = await supabase
-        .from('user_role')
-        .select('name')
-        .eq('id', data.role_id)
-        .single();
-
-      setRole(roleData?.name);
+      setRole(data.role_id.name);
       setLoading(false);
     };
 
@@ -41,13 +42,8 @@ export default function ForceProfilePage() {
 
   if (loading) return <p className="text-white">Loading...</p>;
 
-  if (role === 'Expert') {
-    return <ProfileForm />;
-  }
-
-  if (role === 'Customer') {
-    return <CustomerProfileForm />;
-  }
+  if (role === 'Expert') return <ProfileForm />;
+  if (role === 'Customer') return <CustomerProfileForm />;
 
   return <p className="text-white">Unauthorized</p>;
 }
