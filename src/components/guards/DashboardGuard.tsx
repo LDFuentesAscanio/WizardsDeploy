@@ -27,10 +27,10 @@ export default function DashboardGuard({ children }: Props) {
         return;
       }
 
-      const [userRes, aboutRes] = await Promise.all([
+      const [{ data: userData }, { data: aboutData }] = await Promise.all([
         supabase
           .from('users')
-          .select('country_id')
+          .select('country_id, role_id')
           .eq('id', user.id)
           .maybeSingle(),
         supabase
@@ -40,14 +40,20 @@ export default function DashboardGuard({ children }: Props) {
           .maybeSingle(),
       ]);
 
-      const countryId = userRes?.data?.country_id;
-      const bio = aboutRes?.data?.bio ?? '';
-      const profession = aboutRes?.data?.profession ?? '';
+      const countryId = userData?.country_id;
+      const roleId = userData?.role_id;
+      const bio = aboutData?.bio ?? '';
+      const profession = aboutData?.profession ?? '';
 
       const incomplete = !countryId || !bio.trim() || !profession.trim();
 
       if (incomplete) {
-        router.replace('/profile/edit');
+        // Redirigir según el rol
+        if (roleId === 'customer' || roleId === 'expert') {
+          router.replace('/force-profile/edit');
+        } else {
+          router.replace('/profile/edit');
+        }
         return;
       }
 
