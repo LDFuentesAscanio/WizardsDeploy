@@ -27,52 +27,37 @@ export function useOnboarding() {
       if (!user)
         throw new Error(userError?.message || 'Usuario no autenticado');
 
-      // 2. Consulta CON esquema público y debug extendido
+      // 2. Consulta CORREGIDA (sin duplicar 'public')
       const roleQuery = await supabase
-        .from('public.user_role')
+        .from('user_role') // <- Solo el nombre de la tabla, sin esquema
         .select('id')
-        .eq('name', values.role.trim()) // Limpieza adicional
-        .maybeSingle(); // <- Método óptimo para buscar 1 registro
+        .eq('name', values.role.trim())
+        .maybeSingle();
 
-      console.log('DEBUG - Consulta de rol:', {
-        query: `SELECT id FROM public.user_role WHERE name = '${values.role.trim()}'`,
+      console.log('Consulta corregida:', {
+        query: `SELECT id FROM user_role WHERE name = '${values.role.trim()}'`,
         results: roleQuery.data,
         error: roleQuery.error,
-        status: roleQuery.status,
       });
 
       if (roleQuery.error) throw roleQuery.error;
-      if (!roleQuery.data?.id) {
-        // Consulta de emergencia para listar TODOS los roles
-        const { data: allRoles } = await supabase
-          .from('public.user_role')
-          .select('name');
-        throw new Error(
-          `Rol inválido. Opciones válidas: ${
-            allRoles?.map((r) => `"${r.name}"`).join(', ') ||
-            'Ningún rol encontrado'
-          }`
-        );
-      }
+      if (!roleQuery.data?.id) throw new Error('Rol no encontrado');
 
-      // 3. Upsert con transacción
-      const { error } = await supabase.from('users').upsert(
-        {
-          id: user.id,
-          email: user.email,
-          first_name: values.first_name.trim(),
-          last_name: values.last_name.trim(),
-          role_id: roleQuery.data.id,
-        },
-        { onConflict: 'id' }
-      );
+      // 3. Upsert
+      const { error } = await supabase.from('users').upsert({
+        id: user.id,
+        email: user.email,
+        first_name: values.first_name.trim(),
+        last_name: values.last_name.trim(),
+        role_id: roleQuery.data.id,
+      });
 
       if (error) throw error;
       router.push('/dashboard');
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : 'Error desconocido';
-      console.error('Error completo:', error);
+        error instanceof Error ? error.message : 'Error en registro';
+      console.error('Error:', error);
       showError(message);
     } finally {
       setLoading(false);
