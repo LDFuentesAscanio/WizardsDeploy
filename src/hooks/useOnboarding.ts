@@ -17,6 +17,7 @@ export function useOnboarding() {
   const router = useRouter();
 
   const saveUserProfile = async (values: FormValues) => {
+    console.log('🧪 Role recibido en el submit:', values.role);
     setLoading(true);
 
     try {
@@ -28,13 +29,18 @@ export function useOnboarding() {
         alert('No user found');
         return;
       }
-
+      const normalizedRole =
+        values.role.charAt(0).toUpperCase() +
+        values.role.slice(1).toLowerCase();
       // 2️⃣ Obtiene el role_id para "customer" o "expert"
       const { data: roleData, error: roleError } = await supabase
         .from('user_role')
         .select('id')
-        .eq('name', values.role)
+        .eq('name', normalizedRole)
         .single();
+
+      if (roleError) console.error('❌ Supabase role error:', roleError);
+      if (!roleData) console.warn('⚠️ No se encontró role con:', values.role);
 
       if (roleError || !roleData) {
         alert('Invalid role selected');
