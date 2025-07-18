@@ -17,53 +17,58 @@ export function useOnboarding() {
   const router = useRouter();
 
   const saveUserProfile = async (values: FormValues) => {
-    console.log('🧪 Role recibido en el submit:', values.role);
+    console.log('🧪 Role recibido:', values.role);
     setLoading(true);
 
     try {
-      // 1️⃣ Obtiene usuario actual
+      // 1. Obtener usuario
       const {
         data: { user },
+        error: userError,
       } = await supabase.auth.getUser();
-      if (!user) {
-        alert('No user found');
-        return;
+      if (userError || !user) {
+        throw new Error(userError?.message || 'No user found');
       }
-      const roleName = values.role; // "Expert" o "Customer" exactamente como en DB
 
-      // 2️⃣ Obtiene el role_id para "Customer" o "Expert"
-      const { data, error: roleError } = await supabase
+      // 2. Consulta directa con el valor exacto
+      const { data: roles, error: roleError } = await supabase
         .from('user_role')
         .select('id')
-        .eq('name', roleName) // Busca exactamente el valor recibido
+        .eq('name', values.role)
         .limit(1);
 
-      const roleData = data?.[0];
+      console.log('Resultado consulta rol:', { roles, roleError });
 
-      if (roleError) console.error('❌ Supabase role error:', roleError);
-      if (!roleData) console.warn('⚠️ No se encontró role con:', roleName);
-
-      if (roleError || !roleData) {
-        alert('Invalid role selected');
-        return;
+      if (roleError || !roles?.[0]?.id) {
+        throw new Error(roleError?.message || 'Rol no encontrado');
       }
 
-      // 3️⃣ Inserta/actualiza datos en la tabla 'users'
-      const { error } = await supabase.from('users').upsert({
+      // 3. Upsert en users
+      const { error: upsertError } = await supabase.from('users').upsert({
         id: user.id,
         email: user.email,
         first_name: values.first_name,
         last_name: values.last_name,
-        role_id: roleData.id,
+        role_id: roles[0].id,
       });
 
-      if (error) {
-        console.error('❌ Error saving profile:', error);
-        showError('Error saving profile');
-      } else {
-        // Redirige al Dashboard
-        router.push('/dashboard');
+      if (upsertError) {
+        throw new Error(upsertError.message);
       }
+
+      router.push('/dashboard');
+    } catch (error: unknown) {
+      // <-- Especificamos que error es de tipo unknown
+      let errorMessage = 'Error saving profile';
+
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      }
+
+      console.error('Error en onboarding:', error);
+      showError(errorMessage);
     } finally {
       setLoading(false);
     }
