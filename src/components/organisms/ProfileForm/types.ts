@@ -1,4 +1,21 @@
-export interface ProfileFormValues {
+// Interfaces base compartidas
+export interface CustomerSharedFields {
+  company_name: string;
+  actual_role: string;
+  email: string;
+  looking_for_expert: boolean;
+  selected_solutions: string[];
+  solution_description: string;
+  accepted_privacy_policy: boolean;
+  accepted_terms_conditions: boolean;
+}
+
+// Customer (para base de datos o API)
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+export interface Customer extends CustomerSharedFields {}
+
+// ProfileFormValues (para formulario completo del perfil)
+export interface ProfileFormValues extends CustomerSharedFields {
   first_name: string;
   last_name: string;
   country_id: string;
@@ -17,16 +34,9 @@ export interface ProfileFormValues {
   photo_url?: string;
   cv_url?: string;
   filename?: string;
-  company_name: string;
-  actual_role: string;
-  email: string;
-}
-export interface Customer {
-  company_name: string;
-  actual_role: string;
-  email: string;
 }
 
+// Otros modelos auxiliares
 export interface Platform {
   id: string;
   name: string;
@@ -45,4 +55,9 @@ export interface Role {
 export interface About {
   bio: string | null;
   profession: string | null;
+}
+
+export interface Solution {
+  id: string;
+  name: string;
 }

@@ -2,7 +2,7 @@
 //External libraries
 import { useEffect, useState } from 'react';
 //Validations, types and interfaces
-import { ProfileFormValues, Country, Role } from './types';
+import { ProfileFormValues, Country, Role, Solution } from './types';
 //Utilities
 import { supabase } from '@/utils/supabase/client';
 import { fetchProfileFormData } from './helpers';
@@ -13,6 +13,7 @@ export function useProfileFormData() {
   );
   const [countries, setCountries] = useState<Country[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
+  const [solutions, setSolutions] = useState<Solution[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -22,14 +23,14 @@ export function useProfileFormData() {
         const user = auth?.user;
         if (!user) throw new Error('No user found');
 
-        const { initialValues, countries, roles } = await fetchProfileFormData(
-          user.id
-        );
+        const { initialValues, countries, roles, solutions } =
+          await fetchProfileFormData(user.id);
         const filteredRoles = roles.filter((role) => role.name !== 'admin');
 
         setInitialValues(initialValues);
         setCountries(countries);
         setRoles(filteredRoles);
+        setSolutions(solutions);
       } catch (err) {
         console.error('❌ Error loading profile form:', err);
       } finally {
@@ -40,5 +41,5 @@ export function useProfileFormData() {
     load();
   }, []);
 
-  return { initialValues, countries, roles, loading };
+  return { initialValues, countries, roles, solutions, loading };
 }

@@ -16,15 +16,16 @@ import SkillsSection from './SkillsSection';
 import ToolsSection from './ToolsSection';
 // UI global components
 import FormInput from '@/components/atoms/FormInput';
-import FormSelect from '@/components/atoms/FormSelect';
 import ProfileImageUpload from '@/components/molecules/ProfileImageUpload';
 import UploadDocumentField from '@/components/molecules/UploadDocumentField';
 import { ProfileFormValues } from './types';
 import { BasicInfoSection } from './formSections/BasicInfoSection';
 import { CustomerBasicInfo } from './formSections/CustomerBasicInfo';
+import CustomerSolutionsSection from './formSections/CustomerSolutionsSection';
 
 export default function ProfileForm() {
-  const { initialValues, countries, roles, loading } = useProfileFormData();
+  const { initialValues, countries, roles, loading, solutions } =
+    useProfileFormData();
   const router = useRouter();
 
   const handleSubmit = async (values: ProfileFormValues) => {
@@ -175,18 +176,8 @@ export default function ProfileForm() {
           <ProfileImageUpload />
           <BasicInfoSection countries={countries} roles={roles} />
           <CustomerBasicInfo />
-          <FormInput name="first_name" label="First Name" />
-          <FormInput name="last_name" label="Last Name" />
-          <FormSelect
-            name="country_id"
-            label="Country"
-            options={countries.map((c) => ({ value: c.id, label: c.name }))}
-          />
-          <FormSelect
-            name="role_id"
-            label="Role"
-            options={roles.map((r) => ({ value: r.id, label: r.name }))}
-          />
+          <CustomerSolutionsSection solutions={solutions} />
+
           <UploadDocumentField />
           <FormInput name="linkedin_profile" label="LinkedIn Profile" />
           <FormInput name="other_link" label="Other Link" />

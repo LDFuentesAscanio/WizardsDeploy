@@ -1,6 +1,4 @@
-//Validations, types and interfaces
 import { About, Customer, ProfileFormValues } from './types';
-//Utilities
 import { supabase } from '@/utils/supabase/client';
 
 export async function fetchProfileFormData(userId: string) {
@@ -13,8 +11,9 @@ export async function fetchProfileFormData(userId: string) {
     { data: skillsData },
     { data: toolsData },
     { data: expertiseData, error: expertiseError },
-    { data: mediaData }, // 👈 imagen de perfil
+    { data: mediaData },
     { data: documentData },
+    { data: solutionsData, error: solutionsError },
   ] = await Promise.all([
     supabase
       .from('users')
@@ -23,10 +22,13 @@ export async function fetchProfileFormData(userId: string) {
       )
       .eq('id', userId)
       .single(),
+
     supabase
-      .from('customers') // 👈 consulta correcta
-      .select('company_name, actual_role, email')
-      .eq('user_id', userId) // 👈 esta es la clave externa
+      .from('customers')
+      .select(
+        'company_name, actual_role, email, description, accepted_privacy_policy, accepted_terms_conditions, looking_for_expert'
+      )
+      .eq('user_id', userId)
       .maybeSingle<Customer>(),
 
     supabase.from('country').select('id, name'),
@@ -45,17 +47,21 @@ export async function fetchProfileFormData(userId: string) {
       .from('user_expertise')
       .select('platform_id, rating, experience_time')
       .eq('user_id', userId),
+
     supabase
       .from('user_media')
       .select('url_storage')
       .eq('user_id', userId)
       .maybeSingle(),
+
     supabase
       .from('user_documents')
       .select('url_storage, filename')
       .eq('user_id', userId)
-      .order('id', { ascending: false }) // si hay más de uno, agarramos el último
+      .order('id', { ascending: false })
       .limit(1),
+
+    supabase.from('solutions').select('id, name'),
   ]);
 
   if (
@@ -64,7 +70,8 @@ export async function fetchProfileFormData(userId: string) {
     countriesError ||
     rolesError ||
     aboutError ||
-    expertiseError
+    expertiseError ||
+    solutionsError
   ) {
     throw new Error('Error loading profile data');
   }
@@ -80,7 +87,7 @@ export async function fetchProfileFormData(userId: string) {
     other_link: userData?.other_link || '',
     bio: aboutData?.bio ?? '',
     profession: aboutData?.profession ?? '',
-    expertise: expertiseData ?? [], // ✅ ahora sí traemos la data guardada
+    expertise: expertiseData ?? [],
     skills: skillsData?.map((s) => s.skill_name) ?? [],
     tools: toolsData?.map((t) => t.tool_name) ?? [],
     photo_url: mediaData?.url_storage ?? '',
@@ -89,11 +96,18 @@ export async function fetchProfileFormData(userId: string) {
     company_name: customersData?.company_name || '',
     actual_role: customersData?.actual_role || '',
     email: customersData?.email || '',
+    solution_description: '',
+    selected_solutions: [], // vacías por ahora
+    looking_for_expert: customersData?.looking_for_expert ?? false,
+    accepted_privacy_policy: customersData?.accepted_privacy_policy ?? false,
+    accepted_terms_conditions:
+      customersData?.accepted_terms_conditions ?? false,
   };
 
   return {
     initialValues,
     countries: countriesData ?? [],
     roles: rolesData ?? [],
+    solutions: solutionsData ?? [],
   };
 }
