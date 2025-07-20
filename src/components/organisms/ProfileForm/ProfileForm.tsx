@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import { Formik, Form } from 'formik';
 import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 // Utilities
 import { supabase } from '@/utils/supabase/client';
 import { useProfileFormData } from './useProfileFormData';
@@ -10,23 +11,28 @@ import { forcedToCompleteProfile } from '@/hooks/useForceProfileCompletion';
 import { showSuccess, showError, showInfo } from '@/utils/toastService';
 // Validations, types and interfaces
 import { profileSchema } from '@/validations/profile-validations';
-// UI local components
-import ExpertiseSection from './ExpertiseSection';
-import SkillsSection from './SkillsSection';
-import ToolsSection from './ToolsSection';
-// UI global components
-import FormInput from '@/components/atoms/FormInput';
-import ProfileImageUpload from '@/components/molecules/ProfileImageUpload';
-import UploadDocumentField from '@/components/molecules/UploadDocumentField';
 import { ProfileFormValues } from './types';
+// UI local components
 import { BasicInfoSection } from './formSections/BasicInfoSection';
 import { CustomerBasicInfo } from './formSections/CustomerBasicInfo';
 import CustomerSolutionsSection from './formSections/CustomerSolutionsSection';
+import { ExpertInfoSection } from './formSections/ExpertInfoSection';
+// UI global components
+import ProfileImageUpload from '@/components/molecules/ProfileImageUpload';
 
 export default function ProfileForm() {
   const { initialValues, countries, roles, loading, solutions } =
     useProfileFormData();
   const router = useRouter();
+  const [userRole, setUserRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (initialValues?.role_id) {
+      // Suponiendo que roles es un array de {id: string, name: string}
+      const role = roles.find((r) => r.id === initialValues.role_id);
+      setUserRole(role?.name || null);
+    }
+  }, [initialValues, roles]);
 
   const handleSubmit = async (values: ProfileFormValues) => {
     const {
@@ -153,6 +159,9 @@ export default function ProfileForm() {
   if (loading) return <div>Loading...</div>;
   if (!initialValues) return <div>Error loading profile</div>;
 
+  const isExpert = userRole?.toLowerCase() === 'expert';
+  const isCustomer = userRole?.toLowerCase() === 'customer';
+
   return (
     <Formik
       initialValues={initialValues}
@@ -173,25 +182,22 @@ export default function ProfileForm() {
               Profile
             </h1>
           </div>
+
+          {/* Secciones comunes a todos los roles */}
           <ProfileImageUpload />
           <BasicInfoSection countries={countries} roles={roles} />
-          <CustomerBasicInfo />
-          <CustomerSolutionsSection solutions={solutions} />
 
-          <UploadDocumentField />
-          <FormInput name="linkedin_profile" label="LinkedIn Profile" />
-          <FormInput name="other_link" label="Other Link" />
-          <FormInput name="profession" label="Profession" />
-          <FormInput
-            name="bio"
-            label="Bio"
-            as="textarea"
-            placeholder="Write a short bio"
-            rows={5}
-          />
-          <ExpertiseSection />
-          <SkillsSection />
-          <ToolsSection />
+          {/* Secciones específicas para Customer */}
+          {isCustomer && (
+            <>
+              <CustomerBasicInfo />
+              <CustomerSolutionsSection solutions={solutions} />
+            </>
+          )}
+
+          {/* Secciones específicas para Expert */}
+          {isExpert && <ExpertInfoSection />}
+
           <button
             type="submit"
             disabled={isSubmitting || !isValid}

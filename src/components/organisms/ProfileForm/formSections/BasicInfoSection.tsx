@@ -35,6 +35,9 @@ export function BasicInfoSection({ countries, roles }: Props) {
         label="Role"
         options={roles.map((r) => ({ value: r.id, label: r.name }))}
       />
+      <FormInput name="linkedin_profile" label="LinkedIn Profile" />
+
+      <FormInput name="other_link" label="Website" />
     </div>
   );
 }
