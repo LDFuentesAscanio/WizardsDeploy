@@ -20,6 +20,8 @@ import FormSelect from '@/components/atoms/FormSelect';
 import ProfileImageUpload from '@/components/molecules/ProfileImageUpload';
 import UploadDocumentField from '@/components/molecules/UploadDocumentField';
 import { ProfileFormValues } from './types';
+import { BasicInfoSection } from './formSections/BasicInfoSection';
+import { CustomerBasicInfo } from './formSections/CustomerBasicInfo';
 
 export default function ProfileForm() {
   const { initialValues, countries, roles, loading } = useProfileFormData();
@@ -171,6 +173,8 @@ export default function ProfileForm() {
             </h1>
           </div>
           <ProfileImageUpload />
+          <BasicInfoSection countries={countries} roles={roles} />
+          <CustomerBasicInfo />
           <FormInput name="first_name" label="First Name" />
           <FormInput name="last_name" label="Last Name" />
           <FormSelect

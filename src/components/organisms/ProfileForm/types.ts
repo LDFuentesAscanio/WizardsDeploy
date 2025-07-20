@@ -17,6 +17,14 @@ export interface ProfileFormValues {
   photo_url?: string;
   cv_url?: string;
   filename?: string;
+  company_name: string;
+  actual_role: string;
+  email: string;
+}
+export interface Customer {
+  company_name: string;
+  actual_role: string;
+  email: string;
 }
 
 export interface Platform {

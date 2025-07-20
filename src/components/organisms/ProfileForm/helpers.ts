@@ -1,11 +1,12 @@
 //Validations, types and interfaces
-import { About, ProfileFormValues } from './types';
+import { About, Customer, ProfileFormValues } from './types';
 //Utilities
 import { supabase } from '@/utils/supabase/client';
 
 export async function fetchProfileFormData(userId: string) {
   const [
     { data: userData, error: userError },
+    { data: customersData, error: customersError },
     { data: countriesData, error: countriesError },
     { data: rolesData, error: rolesError },
     { data: aboutDataRaw, error: aboutError },
@@ -22,6 +23,11 @@ export async function fetchProfileFormData(userId: string) {
       )
       .eq('id', userId)
       .single(),
+    supabase
+      .from('customers') // 👈 consulta correcta
+      .select('company_name, actual_role, email')
+      .eq('user_id', userId) // 👈 esta es la clave externa
+      .maybeSingle<Customer>(),
 
     supabase.from('country').select('id, name'),
     supabase.from('user_role').select('id, name'),
@@ -54,6 +60,7 @@ export async function fetchProfileFormData(userId: string) {
 
   if (
     userError ||
+    customersError ||
     countriesError ||
     rolesError ||
     aboutError ||
@@ -79,6 +86,9 @@ export async function fetchProfileFormData(userId: string) {
     photo_url: mediaData?.url_storage ?? '',
     cv_url: documentData?.[0]?.url_storage || '',
     filename: documentData?.[0]?.filename || '',
+    company_name: customersData?.company_name || '',
+    actual_role: customersData?.actual_role || '',
+    email: customersData?.email || '',
   };
 
   return {

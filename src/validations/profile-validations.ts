@@ -6,6 +6,9 @@ export const profileSchema = Yup.object({
   last_name: Yup.string().required('Last name is required'),
   country_id: Yup.string().required('Country is required'),
   role_id: Yup.string().required('Role is required'),
+  company_name: Yup.string().required('Company name is required'),
+  actual_role: Yup.string().required('Actual role is required'),
+  email: Yup.string().email('Invalid email').required('Email is required'),
   bio: Yup.string().required('Bio is required'),
   profession: Yup.string().required('Profession is required'),
 

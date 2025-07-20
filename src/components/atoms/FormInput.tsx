@@ -9,6 +9,7 @@ interface FormInputProps {
   type?: string;
   as?: 'input' | 'textarea';
   rows?: number;
+  className?: string;
 }
 
 export default function FormInput({
