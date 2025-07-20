@@ -1,9 +1,6 @@
 'use client';
-//External libraries
 import { useEffect, useState } from 'react';
-//Validations, types and interfaces
 import { ProfileFormValues, Country, Role, Solution } from './types';
-//Utilities
 import { supabase } from '@/utils/supabase/client';
 import { fetchProfileFormData } from './helpers';
 
@@ -15,46 +12,48 @@ export function useProfileFormData() {
   const [roles, setRoles] = useState<Role[]>([]);
   const [solutions, setSolutions] = useState<Solution[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const load = async () => {
+    const loadProfileData = async () => {
       try {
+        // 1. Verificar autenticación
         const { data: auth, error: authError } = await supabase.auth.getUser();
-        if (authError) throw authError;
-        const user = auth?.user;
-        if (!user) throw new Error('No user found');
+        if (authError)
+          throw new Error(`Authentication failed: ${authError.message}`);
+        if (!auth?.user) throw new Error('User session not found');
 
-        console.log('Fetching profile data for user:', user.id);
+        // 2. Cargar datos del perfil
         const { initialValues, countries, roles, solutions } =
-          await fetchProfileFormData(user.id);
-        console.log('Data fetched:', {
-          initialValues,
-          countries,
-          roles,
-          solutions,
-        });
+          await fetchProfileFormData(auth.user.id);
 
+        // 3. Filtrar roles (eliminar admin)
         const filteredRoles = roles.filter((role) => role.name !== 'admin');
 
+        // 4. Actualizar estado
         setInitialValues(initialValues);
         setCountries(countries);
         setRoles(filteredRoles);
         setSolutions(solutions);
       } catch (err) {
-        console.error('❌ Error loading profile form:', err);
-        if (err instanceof Error) {
-          console.error('Error details:', {
-            message: err.message,
-            stack: err.stack,
-          });
-        }
+        const errorMessage =
+          err instanceof Error ? err.message : 'Failed to load profile data';
+        setError(errorMessage);
+        console.error('Profile data loading error:', err);
       } finally {
         setLoading(false);
       }
     };
 
-    load();
+    loadProfileData();
   }, []);
 
-  return { initialValues, countries, roles, solutions, loading };
+  return {
+    initialValues,
+    countries,
+    roles,
+    solutions,
+    loading,
+    error,
+  };
 }

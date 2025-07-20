@@ -1,9 +1,10 @@
+import { showError, showInfo } from '@/utils/toastService';
 import { About, Customer, ProfileFormValues } from './types';
 import { supabase } from '@/utils/supabase/client';
 
 export async function fetchProfileFormData(userId: string) {
   try {
-    // Realizamos todas las consultas a Supabase en paralelo
+    showInfo('Loading profile data...');
     const [
       { data: userData, error: userError },
       { data: customersData, error: customersError },
@@ -82,10 +83,13 @@ export async function fetchProfileFormData(userId: string) {
     ].filter((item) => item.error);
 
     if (errors.length > 0) {
+      const errorMessage = `Failed to load: ${errors.map((e) => e.name).join(', ')}`;
       console.error('Errors in Supabase queries:', errors);
-      throw new Error(
-        `Failed to load: ${errors.map((e) => e.name).join(', ')}`
+      showError(
+        'Profile loading error',
+        'Some data could not be loaded. Please try again.'
       );
+      throw new Error(errorMessage);
     }
 
     // Preparamos los datos iniciales
@@ -125,6 +129,10 @@ export async function fetchProfileFormData(userId: string) {
     };
   } catch (error) {
     console.error('Error in fetchProfileFormData:', error);
-    throw new Error('Failed to load profile data');
+    showError(
+      'Profile error',
+      'There was a problem loading your profile data.'
+    );
+    throw error; // Re-lanzamos el error para que pueda ser manejado por useProfileFormData
   }
 }
