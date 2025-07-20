@@ -98,7 +98,7 @@ export async function fetchProfileFormData(userId: string) {
     email: customersData?.email || '',
     solution_description: '',
     selected_solutions: [], // vacías por ahora
-    looking_for_expert: customersData?.looking_for_expert ?? false,
+    looking_for_expert: false,
     accepted_privacy_policy: customersData?.accepted_privacy_policy ?? false,
     accepted_terms_conditions:
       customersData?.accepted_terms_conditions ?? false,

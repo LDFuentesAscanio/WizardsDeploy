@@ -19,12 +19,21 @@ export function useProfileFormData() {
   useEffect(() => {
     const load = async () => {
       try {
-        const { data: auth } = await supabase.auth.getUser();
+        const { data: auth, error: authError } = await supabase.auth.getUser();
+        if (authError) throw authError;
         const user = auth?.user;
         if (!user) throw new Error('No user found');
 
+        console.log('Fetching profile data for user:', user.id);
         const { initialValues, countries, roles, solutions } =
           await fetchProfileFormData(user.id);
+        console.log('Data fetched:', {
+          initialValues,
+          countries,
+          roles,
+          solutions,
+        });
+
         const filteredRoles = roles.filter((role) => role.name !== 'admin');
 
         setInitialValues(initialValues);
@@ -33,6 +42,12 @@ export function useProfileFormData() {
         setSolutions(solutions);
       } catch (err) {
         console.error('❌ Error loading profile form:', err);
+        if (err instanceof Error) {
+          console.error('Error details:', {
+            message: err.message,
+            stack: err.stack,
+          });
+        }
       } finally {
         setLoading(false);
       }

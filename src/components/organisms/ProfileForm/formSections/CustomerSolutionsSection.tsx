@@ -25,9 +25,8 @@ type FormValues = {
 
 export default function CustomerSolutionsSection({ solutions }: Props) {
   const { values, setFieldValue } = useFormikContext<FormValues>();
-  const [showSolutions, setShowSolutions] = useState<boolean>(
-    values.looking_for_expert ?? false
-  );
+  const [showSolutions, setShowSolutions] = useState<boolean>(false);
+  //(values.looking_for_expert ?? false);
 
   const handleCheckboxChange = () => {
     const newValue = !showSolutions;

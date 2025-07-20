@@ -1,21 +1,4 @@
-// Interfaces base compartidas
-export interface CustomerSharedFields {
-  company_name: string;
-  actual_role: string;
-  email: string;
-  looking_for_expert: boolean;
-  selected_solutions: string[];
-  solution_description: string;
-  accepted_privacy_policy: boolean;
-  accepted_terms_conditions: boolean;
-}
-
-// Customer (para base de datos o API)
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
-export interface Customer extends CustomerSharedFields {}
-
-// ProfileFormValues (para formulario completo del perfil)
-export interface ProfileFormValues extends CustomerSharedFields {
+export interface ProfileFormValues {
   first_name: string;
   last_name: string;
   country_id: string;
@@ -34,9 +17,26 @@ export interface ProfileFormValues extends CustomerSharedFields {
   photo_url?: string;
   cv_url?: string;
   filename?: string;
+  company_name: string;
+  actual_role: string;
+  email: string;
+  solution_description: string;
+  selected_solutions: string[];
+  looking_for_expert: boolean;
+  accepted_privacy_policy: boolean;
+  accepted_terms_conditions: boolean;
+}
+export interface Customer {
+  company_name: string;
+  actual_role: string;
+  email: string;
+  looking_for_expert: boolean;
+  selected_solutions: string[];
+  solution_description: string;
+  accepted_privacy_policy: boolean;
+  accepted_terms_conditions: boolean;
 }
 
-// Otros modelos auxiliares
 export interface Platform {
   id: string;
   name: string;
