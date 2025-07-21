@@ -1,40 +1,50 @@
-export interface ProfileFormValues {
+// types/profile-types.ts
+
+// Tipos base comunes a todos los usuarios
+export interface BaseProfile {
   first_name: string;
   last_name: string;
   country_id: string;
   role_id: string;
   linkedin_profile?: string;
   other_link?: string;
+  photo_url?: string;
+  email?: string;
+}
+
+// Tipos específicos para Expert
+export interface ExpertSpecific {
   bio: string;
   profession: string;
-  expertise: {
-    platform_id: string;
-    rating: number | string;
-    experience_time: string;
-  }[];
+  expertise: Expertise[];
   skills: string[];
   tools: string[];
-  photo_url?: string;
   cv_url?: string;
   filename?: string;
-  company_name: string;
-  actual_role: string;
-  email: string;
-  solution_description: string;
-  selected_solutions: string[];
-  looking_for_expert: boolean;
-  accepted_privacy_policy: boolean;
-  accepted_terms_conditions: boolean;
 }
-export interface Customer {
+
+// Tipos específicos para Customer
+export interface CustomerSpecific {
   company_name: string;
   actual_role: string;
-  email: string;
-  looking_for_expert: boolean;
-  selected_solutions: string[];
   solution_description: string;
+  selected_solutions: string[];
+  looking_for_expert: boolean;
   accepted_privacy_policy: boolean;
   accepted_terms_conditions: boolean;
+  description?: string;
+}
+
+// Tipo combinado que incluye TODOS los campos de forma segura
+export type ProfileFormValues = BaseProfile &
+  Partial<ExpertSpecific> &
+  Partial<CustomerSpecific>;
+
+// Tipos auxiliares
+export interface Expertise {
+  platform_id: string;
+  rating: number | string;
+  experience_time: string;
 }
 
 export interface Platform {
@@ -45,6 +55,7 @@ export interface Platform {
 export interface Country {
   id: string;
   name: string;
+  code?: string;
 }
 
 export interface Role {
@@ -60,4 +71,42 @@ export interface About {
 export interface Solution {
   id: string;
   name: string;
+  description?: string;
+}
+
+// Tipos para respuestas de Supabase
+export type UserResponse = Pick<
+  BaseProfile,
+  | 'first_name'
+  | 'last_name'
+  | 'country_id'
+  | 'role_id'
+  | 'linkedin_profile'
+  | 'other_link'
+>;
+
+export interface CustomerResponse extends CustomerSpecific {
+  user_id: string;
+  email: string;
+}
+
+// Type Guards mejorados
+export function isCustomerProfile(
+  values: ProfileFormValues
+): values is BaseProfile & CustomerSpecific {
+  return (
+    values.role_id === 'customer_role_id' &&
+    values.company_name !== undefined &&
+    values.actual_role !== undefined
+  );
+}
+
+export function isExpertProfile(
+  values: ProfileFormValues
+): values is BaseProfile & ExpertSpecific {
+  return (
+    values.role_id === 'expert_role_id' &&
+    values.bio !== undefined &&
+    values.profession !== undefined
+  );
 }

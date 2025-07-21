@@ -1,5 +1,5 @@
 import { showError, showInfo } from '@/utils/toastService';
-import { About, Customer, ProfileFormValues } from './types';
+import { About, CustomerResponse, ProfileFormValues } from './types';
 import { supabase } from '@/utils/supabase/client';
 
 export async function fetchProfileFormData(userId: string) {
@@ -32,7 +32,7 @@ export async function fetchProfileFormData(userId: string) {
           'company_name, actual_role, email, description, accepted_privacy_policy, accepted_terms_conditions'
         )
         .eq('user_id', userId)
-        .maybeSingle<Customer>(),
+        .maybeSingle<CustomerResponse>(),
 
       supabase.from('country').select('id, name'),
       supabase.from('user_role').select('id, name'),

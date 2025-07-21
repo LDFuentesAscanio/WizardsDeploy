@@ -29,7 +29,7 @@ export default function ExpertiseSection() {
     };
     fetchPlatforms();
   }, []);
-
+  const expertiseArray = values.expertise ?? [];
   return (
     <div className="space-y-4">
       <h2 className="text-lg font-semibold">Expertise</h2>
@@ -37,7 +37,7 @@ export default function ExpertiseSection() {
         {({ push, remove }) => (
           <div className="space-y-4">
             <AnimatePresence>
-              {values.expertise.map((_, index) => (
+              {expertiseArray.map((_, index) => (
                 <motion.div
                   key={index}
                   initial={{ opacity: 0, y: -10 }}
@@ -50,7 +50,7 @@ export default function ExpertiseSection() {
                     platforms={platforms}
                     experienceOptions={EXPERIENCE_OPTIONS}
                     onRemove={() => remove(index)}
-                    canRemove={values.expertise.length > 1}
+                    canRemove={expertiseArray.length > 1}
                   />
                 </motion.div>
               ))}
