@@ -39,6 +39,7 @@ export default function CustomerSolutionsSection({ solutions }: Props) {
 
   return (
     <div className="space-y-6">
+      {/* Checkbox: looking_for_expert */}
       <FormCheckbox
         name="looking_for_expert"
         label="Are you looking for an expert?"
@@ -46,6 +47,7 @@ export default function CustomerSolutionsSection({ solutions }: Props) {
         onChange={handleCheckboxChange}
       />
 
+      {/* Si selecciona looking_for_expert, se muestran las soluciones y el input */}
       {values.looking_for_expert && (
         <div className="space-y-6">
           <div>
@@ -78,6 +80,37 @@ export default function CustomerSolutionsSection({ solutions }: Props) {
           />
         </div>
       )}
+
+      {/* ✅ Checkboxes para términos y privacidad (con nombres correctos) */}
+      <div className="space-y-2 pt-4">
+        <FormCheckbox
+          name="accepted_terms_conditions"
+          label={
+            <>
+              I accept the{' '}
+              <a href="/terms" target="_blank" className="underline">
+                terms and conditions
+              </a>
+              .
+            </>
+          }
+          className="text-white"
+        />
+
+        <FormCheckbox
+          name="accepted_privacy_policy"
+          label={
+            <>
+              I agree to the{' '}
+              <a href="/privacy" target="_blank" className="underline">
+                privacy policy
+              </a>
+              .
+            </>
+          }
+          className="text-white"
+        />
+      </div>
     </div>
   );
 }
