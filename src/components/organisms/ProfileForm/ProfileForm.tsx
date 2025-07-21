@@ -67,6 +67,10 @@ export default function ProfileForm() {
       // 2. Actualizar según rol usando type guards
       if (isCustomerProfile(values)) {
         console.log('🛠️ Enviando datos de Customer:', {
+          company_name: values.company_name,
+          actual_role: values.actual_role,
+          accepted_privacy_policy: values.accepted_privacy_policy,
+          accepted_terms_conditions: values.accepted_terms_conditions,
           selected_solutions: values.selected_solutions,
           solution_description: values.solution_description,
         });
