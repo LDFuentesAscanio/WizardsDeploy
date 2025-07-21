@@ -1,10 +1,8 @@
 'use client';
-
 import FormCheckbox from '@/components/atoms/FormCheckbox';
 import FormInput from '@/components/atoms/FormInput';
-
 import { useFormikContext } from 'formik';
-import { useState } from 'react';
+import { ProfileFormValues } from '../types';
 
 type Solution = {
   id: string;
@@ -15,25 +13,16 @@ type Props = {
   solutions: Solution[];
 };
 
-type FormValues = {
-  looking_for_expert: boolean;
-  selected_solutions: string[];
-  solution_description: string;
-  accepted_privacy_policy: boolean;
-  accepted_terms_conditions: boolean;
-};
-
 export default function CustomerSolutionsSection({ solutions }: Props) {
-  const { values, setFieldValue } = useFormikContext<FormValues>();
-  const [showSolutions, setShowSolutions] = useState<boolean>(false);
-  //(values.looking_for_expert ?? false);
+  const { values, setFieldValue } = useFormikContext<ProfileFormValues>();
 
-  const handleCheckboxChange = () => {
-    const newValue = !showSolutions;
-    setShowSolutions(newValue);
+  const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.checked;
     setFieldValue('looking_for_expert', newValue);
-
-    if (!newValue) setFieldValue('selected_solutions', []);
+    if (!newValue) {
+      setFieldValue('selected_solutions', []);
+      setFieldValue('solution_description', '');
+    }
   };
 
   const handleSolutionToggle = (id: string) => {
@@ -50,7 +39,6 @@ export default function CustomerSolutionsSection({ solutions }: Props) {
 
   return (
     <div className="space-y-6">
-      {/* Mostrar formulario si busca experto */}
       <FormCheckbox
         name="looking_for_expert"
         label="Are you looking for an expert?"
@@ -88,36 +76,6 @@ export default function CustomerSolutionsSection({ solutions }: Props) {
             placeholder="I need to redesign our Help Center in Zendesk... I need to create a new flow in Jira..."
             as="textarea"
           />
-
-          <div className="space-y-2">
-            <FormCheckbox
-              name="accepted_privacy_policy"
-              label={
-                <>
-                  I understand that the information provided by me is subject to
-                  the{' '}
-                  <a href="/privacy-policy" className="underline">
-                    Privacy Policy
-                  </a>
-                </>
-              }
-            />
-            <FormCheckbox
-              name="accepted_terms_conditions"
-              label={
-                <>
-                  By submitting this form, you agree to the{' '}
-                  <a href="/terms-and-conditions" className="underline">
-                    terms & conditions
-                  </a>{' '}
-                  and the{' '}
-                  <a href="/privacy-policy" className="underline">
-                    privacy policy
-                  </a>
-                </>
-              }
-            />
-          </div>
         </div>
       )}
     </div>

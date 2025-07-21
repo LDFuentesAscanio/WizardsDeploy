@@ -2,9 +2,9 @@
 
 import FormInput from '@/components/atoms/FormInput';
 import UploadDocumentField from '@/components/molecules/UploadDocumentField';
-import ExpertiseSection from '../ExpertiseSection';
-import SkillsSection from '../SkillsSection';
-import ToolsSection from '../ToolsSection';
+import ExpertiseSection from '../formComponents/ExpertiseSection';
+import SkillsSection from '../formComponents/SkillsSection';
+import ToolsSection from '../formComponents/ToolsSection';
 
 export function ExpertInfoSection() {
   return (

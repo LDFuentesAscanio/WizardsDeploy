@@ -2,9 +2,10 @@
 //External libraries
 import { Field, ErrorMessage } from 'formik';
 //Validations, types and interfaces
-import { Platform } from './types';
+
 //UI global components
 import StarRatingInput from '@/components/atoms/StarRatingInput';
+import { Platform } from '../types';
 
 interface Props {
   index: number;

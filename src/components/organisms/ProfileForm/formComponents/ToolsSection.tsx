@@ -3,8 +3,8 @@
 import { useFormikContext, FieldArray } from 'formik';
 import { useState } from 'react';
 import { motion } from 'framer-motion';
+import { ProfileFormValues } from '../types';
 //Validations, types and interfaces
-import { ProfileFormValues } from './types';
 
 export default function ToolsSection() {
   const { values } = useFormikContext<ProfileFormValues>();

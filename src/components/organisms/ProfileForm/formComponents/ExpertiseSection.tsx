@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useFormikContext, FieldArray } from 'formik';
 import { AnimatePresence, motion } from 'framer-motion';
 //Validations, types and interfaces
-import { Platform, ProfileFormValues } from './types';
+import { Platform, ProfileFormValues } from '../types';
 //Utilities
 import { supabase } from '@/utils/supabase/client';
 //UI local components
