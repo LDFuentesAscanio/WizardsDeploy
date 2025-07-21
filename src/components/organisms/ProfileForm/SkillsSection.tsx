@@ -1,14 +1,16 @@
 'use client';
-//External libraries
+// External libraries
 import { useState } from 'react';
 import { useFormikContext, FieldArray } from 'formik';
 import { motion } from 'framer-motion';
-//Validations, types and interfaces
+// Validations, types and interfaces
 import { ProfileFormValues } from './types';
 
 export default function SkillsSection() {
   const { values } = useFormikContext<ProfileFormValues>();
   const [input, setInput] = useState('');
+
+  const skills = values.skills ?? []; // fallback defensivo
 
   return (
     <div className="space-y-4">
@@ -27,11 +29,9 @@ export default function SkillsSection() {
               <button
                 type="button"
                 onClick={() => {
-                  if (
-                    input.trim() !== '' &&
-                    !values.skills.includes(input.trim())
-                  ) {
-                    push(input.trim());
+                  const trimmed = input.trim();
+                  if (trimmed !== '' && !skills.includes(trimmed)) {
+                    push(trimmed);
                     setInput('');
                   }
                 }}
@@ -42,7 +42,7 @@ export default function SkillsSection() {
             </div>
 
             <motion.ul layout className="flex flex-wrap gap-2">
-              {values.skills.map((skill, index) => (
+              {skills.map((skill, index) => (
                 <motion.li
                   layout
                   key={index}

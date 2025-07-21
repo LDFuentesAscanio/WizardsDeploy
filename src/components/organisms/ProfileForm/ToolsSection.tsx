@@ -9,7 +9,7 @@ import { ProfileFormValues } from './types';
 export default function ToolsSection() {
   const { values } = useFormikContext<ProfileFormValues>();
   const [input, setInput] = useState('');
-
+  const tools = values.tools ?? [];
   return (
     <div className="space-y-4">
       <h2 className="text-lg font-semibold">Tools</h2>
@@ -27,11 +27,9 @@ export default function ToolsSection() {
               <button
                 type="button"
                 onClick={() => {
-                  if (
-                    input.trim() !== '' &&
-                    !values.tools.includes(input.trim())
-                  ) {
-                    push(input.trim());
+                  const trimmed = input.trim();
+                  if (trimmed !== '' && !tools.includes(trimmed)) {
+                    push(trimmed);
                     setInput('');
                   }
                 }}
@@ -42,7 +40,7 @@ export default function ToolsSection() {
             </div>
 
             <motion.ul layout className="flex flex-wrap gap-2">
-              {values.tools.map((tool, index) => (
+              {tools.map((tool, index) => (
                 <motion.li
                   layout
                   key={index}
