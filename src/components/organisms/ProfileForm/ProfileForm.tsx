@@ -66,6 +66,10 @@ export default function ProfileForm() {
 
       // 2. Actualizar según rol usando type guards
       if (isCustomerProfile(values)) {
+        console.log('🛠️ Enviando datos de Customer:', {
+          selected_solutions: values.selected_solutions,
+          solution_description: values.solution_description,
+        });
         // Actualizar datos de customer
         const { error: customerError } = await supabase
           .from('customers')
@@ -75,7 +79,8 @@ export default function ProfileForm() {
             actual_role: values.actual_role,
             accepted_privacy_policy: values.accepted_privacy_policy,
             accepted_terms_conditions: values.accepted_terms_conditions,
-            looking_for_expert: values.looking_for_expert,
+            selected_solutions: values.selected_solutions, // ✅ Agregado
+            solution_description: values.solution_description, // ✅ Agregado
           });
         if (customerError) throw customerError;
       }
