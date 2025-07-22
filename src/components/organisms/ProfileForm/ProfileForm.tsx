@@ -223,8 +223,8 @@ export default function ProfileForm() {
   if (loading) return <div>Loading...</div>;
   if (!initialValues) return <div>Error loading profile</div>;
 
-  const isExpert = userRole === 'expert';
-  const isCustomer = userRole === 'customer';
+  const isExpert = userRole?.toLowerCase() === 'expert';
+  const isCustomer = userRole?.toLowerCase() === 'customer';
 
   return (
     <Formik
