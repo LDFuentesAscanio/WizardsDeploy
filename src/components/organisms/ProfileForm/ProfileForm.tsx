@@ -81,6 +81,7 @@ export default function ProfileForm() {
             user_id: user.id,
             company_name: values.company_name,
             actual_role: values.actual_role,
+            email: values.email,
             accepted_privacy_policy: values.accepted_privacy_policy,
             accepted_terms_conditions: values.accepted_terms_conditions,
           });
