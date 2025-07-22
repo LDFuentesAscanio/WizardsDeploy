@@ -17,29 +17,38 @@ export function useProfileFormData() {
   useEffect(() => {
     const loadProfileData = async () => {
       try {
-        // 1. Verificar autenticación
         const { data: auth, error: authError } = await supabase.auth.getUser();
-        if (authError)
-          throw new Error(`Authentication failed: ${authError.message}`);
-        if (!auth?.user) throw new Error('User session not found');
+        if (authError) throw authError;
+        if (!auth?.user) throw new Error('No user found');
 
-        // 2. Cargar datos del perfil
+        // Obtener el rol del usuario primero
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('role_id')
+          .eq('id', auth.user.id)
+          .single();
+
+        if (userError) throw userError;
+
+        // Cargar datos según el rol
         const { initialValues, countries, roles, solutions } =
           await fetchProfileFormData(auth.user.id);
 
-        // 3. Filtrar roles (eliminar admin)
+        // Filtrar roles y establecer valores iniciales
         const filteredRoles = roles.filter((role) => role.name !== 'admin');
 
-        // 4. Actualizar estado
-        setInitialValues(initialValues);
+        setInitialValues({
+          ...initialValues,
+          role_id: userData.role_id, // Asegurar que el role_id esté actualizado
+        });
         setCountries(countries);
         setRoles(filteredRoles);
         setSolutions(solutions);
       } catch (err) {
-        const errorMessage =
-          err instanceof Error ? err.message : 'Failed to load profile data';
-        setError(errorMessage);
         console.error('Profile data loading error:', err);
+        setError(
+          err instanceof Error ? err.message : 'Failed to load profile data'
+        );
       } finally {
         setLoading(false);
       }
@@ -48,12 +57,5 @@ export function useProfileFormData() {
     loadProfileData();
   }, []);
 
-  return {
-    initialValues,
-    countries,
-    roles,
-    solutions,
-    loading,
-    error,
-  };
+  return { initialValues, countries, roles, solutions, loading, error };
 }

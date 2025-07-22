@@ -61,7 +61,7 @@ export const getProfileSchema = (role: string | null) => {
       .required('Tools are required'),
   };
 
-  if (role?.toLowerCase() === 'customer') {
+  if (role === 'Customer') {
     return Yup.object().shape({
       ...baseSchema,
       ...customerSchema,

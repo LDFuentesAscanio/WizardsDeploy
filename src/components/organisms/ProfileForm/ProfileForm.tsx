@@ -65,7 +65,7 @@ export default function ProfileForm() {
       if (userError) throw userError;
       console.log('🧪 ¿Es customer profile?', isCustomerProfile(values));
       // 2. Actualizar según rol usando type guards
-      if (isCustomerProfile(values)) {
+      if (isCustomer) {
         console.log('🛠️ Enviando datos de Customer:', {
           company_name: values.company_name,
           actual_role: values.actual_role,
@@ -105,11 +105,13 @@ export default function ProfileForm() {
           .eq('customer_id', customer_id);
 
         // 3. Insertar nuevas soluciones seleccionadas
-        if (values.selected_solutions?.length > 0) {
+        const selectedSolutions = values.selected_solutions ?? [];
+
+        if (selectedSolutions.length > 0) {
           const { error: solutionInsertError } = await supabase
             .from('contracted_solutions')
             .insert(
-              values.selected_solutions.map((solution_id) => ({
+              selectedSolutions.map((solution_id) => ({
                 customer_id,
                 solution_id,
                 description_solution: values.solution_description || '',
@@ -122,7 +124,7 @@ export default function ProfileForm() {
         }
       }
 
-      if (isExpertProfile(values)) {
+      if (isExpert) {
         // Actualizar datos de expert
         const { error: aboutError } = await supabase.from('about').upsert(
           {
@@ -151,11 +153,13 @@ export default function ProfileForm() {
 
         // 4. Manejo de expertise (eliminar y recrear)
         await supabase.from('user_expertise').delete().eq('user_id', user.id);
-        if (values.expertise?.length > 0) {
+
+        const expertise = values.expertise ?? [];
+        if (expertise.length > 0) {
           const { error: expertiseError } = await supabase
             .from('user_expertise')
             .insert(
-              values.expertise.map((e) => ({
+              expertise.map((e) => ({
                 user_id: user.id,
                 platform_id: e.platform_id,
                 rating: Number(e.rating),
@@ -167,9 +171,10 @@ export default function ProfileForm() {
 
         // 5. Manejo de skills (eliminar y recrear)
         await supabase.from('skills').delete().eq('user_id', user.id);
-        if (values.skills?.length > 0) {
+        const skills = values.skills ?? [];
+        if (skills.length > 0) {
           const { error: skillsError } = await supabase.from('skills').insert(
-            values.skills.map((skill) => ({
+            skills.map((skill) => ({
               user_id: user.id,
               skill_name: skill,
             }))
@@ -179,16 +184,16 @@ export default function ProfileForm() {
 
         // 6. Manejo de tools (eliminar y recrear)
         await supabase.from('tools').delete().eq('user_id', user.id);
-        if (values.tools?.length > 0) {
+        const tools = values.tools ?? [];
+        if (tools.length > 0) {
           const { error: toolsError } = await supabase.from('tools').insert(
-            values.tools.map((tool) => ({
+            tools.map((tool) => ({
               user_id: user.id,
               tool_name: tool,
             }))
           );
           if (toolsError) throw toolsError;
         }
-
         // 7. Manejo de documentos (CV)
         if (values.cv_url) {
           await supabase.from('user_documents').upsert(
@@ -218,8 +223,8 @@ export default function ProfileForm() {
   if (loading) return <div>Loading...</div>;
   if (!initialValues) return <div>Error loading profile</div>;
 
-  const isExpert = userRole?.toLowerCase() === 'expert';
-  const isCustomer = userRole?.toLowerCase() === 'customer';
+  const isExpert = userRole === 'expert';
+  const isCustomer = userRole === 'customer';
 
   return (
     <Formik
