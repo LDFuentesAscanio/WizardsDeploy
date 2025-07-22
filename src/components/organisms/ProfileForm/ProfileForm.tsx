@@ -125,21 +125,18 @@ export default function ProfileForm() {
         }
       }
 
+      const { error: aboutError } = await supabase.from('about').upsert(
+        {
+          user_id: user.id,
+          bio: values.bio || '',
+          profession: isExpertProfile(values) ? values.profession || '' : null,
+        },
+        { onConflict: 'user_id' }
+      );
+
+      if (aboutError) throw aboutError;
+
       if (isExpert) {
-        // Actualizar datos de expert
-        const { error: aboutError } = await supabase.from('about').upsert(
-          {
-            user_id: user.id,
-            bio: values.bio || '',
-            profession: isExpertProfile(values)
-              ? values.profession || ''
-              : null,
-          },
-          { onConflict: 'user_id' }
-        );
-
-        if (aboutError) throw aboutError;
-
         // 3. Actualizar user_media (foto de perfil)
         if (values.photo_url) {
           await supabase.from('user_media').upsert(

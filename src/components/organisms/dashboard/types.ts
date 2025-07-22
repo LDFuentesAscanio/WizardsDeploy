@@ -31,3 +31,18 @@ export interface AboutRow {
   bio: string | null;
   profession: string | null;
 }
+
+export interface CustomerDashboardData {
+  first_name: string;
+  last_name: string;
+  linkedin_profile: string | null;
+  other_link: string | null;
+  bio: string;
+  company_logo?: string;
+  solutions: string[];
+}
+
+export interface ContractedSolution {
+  solution_id: string;
+  solutions: { name: string }[] | null; // Ahora acepta array
+}

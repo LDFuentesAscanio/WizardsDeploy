@@ -6,7 +6,7 @@ import SocialIcon from '@/components/atoms/SocialIcon';
 interface UserCardProps {
   firstName: string;
   lastName: string;
-  profession: string;
+  profession?: string;
   avatarUrl: string;
   linkedin?: string | null;
   otherLink?: string | null;
@@ -38,7 +38,7 @@ export default function UserCard({
         <h1 className="text-lg font-semibold">
           {firstName} {lastName}
         </h1>
-        <p className="text-sm text-gray-200">{profession || 'No profession'}</p>
+        {profession && <p className="text-sm text-gray-200">{profession}</p>}
 
         <div className="mt-2 flex space-x-4">
           {linkedin && <SocialIcon url={linkedin} />}
