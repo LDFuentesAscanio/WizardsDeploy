@@ -29,7 +29,7 @@ export async function fetchProfileFormData(userId: string) {
       supabase
         .from('customers')
         .select(
-          'company_name, actual_role, email, description, accepted_privacy_policy, accepted_terms_conditions'
+          'company_name, actual_role, email, accepted_privacy_policy, accepted_terms_conditions'
         )
         .eq('user_id', userId)
         .maybeSingle<CustomerResponse>(),

@@ -83,10 +83,43 @@ export default function ProfileForm() {
             actual_role: values.actual_role,
             accepted_privacy_policy: values.accepted_privacy_policy,
             accepted_terms_conditions: values.accepted_terms_conditions,
-            selected_solutions: values.selected_solutions, // ✅ Agregado
-            solution_description: values.solution_description, // ✅ Agregado
           });
         if (customerError) throw customerError;
+        // 1. Obtener customer_id
+        const { data: customerRow, error: customerIdError } = await supabase
+          .from('customers')
+          .select('id')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (customerIdError || !customerRow) {
+          throw new Error('Customer ID not found');
+        }
+
+        const customer_id = customerRow.id;
+
+        // 2. Eliminar soluciones anteriores
+        await supabase
+          .from('contracted_solutions')
+          .delete()
+          .eq('customer_id', customer_id);
+
+        // 3. Insertar nuevas soluciones seleccionadas
+        if (values.selected_solutions?.length > 0) {
+          const { error: solutionInsertError } = await supabase
+            .from('contracted_solutions')
+            .insert(
+              values.selected_solutions.map((solution_id) => ({
+                customer_id,
+                solution_id,
+                description_solution: values.solution_description || '',
+                is_active: true,
+                contract_date: new Date().toISOString().split('T')[0],
+              }))
+            );
+
+          if (solutionInsertError) throw solutionInsertError;
+        }
       }
 
       if (isExpertProfile(values)) {
@@ -94,8 +127,10 @@ export default function ProfileForm() {
         const { error: aboutError } = await supabase.from('about').upsert(
           {
             user_id: user.id,
-            bio: values.bio || 'Not provided',
-            profession: values.profession || 'Not provided',
+            bio: values.bio || '',
+            profession: isExpertProfile(values)
+              ? values.profession || ''
+              : null,
           },
           { onConflict: 'user_id' }
         );
