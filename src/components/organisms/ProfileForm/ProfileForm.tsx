@@ -63,7 +63,7 @@ export default function ProfileForm() {
       });
 
       if (userError) throw userError;
-
+      console.log('🧪 ¿Es customer profile?', isCustomerProfile(values));
       // 2. Actualizar según rol usando type guards
       if (isCustomerProfile(values)) {
         console.log('🛠️ Enviando datos de Customer:', {

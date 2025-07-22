@@ -40,6 +40,11 @@ export const getProfileSchema = (role: string | null) => {
           .required('Description is required'),
       otherwise: (schema) => schema.notRequired(),
     }),
+
+    // ✅ Añadimos validación para descripción de la empresa
+    bio: Yup.string()
+      .min(20, 'Company description must be at least 20 characters')
+      .required('Company description is required'),
   };
 
   const expertSchema = {

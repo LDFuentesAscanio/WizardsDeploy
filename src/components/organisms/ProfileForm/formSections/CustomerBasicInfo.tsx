@@ -23,6 +23,14 @@ export function CustomerBasicInfo() {
         placeholder="Company email"
         type="email"
       />
+
+      <FormInput
+        name="bio"
+        label="Description of your company"
+        as="textarea"
+        placeholder="Briefly describe what your company does"
+        rows={5}
+      />
     </section>
   );
 }
