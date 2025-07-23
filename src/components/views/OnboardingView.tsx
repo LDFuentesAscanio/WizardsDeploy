@@ -1,19 +1,21 @@
 'use client';
-//External libraries
 import Image from 'next/image';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Formik, Form, useFormikContext } from 'formik';
-//Validations, types and interfaces
 import { onboardingSchema } from '@/validations/onboarding-validations';
-//Utilities
 import { supabase } from '@/utils/supabase/client';
 import { useOnboarding } from '@/hooks/useOnboarding';
-//UI global components
 import FormInput from '@/components/atoms/FormInput';
 import FormSelect from '@/components/atoms/FormSelect';
 
+interface OnboardingFormValues {
+  first_name: string;
+  last_name: string;
+  role: string;
+}
+
 function GoogleAutofillHandler() {
-  const { setFieldValue } = useFormikContext();
+  const { setFieldValue } = useFormikContext<OnboardingFormValues>();
 
   useEffect(() => {
     const autofill = async () => {
@@ -41,19 +43,29 @@ function GoogleAutofillHandler() {
 
 export default function OnboardingView() {
   const { saveUserProfile, loading } = useOnboarding();
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  const handleSubmit = async (values: OnboardingFormValues) => {
+    setSubmitError(null);
+    try {
+      await saveUserProfile(values);
+    } catch (error) {
+      setSubmitError(
+        error instanceof Error ? error.message : 'An unexpected error occurred'
+      );
+    }
+  };
 
   return (
     <main className="min-h-screen flex items-center justify-center bg-[#2c3d5a] px-4 text-[#e7e7e7]">
-      <Formik
+      <Formik<OnboardingFormValues>
         initialValues={{
           first_name: '',
           last_name: '',
           role: '',
         }}
         validationSchema={onboardingSchema}
-        onSubmit={async (values) => {
-          await saveUserProfile(values);
-        }}
+        onSubmit={handleSubmit}
       >
         {({ isSubmitting, isValid }) => (
           <Form className="max-w-xl w-full bg-white/10 backdrop-blur p-10 rounded-3xl shadow-lg text-center">
@@ -70,6 +82,12 @@ export default function OnboardingView() {
             <h1 className="text-3xl font-bold text-[#67ff94] mb-6">
               Complete your profile
             </h1>
+
+            {submitError && (
+              <div className="mb-4 p-3 bg-red-500/20 text-red-200 rounded-lg">
+                {submitError}
+              </div>
+            )}
 
             <div className="space-y-4 text-left">
               <FormInput name="first_name" placeholder="First Name" />

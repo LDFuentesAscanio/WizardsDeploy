@@ -51,15 +51,18 @@ export default function ProfileForm() {
 
     try {
       // 1. Actualizar datos básicos del usuario
-      const { error: userError } = await supabase.from('users').upsert({
-        id: user.id,
-        first_name: values.first_name,
-        last_name: values.last_name,
-        country_id: values.country_id,
-        role_id: values.role_id,
-        linkedin_profile: values.linkedin_profile,
-        other_link: values.other_link,
-      });
+      const { error: userError } = await supabase.from('users').upsert(
+        {
+          id: user.id,
+          first_name: values.first_name,
+          last_name: values.last_name,
+          country_id: values.country_id,
+          role_id: values.role_id,
+          linkedin_profile: values.linkedin_profile,
+          other_link: values.other_link,
+        },
+        { onConflict: 'id' }
+      );
 
       if (userError) throw userError;
       console.log('🧪 ¿Es customer profile?', isCustomerProfile(values));
@@ -76,14 +79,18 @@ export default function ProfileForm() {
         // Actualizar datos de customer
         const { error: customerError } = await supabase
           .from('customers')
-          .upsert({
-            user_id: user.id,
-            company_name: values.company_name,
-            actual_role: values.actual_role,
-            email: values.email,
-            accepted_privacy_policy: values.accepted_privacy_policy,
-            accepted_terms_conditions: values.accepted_terms_conditions,
-          });
+          .upsert(
+            {
+              user_id: user.id,
+              company_name: values.company_name,
+              actual_role: values.actual_role,
+              email: values.email,
+              accepted_privacy_policy: values.accepted_privacy_policy,
+              accepted_terms_conditions: values.accepted_terms_conditions,
+            },
+            { onConflict: 'user_id' }
+          );
+
         if (customerError) throw customerError;
         // 1. Obtener customer_id
         const { data: customerRow, error: customerIdError } = await supabase
@@ -211,7 +218,7 @@ export default function ProfileForm() {
           localStorage.getItem('forcedToCompleteProfile') === 'true';
         if (wasForced) {
           localStorage.removeItem('forcedToCompleteProfile');
-          router.push('/dashboard');
+          router.replace('/dashboard');
         }
       }
     } catch (error: unknown) {

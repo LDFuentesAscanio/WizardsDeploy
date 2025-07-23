@@ -1,7 +1,7 @@
 'use client';
 //External libraries
 import { useEffect, useState } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 //Utilities
 import { supabase } from '@/utils/supabase/client';
@@ -12,7 +12,6 @@ interface Props {
 
 export default function DashboardGuard({ children }: Props) {
   const router = useRouter();
-  const pathname = usePathname();
   const [checking, setChecking] = useState(true);
 
   useEffect(() => {
@@ -27,35 +26,39 @@ export default function DashboardGuard({ children }: Props) {
         return;
       }
 
-      const [{ data: userData }, { data: aboutData }] = await Promise.all([
-        supabase
-          .from('users')
-          .select('country_id, role_id')
-          .eq('id', user.id)
-          .maybeSingle(),
-        supabase
-          .from('about')
-          .select('bio, profession')
-          .eq('user_id', user.id)
-          .maybeSingle(),
-      ]);
+      // Verificar si viene de onboarding (perfil recién creado)
+      const isNewUser = localStorage.getItem('isNewUser') === 'true';
 
-      const countryId = userData?.country_id;
-      const bio = aboutData?.bio ?? '';
-      const profession = aboutData?.profession ?? '';
+      // Obtener todos los datos necesarios en una sola consulta
+      const { data: profileData, error } = await supabase
+        .from('profiles_complete_view') // 👈 Crear esta vista en Supabase
+        .select('*')
+        .eq('user_id', user.id)
+        .maybeSingle();
 
-      const incomplete = !countryId || !bio.trim() || !profession.trim();
-
-      if (incomplete) {
-        router.replace('/force-profile/edit'); // ✅ Solo esta ruta
+      if (error || !profileData) {
+        console.error('Error checking profile:', error);
+        router.replace(isNewUser ? '/force-profile/edit' : '/profile/edit');
         return;
       }
 
-      setChecking(false); // ✅ Perfil completo
+      const isComplete =
+        profileData.first_name &&
+        profileData.last_name &&
+        profileData.country_id &&
+        profileData.bio &&
+        (isNewUser ? profileData.role_id : true);
+
+      if (!isComplete) {
+        router.replace(isNewUser ? '/force-profile/edit' : '/profile/edit');
+      } else {
+        if (isNewUser) localStorage.removeItem('isNewUser');
+        setChecking(false);
+      }
     };
 
     checkProfileCompletion();
-  }, [router, pathname]);
+  }, [router]);
 
   if (checking) {
     return (

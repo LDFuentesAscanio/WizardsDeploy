@@ -1,10 +1,8 @@
 'use client';
-//External libraries
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-//Utilities
 import { supabase } from '@/utils/supabase/client';
-import { showError } from '@/utils/toastService';
+import { showError, showSuccess } from '@/utils/toastService';
 
 interface FormValues {
   first_name: string;
@@ -16,27 +14,27 @@ export function useOnboarding() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  // En tu hook useOnboarding.ts
   const saveUserProfile = async (values: FormValues) => {
     setLoading(true);
     try {
-      // 1. Obtener usuario
+      // 1. Obtener usuario autenticado
       const {
         data: { user },
+        error: authError,
       } = await supabase.auth.getUser();
-      if (!user) throw new Error('Usuario no autenticado');
+      if (authError || !user) throw new Error('Usuario no autenticado');
 
-      // 2. Consulta de rol
-      const { data: role } = await supabase
+      // 2. Buscar ID del rol seleccionado
+      const { data: role, error: roleError } = await supabase
         .from('user_role')
         .select('id')
         .ilike('name', values.role)
         .single();
 
-      if (!role?.id) throw new Error('Rol no encontrado');
+      if (roleError || !role?.id) throw new Error('Rol no encontrado');
 
-      // 3. Upsert CORREGIDO (sin 'returning')
-      const { error } = await supabase.from('users').upsert(
+      // 3. Actualizar perfil del usuario
+      const { error: profileError } = await supabase.from('users').upsert(
         {
           id: user.id,
           email: user.email,
@@ -44,20 +42,23 @@ export function useOnboarding() {
           last_name: values.last_name,
           role_id: role.id,
         },
-        {
-          onConflict: 'id', // Solo esta opción es válida
-        }
+        { onConflict: 'id' }
       );
 
-      if (error) throw error;
-      router.push('/dashboard');
+      if (profileError) throw profileError;
+
+      // 4. Marcar como nuevo usuario y redirigir
+      localStorage.setItem('isNewUser', 'true');
+      showSuccess('Onboarding completed successfully!');
+      router.push('/dashboard'); // Será redirigido si faltan datos
     } catch (error) {
-      console.error('Error completo:', error);
+      console.error('Error en onboarding:', error);
       showError(
         error instanceof Error
           ? error.message
-          : 'Error guardando perfil. Contacta al soporte.'
+          : 'Error al guardar el perfil. Por favor intenta nuevamente.'
       );
+      throw error; // Permite manejar el error en el componente
     } finally {
       setLoading(false);
     }
