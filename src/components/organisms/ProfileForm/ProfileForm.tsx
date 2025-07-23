@@ -7,7 +7,6 @@ import { useEffect, useState } from 'react';
 // Utilities
 import { supabase } from '@/utils/supabase/client';
 import { useProfileFormData } from './useProfileFormData';
-import { forcedToCompleteProfile } from '@/hooks/useForceProfileCompletion';
 import { showSuccess, showError, showInfo } from '@/utils/toastService';
 // Validations, types and interfaces
 import { isCustomerProfile, isExpertProfile, ProfileFormValues } from './types';
@@ -207,8 +206,13 @@ export default function ProfileForm() {
 
       showSuccess('Profile updated successfully');
 
-      if (forcedToCompleteProfile) {
-        router.push('/dashboard');
+      if (typeof window !== 'undefined') {
+        const wasForced =
+          localStorage.getItem('forcedToCompleteProfile') === 'true';
+        if (wasForced) {
+          localStorage.removeItem('forcedToCompleteProfile');
+          router.push('/dashboard');
+        }
       }
     } catch (error: unknown) {
       console.error('Error saving profile:', error);

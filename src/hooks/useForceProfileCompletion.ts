@@ -3,8 +3,6 @@ import { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { supabase } from '@/utils/supabase/client';
 
-export let forcedToCompleteProfile = false;
-
 export function useForceProfileCompletion() {
   const router = useRouter();
   const pathname = usePathname();
@@ -49,7 +47,7 @@ export function useForceProfileCompletion() {
         userData?.role_id;
 
       if (!isProfileComplete) {
-        forcedToCompleteProfile = true;
+        localStorage.setItem('forcedToCompleteProfile', 'true');
         return router.replace('/force-profile/edit');
       }
     };
