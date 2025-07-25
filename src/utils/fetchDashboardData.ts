@@ -1,5 +1,5 @@
 // utils/fetchDashboardData.ts
-import { supabase } from '@/utils/supabase/client';
+import { supabase } from '@/utils/supabase/browserClient';
 import {
   DashboardData,
   UserRow,

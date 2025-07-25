@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 //Validations, types and interfaces
 import { DashboardData } from '../organisms/dashboard/types';
 //Utilities
-import { supabase } from '@/utils/supabase/client';
+import { supabase } from '@/utils/supabase/browserClient';
 import { fetchDashboardData } from '@/utils/fetchDashboardData';
 //UI local components
 import ClockWidget from '../molecules/ClockWidget';

@@ -5,7 +5,7 @@ import { Formik, Form } from 'formik';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 // Utilities
-import { supabase } from '@/utils/supabase/client';
+import { supabase } from '@/utils/supabase/browserClient';
 import { useProfileFormData } from './useProfileFormData';
 import { showSuccess, showError, showInfo } from '@/utils/toastService';
 // Validations, types and interfaces

@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/utils/supabase/client';
+import { supabase } from '@/utils/supabase/browserClient';
 import { showError, showSuccess } from '@/utils/toastService';
 
 interface FormValues {

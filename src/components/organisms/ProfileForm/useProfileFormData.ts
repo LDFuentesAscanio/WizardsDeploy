@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { ProfileFormValues, Country, Role, Solution } from './types';
-import { supabase } from '@/utils/supabase/client';
+import { supabase } from '@/utils/supabase/browserClient';
 import { fetchProfileFormData } from './helpers';
 
 export function useProfileFormData() {

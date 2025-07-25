@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/utils/supabase/client';
+import { supabase } from '@/utils/supabase/browserClient';
 
 export function AuthCheckClient({ children }: { children: React.ReactNode }) {
   const [checking, setChecking] = useState(true);

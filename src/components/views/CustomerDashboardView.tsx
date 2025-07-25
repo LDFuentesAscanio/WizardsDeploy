@@ -1,7 +1,7 @@
 'use client';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
-import { supabase } from '@/utils/supabase/client';
+import { supabase } from '@/utils/supabase/browserClient';
 import { showError } from '@/utils/toastService';
 import UserCard from '../organisms/dashboard/UserCard';
 import {

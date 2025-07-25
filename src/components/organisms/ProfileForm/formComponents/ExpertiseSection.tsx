@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 //Validations, types and interfaces
 import { Platform, ProfileFormValues } from '../types';
 //Utilities
-import { supabase } from '@/utils/supabase/client';
+import { supabase } from '@/utils/supabase/browserClient';
 //UI local components
 import { ExpertiseItem } from './ExpertiseItem';
 

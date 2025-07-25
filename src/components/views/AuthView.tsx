@@ -3,7 +3,7 @@
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useState } from 'react';
 //Utilities
-import { supabase } from '@/utils/supabase/client';
+import { supabase } from '@/utils/supabase/browserClient';
 //UI global components
 import LoginCard from '@/components/organisms/LoginCard';
 import { showError } from '@/utils/toastService';

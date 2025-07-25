@@ -1,6 +1,6 @@
 import { showError, showInfo } from '@/utils/toastService';
 import { About, CustomerResponse, ProfileFormValues } from './types';
-import { supabase } from '@/utils/supabase/client';
+import { supabase } from '@/utils/supabase/browserClient';
 
 export async function fetchProfileFormData(userId: string) {
   try {

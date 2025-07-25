@@ -7,7 +7,7 @@ import { PostgrestError } from '@supabase/supabase-js';
 // Validations, types and interfaces
 import { ProfileFormValues } from '../organisms/ProfileForm/types';
 // Utilities
-import { supabase } from '@/utils/supabase/client';
+import { supabase } from '@/utils/supabase/browserClient';
 import { showError, showInfo, showSuccess } from '@/utils/toastService';
 
 export default function ProfileImageUpload() {

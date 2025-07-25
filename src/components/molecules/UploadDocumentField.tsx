@@ -6,7 +6,7 @@ import { useFormikContext } from 'formik';
 import { ProfileFormValues } from '../organisms/ProfileForm/types';
 // Utilities
 import { showSuccess, showError, showInfo } from '@/utils/toastService';
-import { supabase } from '@/utils/supabase/client';
+import { supabase } from '@/utils/supabase/browserClient';
 
 export default function UploadDocumentField() {
   const [uploading, setUploading] = useState(false);

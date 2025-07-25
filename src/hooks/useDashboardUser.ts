@@ -2,7 +2,7 @@
 //External libraries
 import { useEffect, useState } from 'react';
 //Utilities
-import { supabase } from '@/utils/supabase/client';
+import { supabase } from '@/utils/supabase/browserClient';
 
 interface UserData {
   first_name: string;

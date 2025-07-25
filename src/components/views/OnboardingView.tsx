@@ -3,7 +3,7 @@ import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { Formik, Form, useFormikContext } from 'formik';
 import { onboardingSchema } from '@/validations/onboarding-validations';
-import { supabase } from '@/utils/supabase/client';
+import { supabase } from '@/utils/supabase/browserClient';
 import { useOnboarding } from '@/hooks/useOnboarding';
 import FormInput from '@/components/atoms/FormInput';
 import FormSelect from '@/components/atoms/FormSelect';
