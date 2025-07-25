@@ -1,10 +1,9 @@
 'use client';
-//External libraries
+
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
-//Utilities
 import { supabase } from '@/utils/supabase/client';
+import Image from 'next/image';
 
 interface Props {
   children: React.ReactNode;
@@ -26,34 +25,47 @@ export default function DashboardGuard({ children }: Props) {
         return;
       }
 
-      // Verificar si viene de onboarding (perfil recién creado)
       const isNewUser = localStorage.getItem('isNewUser') === 'true';
 
-      // Obtener todos los datos necesarios en una sola consulta
-      const { data: profileData, error } = await supabase
-        .from('profiles_complete_view') // 👈 Crear esta vista en Supabase
-        .select('*')
-        .eq('user_id', user.id)
-        .maybeSingle();
+      try {
+        const [{ data: userData }, { data: aboutData }] = await Promise.all([
+          supabase
+            .from('users')
+            .select('first_name, last_name, country_id, role_id')
+            .eq('id', user.id)
+            .single(),
+          supabase
+            .from('about')
+            .select('bio')
+            .eq('user_id', user.id)
+            .maybeSingle(),
+        ]);
 
-      if (error || !profileData) {
-        console.error('Error checking profile:', error);
-        router.replace(isNewUser ? '/force-profile/edit' : '/profile/edit');
-        return;
-      }
+        const isComplete =
+          userData?.first_name?.trim() &&
+          userData?.last_name?.trim() &&
+          userData?.country_id &&
+          userData?.role_id &&
+          aboutData?.bio?.trim();
 
-      const isComplete =
-        profileData.first_name &&
-        profileData.last_name &&
-        profileData.country_id &&
-        profileData.bio &&
-        (isNewUser ? profileData.role_id : true);
+        if (!isComplete && isNewUser) {
+          router.replace('/force-profile/edit');
+          return;
+        }
 
-      if (!isComplete) {
-        router.replace(isNewUser ? '/force-profile/edit' : '/profile/edit');
-      } else {
-        if (isNewUser) localStorage.removeItem('isNewUser');
+        // Si no es nuevo pero no completó perfil, aún así lo dejamos entrar (no forzamos redirect)
+        // El user puede decidir ir a /profile/edit desde navbar si quiere
+
+        if (isNewUser) {
+          localStorage.removeItem('isNewUser');
+        }
+
         setChecking(false);
+      } catch (err) {
+        console.error('Error checking profile completion:', err);
+        if (isNewUser) {
+          router.replace('/force-profile/edit');
+        }
       }
     };
 
