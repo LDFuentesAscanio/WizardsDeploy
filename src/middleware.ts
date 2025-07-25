@@ -9,13 +9,17 @@ export async function middleware(request: NextRequest) {
     req: request,
     res: response,
   });
-
   const {
     data: { session },
   } = await supabase.auth.getSession();
+
   const { pathname } = request.nextUrl;
 
-  // Definición directa de rutas protegidas (sin variable intermedia para públicas)
+  // ⛔ No interceptar la ruta de callback de OAuth
+  if (pathname.startsWith('/auth/callback')) {
+    return response;
+  }
+
   const isProtectedPath = [
     '/dashboard',
     '/profile',
@@ -23,15 +27,14 @@ export async function middleware(request: NextRequest) {
     '/projects',
   ].some((path) => pathname === path || pathname.startsWith(`${path}/`));
 
-  // 1. Redirigir usuarios no autenticados desde rutas protegidas
+  // 🔒 Bloquear acceso a rutas protegidas si no hay sesión
   if (!session && isProtectedPath) {
     const loginUrl = new URL('/auth', request.url);
-    loginUrl.searchParams.set('redirect', pathname);
+    loginUrl.searchParams.set('redirect', pathname); // Redirige después del login
     return NextResponse.redirect(loginUrl);
   }
 
-  // 2. Redirigir usuarios autenticados desde página de auth
-  // (Aquí definimos directamente las rutas de auth sin variable)
+  // 🚫 Evitar que usuarios logueados entren a /auth
   if (session && (pathname === '/auth' || pathname.startsWith('/auth/login'))) {
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
