@@ -1,23 +1,41 @@
 'use client';
-//External libraries
+// External libraries
 import Image from 'next/image';
 import { useState } from 'react';
-import { Menu, X } from 'lucide-react';
+import {
+  Menu,
+  X,
+  LayoutDashboard,
+  Settings,
+  FolderCog,
+  Search,
+} from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import Link from 'next/link';
 
+const navItems = [
+  {
+    label: 'Dashboard',
+    href: '/dashboard',
+    icon: <LayoutDashboard size={16} />,
+  },
+  {
+    label: 'Profile Settings',
+    href: '/profile/edit',
+    icon: <Settings size={16} />,
+  },
+  { label: 'Manage Projects', href: '#', icon: <FolderCog size={16} /> },
+  { label: 'Explore Profiles', href: '#', icon: <Search size={16} /> },
+];
+
 export default function DashboardNavbar() {
   const [open, setOpen] = useState(false);
-
   const toggleMenu = () => setOpen((prev) => !prev);
 
   return (
-    <header className="w-full bg-[#e7e7e7] text-[#2c3d5a] px-6 py-4 rounded-b-2xl shadow-md">
-      <nav
-        className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4"
-        aria-label="Main navigation"
-      >
-        {/* Logo sin fondo */}
+    <header className="w-full bg-[#e7e7e7] text-[#2c3d5a] px-6 py-4 rounded-b-2xl shadow-md z-50 relative">
+      <nav className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+        {/* Logo */}
         <div className="w-40 h-auto">
           <Image
             src="/icons/logonav.svg"
@@ -28,7 +46,7 @@ export default function DashboardNavbar() {
           />
         </div>
 
-        {/* Botón hamburguesa */}
+        {/* Mobile Menu Button */}
         <button
           onClick={toggleMenu}
           className="md:hidden text-[#2c3d5a] focus:outline-none"
@@ -47,32 +65,52 @@ export default function DashboardNavbar() {
           </AnimatePresence>
         </button>
 
-        {/* Menú con fondo blanco */}
-        <div
-          className={`
-            ${open ? 'flex' : 'hidden'} 
-            md:flex bg-[#8effd2] rounded-xl px-6 py-3 shadow-md
-          `}
-        >
-          <ul className="flex flex-col md:flex-row gap-4 md:gap-6 text-sm font-display font-medium">
-            {[
-              { label: 'Dashboard', href: '/dashboard' },
-              { label: 'Profile', href: '/profile/edit' },
-              { label: 'Projects', href: '#' },
-              { label: 'Search', href: '#' },
-            ].map((item) => (
-              <li key={item.label}>
+        {/* Desktop Menu */}
+        <div className="hidden md:flex bg-[#8effd2] rounded-xl px-6 py-3 shadow-md">
+          <ul className="flex gap-6 text-sm font-display font-medium">
+            {navItems.map(({ label, href, icon }) => (
+              <li key={label}>
                 <Link
-                  href={item.href}
-                  className="block py-1 md:py-0 px-2 hover:text-[#67ff94] transition-colors duration-200"
+                  href={href}
+                  className="flex items-center gap-2 px-2 py-1 hover:text-[#67ff94] transition-colors duration-200"
                 >
-                  {item.label}
+                  {icon}
+                  {label}
                 </Link>
               </li>
             ))}
           </ul>
         </div>
       </nav>
+
+      {/* Mobile Animated Menu */}
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            key="mobile-menu"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="md:hidden bg-[#8effd2] mt-4 rounded-xl px-6 py-3 shadow-md"
+          >
+            <ul className="flex flex-col gap-4 text-sm font-display font-medium">
+              {navItems.map(({ label, href, icon }) => (
+                <li key={label}>
+                  <Link
+                    href={href}
+                    onClick={() => setOpen(false)}
+                    className="flex items-center gap-2 px-2 py-1 hover:text-[#67ff94] transition-colors duration-200"
+                  >
+                    {icon}
+                    {label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </header>
   );
 }
