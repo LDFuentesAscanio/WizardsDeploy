@@ -1,8 +1,15 @@
 'use client';
-import { createBrowserClient } from '@supabase/ssr';
+
+import { createPagesBrowserClient } from '@supabase/auth-helpers-nextjs';
+import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
 import type { Database } from '@/types/supabase';
 
-export const supabase = createBrowserClient<Database>(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+// Cliente del navegador
+export const supabase = createPagesBrowserClient<Database>();
+
+// Cliente del servidor
+export const createServerClient = () =>
+  createServerComponentClient<Database>({
+    cookies,
+  });
