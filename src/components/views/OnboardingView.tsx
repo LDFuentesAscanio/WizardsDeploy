@@ -79,7 +79,7 @@ export default function OnboardingView() {
               className="mx-auto mb-6"
             />
 
-            <h1 className="text-3xl font-bold text-[#67ff94] mb-6">
+            <h1 className="text-3xl font-bold font-grotesk text-[#67ff94] mb-6">
               Complete your profile
             </h1>
 

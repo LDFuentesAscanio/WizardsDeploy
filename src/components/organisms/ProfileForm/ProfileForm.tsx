@@ -18,6 +18,7 @@ import { ExpertInfoSection } from './formSections/ExpertInfoSection';
 // UI global components
 import ProfileImageUpload from '@/components/molecules/ProfileImageUpload';
 import { getProfileSchema } from '@/validations/profile-validations';
+import { CustomerInsert } from '@/supabase-types';
 
 export default function ProfileForm() {
   const { initialValues, countries, roles, loading, solutions } =
@@ -77,21 +78,27 @@ export default function ProfileForm() {
           solution_description: values.solution_description,
         });
         // Actualizar datos de customer
+
+        const customerData: CustomerInsert = {
+          user_id: user.id,
+          company_name: values.company_name || '',
+          actual_role: values.actual_role || '',
+          email: values.email || '',
+          accepted_privacy_policy: values.accepted_privacy_policy ?? false,
+          accepted_terms_conditions: values.accepted_terms_conditions ?? false,
+        };
+
         const { error: customerError } = await supabase
           .from('customers')
-          .upsert(
-            {
-              user_id: user.id,
-              company_name: values.company_name,
-              actual_role: values.actual_role,
-              email: values.email,
-              accepted_privacy_policy: values.accepted_privacy_policy,
-              accepted_terms_conditions: values.accepted_terms_conditions,
-            },
-            { onConflict: 'user_id' }
-          );
+          .upsert(customerData, {
+            onConflict: 'user_id',
+          });
 
-        if (customerError) throw customerError;
+        if (customerError) {
+          console.error('❌ Error al guardar datos de cliente:', customerError);
+          throw customerError;
+        }
+
         // 1. Obtener customer_id
         const { data: customerRow, error: customerIdError } = await supabase
           .from('customers')
@@ -251,7 +258,7 @@ export default function ProfileForm() {
               height={64}
               className="mb-2"
             />
-            <h1 className="text-2xl font-display font-bold text-center mb-4">
+            <h1 className="text-2xl font-grotesk font-bold text-center mb-4">
               Profile
             </h1>
           </div>

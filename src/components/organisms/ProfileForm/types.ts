@@ -1,11 +1,11 @@
-// types/profile-types.ts
+import { ExperienceTimeEnum } from '@/supabase-types';
 
 // Tipos base comunes a todos los usuarios
 export interface BaseProfile {
   first_name: string;
   last_name: string;
   country_id: string;
-  role_id: string;
+  role_id: string | null;
   linkedin_profile?: string;
   other_link?: string;
   photo_url?: string;
@@ -44,7 +44,7 @@ export type ProfileFormValues = BaseProfile &
 export interface Expertise {
   platform_id: string;
   rating: number | string;
-  experience_time: string;
+  experience_time: ExperienceTimeEnum; // 👈 usar el enum correcto
 }
 
 export interface Platform {

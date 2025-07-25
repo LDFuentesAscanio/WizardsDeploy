@@ -104,7 +104,12 @@ export async function fetchProfileFormData(userId: string) {
       other_link: userData?.other_link || '',
       bio: aboutData?.bio ?? '',
       profession: aboutData?.profession ?? '',
-      expertise: expertiseData ?? [],
+      expertise:
+        expertiseData?.map((item) => ({
+          ...item,
+          rating: item.rating ?? 0,
+          experience_time: item.experience_time ?? 'less than 1 year',
+        })) ?? [],
       skills: skillsData?.map((s) => s.skill_name) ?? [],
       tools: toolsData?.map((t) => t.tool_name) ?? [],
       photo_url: mediaData?.url_storage ?? '',

@@ -30,11 +30,24 @@ export function BasicInfoSection({ countries, roles }: Props) {
         options={countries.map((c) => ({ value: c.id, label: c.name }))}
       />
 
-      <FormSelect
-        name="role_id"
-        label="Role"
-        options={roles.map((r) => ({ value: r.id, label: r.name }))}
-      />
+      <div>
+        <FormSelect
+          name="role_id"
+          label="Role"
+          options={roles.map((r) => ({ value: r.id, label: r.name }))}
+          disabled={true}
+        />
+        <p className="text-xs text-gray-400 mt-1">
+          To request a role change, please email us at{' '}
+          <a
+            href="mailto:support@wizards.lat"
+            className="underline text-blue-300 hover:text-blue-400"
+          >
+            support@wizards.lat
+          </a>
+        </p>
+      </div>
+
       <FormInput name="linkedin_profile" label="LinkedIn Profile" />
 
       <FormInput name="other_link" label="Website" />

@@ -10,6 +10,9 @@ const config: Config = {
         tertiary1: '#8effd2',
         tertiary2: '#e7e7e7',
       },
+      fontFamily: {
+        mifuente: ['grotesk', 'sans-serif'],
+      },
     },
   },
   plugins: [],

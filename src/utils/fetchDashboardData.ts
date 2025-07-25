@@ -6,7 +6,9 @@ import {
   AboutRow,
 } from '@/components/organisms/dashboard/types';
 
-export async function fetchDashboardData(userId: string): Promise<DashboardData> {
+export async function fetchDashboardData(
+  userId: string
+): Promise<DashboardData> {
   const [
     { data: userData },
     { data: aboutData },
@@ -42,38 +44,31 @@ export async function fetchDashboardData(userId: string): Promise<DashboardData>
       .order('created_at', { ascending: false })
       .limit(1),
 
-    supabase
-      .from('skills')
-      .select('skill_name')
-      .eq('user_id', userId),
+    supabase.from('skills').select('skill_name').eq('user_id', userId),
 
-    supabase
-      .from('tools')
-      .select('tool_name')
-      .eq('user_id', userId),
+    supabase.from('tools').select('tool_name').eq('user_id', userId),
 
     supabase
       .from('user_expertise')
       .select('platform_id, rating, experience_time')
       .eq('user_id', userId),
 
-    supabase
-      .from('platforms')
-      .select('id, name'),
+    supabase.from('platforms').select('id, name'),
   ]);
 
   const skills = skillsData?.map((s) => s.skill_name) ?? [];
   const tools = toolsData?.map((t) => t.tool_name) ?? [];
 
-  const experiences = expertiseData?.map((exp) => {
-    const platformName =
-      platformsData?.find((p) => p.id === exp.platform_id)?.name || 'Unknown';
-    return {
-      platform: platformName,
-      rating: exp.rating,
-      experienceTime: exp.experience_time,
-    };
-  }) ?? [];
+  const experiences =
+    expertiseData?.map((exp) => {
+      const platformName =
+        platformsData?.find((p) => p.id === exp.platform_id)?.name || 'Unknown';
+      return {
+        platform: platformName,
+        rating: exp.rating ?? 0,
+        experienceTime: exp.experience_time ?? 'less than 1 year',
+      };
+    }) ?? [];
 
   const missingFields: string[] = [];
 

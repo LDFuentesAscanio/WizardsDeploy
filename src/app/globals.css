@@ -1,11 +1,10 @@
 @import "tailwindcss";
 
 @font-face {
-  font-family:'display';
-  src: url('/fonts/roc-grotesk-wide-black.woff2') format('woff2');
+  font-family: 'Grotesck';
+  src: url('/fonts/rocgroteskwide.otf') format('opentype');
   font-weight: normal;
   font-style: normal;
-  font-display: swap;
 }
 
 @theme {
