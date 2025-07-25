@@ -2,6 +2,7 @@
 // External libraries
 import Image from 'next/image';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Menu,
   X,
@@ -9,9 +10,11 @@ import {
   Settings,
   FolderCog,
   Search,
+  LogOut,
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import Link from 'next/link';
+import { supabase } from '@/utils/supabase/client';
 
 const navItems = [
   {
@@ -30,7 +33,14 @@ const navItems = [
 
 export default function DashboardNavbar() {
   const [open, setOpen] = useState(false);
+  const router = useRouter();
+
   const toggleMenu = () => setOpen((prev) => !prev);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push('/auth'); // Redirige al login
+  };
 
   return (
     <header className="w-full bg-[#e7e7e7] text-[#2c3d5a] px-6 py-4 rounded-b-2xl shadow-md z-50 relative">
@@ -67,7 +77,7 @@ export default function DashboardNavbar() {
 
         {/* Desktop Menu */}
         <div className="hidden md:flex bg-[#8effd2] rounded-xl px-6 py-3 shadow-md">
-          <ul className="flex gap-6 text-sm font-display font-medium">
+          <ul className="flex gap-6 text-sm font-display font-medium items-center">
             {navItems.map(({ label, href, icon }) => (
               <li key={label}>
                 <Link
@@ -79,11 +89,20 @@ export default function DashboardNavbar() {
                 </Link>
               </li>
             ))}
+            <li>
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-2 px-2 py-1 text-red-600 hover:text-red-400 transition-colors duration-200"
+              >
+                <LogOut size={16} />
+                Logout
+              </button>
+            </li>
           </ul>
         </div>
       </nav>
 
-      {/* Mobile Animated Menu */}
+      {/* Mobile Menu */}
       <AnimatePresence>
         {open && (
           <motion.div
@@ -107,6 +126,18 @@ export default function DashboardNavbar() {
                   </Link>
                 </li>
               ))}
+              <li>
+                <button
+                  onClick={() => {
+                    setOpen(false);
+                    handleLogout();
+                  }}
+                  className="flex items-center gap-2 px-2 py-1 text-red-600 hover:text-red-400 transition-colors duration-200"
+                >
+                  <LogOut size={16} />
+                  Logout
+                </button>
+              </li>
             </ul>
           </motion.div>
         )}
