@@ -9,15 +9,32 @@ export async function middleware(request: NextRequest) {
     req: request,
     res: response,
   });
+  
   const {
     data: { session },
   } = await supabase.auth.getSession();
 
-  const { pathname } = request.nextUrl;
+  const { pathname, searchParams } = request.nextUrl;
 
   // ⛔ No interceptar la ruta de callback de OAuth
   if (pathname.startsWith('/auth/callback')) {
+    // Verificar si es un callback de Google
+    const provider = searchParams.get('provider');
+    if (provider === 'google') {
+      return response;
+    }
     return response;
+  }
+
+  // Manejar el caso de redirección después del login
+  if (pathname === '/auth') {
+    const redirectUrl = searchParams.get('redirect');
+    if (redirectUrl) {
+      // Si hay una sesión y una URL de redirección, redirigir
+      if (session) {
+        return NextResponse.redirect(new URL(redirectUrl, request.url));
+      }
+    }
   }
 
   const isProtectedPath = [
