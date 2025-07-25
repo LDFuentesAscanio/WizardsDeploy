@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Mulish } from 'next/font/google';
 import './globals.css';
 import { Toaster } from 'sonner';
+import Providers from './providers';
 
 const mulish = Mulish({
   subsets: ['latin'],
@@ -32,11 +33,11 @@ export default function RootLayout({
           duration={3000}
           toastOptions={{
             classNames: {
-              toast: 'toast-slide-in rounded-lg shadow-xl', // Tu animación personalizada
+              toast: 'toast-slide-in rounded-lg shadow-xl',
             },
           }}
         />
-        {children}
+        <Providers>{children}</Providers>
       </body>
     </html>
   );
