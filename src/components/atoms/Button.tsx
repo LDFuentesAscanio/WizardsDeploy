@@ -11,7 +11,7 @@ export default function Button({
   const base = 'rounded-xl font-semibold transition-colors';
 
   const variants = {
-    primary: 'bg-black text-white px-6 py-3 hover:bg-gray-800',
+    primary: 'bg-black text-white font-grotesck px-6 py-3 hover:bg-gray-800',
     secondary: 'border-2 border-black text-black px-6 py-3 hover:bg-gray-100',
     email:
       'bg-[#2a2f45] text-white px-6 py-3 hover:bg-[#3b425e] shadow-[0_4px_24px_rgba(0,0,0,0.3)] w-fit',
