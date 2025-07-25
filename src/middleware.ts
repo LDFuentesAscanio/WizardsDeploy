@@ -1,0 +1,46 @@
+// src/middleware.ts
+import { NextResponse, type NextRequest } from 'next/server';
+import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs';
+import type { Database } from '@/types/supabase';
+
+export async function middleware(request: NextRequest) {
+  const response = NextResponse.next();
+  const supabase = createMiddlewareClient<Database>({
+    req: request,
+    res: response,
+  });
+
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  const { pathname } = request.nextUrl;
+
+  // Definición directa de rutas protegidas (sin variable intermedia para públicas)
+  const isProtectedPath = [
+    '/dashboard',
+    '/profile',
+    '/search',
+    '/projects',
+  ].some((path) => pathname === path || pathname.startsWith(`${path}/`));
+
+  // 1. Redirigir usuarios no autenticados desde rutas protegidas
+  if (!session && isProtectedPath) {
+    const loginUrl = new URL('/auth', request.url);
+    loginUrl.searchParams.set('redirect', pathname);
+    return NextResponse.redirect(loginUrl);
+  }
+
+  // 2. Redirigir usuarios autenticados desde página de auth
+  // (Aquí definimos directamente las rutas de auth sin variable)
+  if (session && (pathname === '/auth' || pathname.startsWith('/auth/login'))) {
+    return NextResponse.redirect(new URL('/dashboard', request.url));
+  }
+
+  return response;
+}
+
+export const config = {
+  matcher: [
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+  ],
+};
