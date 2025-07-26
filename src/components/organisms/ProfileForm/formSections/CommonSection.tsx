@@ -12,47 +12,49 @@ type Props = {
 
 export function CommonSection({ countries, roles }: Props) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+    <>
       <ProfileImageUpload />
-      <FormInput
-        label="First Name"
-        name="first_name"
-        placeholder="Enter your first name"
-      />
-
-      <FormInput
-        label="Last Name"
-        name="last_name"
-        placeholder="Enter your last name"
-      />
-
-      <FormSelect
-        name="country_id"
-        label="Country"
-        options={countries.map((c) => ({ value: c.id, label: c.name }))}
-      />
-
-      <div>
-        <FormSelect
-          name="role_id"
-          label="Role"
-          options={roles.map((r) => ({ value: r.id, label: r.name }))}
-          disabled={true}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <FormInput
+          label="First Name"
+          name="first_name"
+          placeholder="Enter your first name"
         />
-        <p className="text-xs text-gray-400 mt-1">
-          To request a role change, please email us at{' '}
-          <a
-            href="mailto:support@wizards.lat"
-            className="underline text-blue-300 hover:text-blue-400"
-          >
-            support@wizards.lat
-          </a>
-        </p>
+
+        <FormInput
+          label="Last Name"
+          name="last_name"
+          placeholder="Enter your last name"
+        />
+
+        <FormSelect
+          name="country_id"
+          label="Country"
+          options={countries.map((c) => ({ value: c.id, label: c.name }))}
+        />
+
+        <div>
+          <FormSelect
+            name="role_id"
+            label="Role"
+            options={roles.map((r) => ({ value: r.id, label: r.name }))}
+            disabled={true}
+          />
+          <p className="text-xs text-gray-400 mt-1">
+            To request a role change, please email us at{' '}
+            <a
+              href="mailto:support@wizards.lat"
+              className="underline text-blue-300 hover:text-blue-400"
+            >
+              support@wizards.lat
+            </a>
+          </p>
+        </div>
+
+        <FormInput name="linkedin_profile" label="LinkedIn Profile" />
+
+        <FormInput name="other_link" label="Website" />
       </div>
-
-      <FormInput name="linkedin_profile" label="LinkedIn Profile" />
-
-      <FormInput name="other_link" label="Website" />
-    </div>
+    </>
   );
 }
