@@ -12,36 +12,6 @@ export const getProfileSchema = (role: string | null) => {
   const customerSchema = {
     company_name: Yup.string().required('Company name is required'),
     actual_role: Yup.string().required('Actual role is required'),
-    accepted_privacy_policy: Yup.boolean()
-      .oneOf([true], 'You must accept privacy policy')
-      .required('Privacy policy acceptance is required'),
-    accepted_terms_conditions: Yup.boolean()
-      .oneOf([true], 'You must accept terms')
-      .required('Terms acceptance is required'),
-    looking_for_expert: Yup.boolean(),
-
-    // ✅ Asegura tipado explícito del array
-    selected_solutions: Yup.array()
-      .of(Yup.string())
-      .when('looking_for_expert', {
-        is: true,
-        then: (schema) =>
-          schema
-            .min(1, 'Select at least one solution')
-            .required('At least one solution is required'),
-        otherwise: (schema) => schema.notRequired(),
-      }),
-
-    solution_description: Yup.string().when('looking_for_expert', {
-      is: true,
-      then: (schema) =>
-        schema
-          .min(20, 'Description must be at least 20 characters')
-          .required('Description is required'),
-      otherwise: (schema) => schema.notRequired(),
-    }),
-
-    // ✅ Añadimos validación para descripción de la empresa
     bio: Yup.string()
       .min(20, 'Company description must be at least 20 characters')
       .required('Company description is required'),

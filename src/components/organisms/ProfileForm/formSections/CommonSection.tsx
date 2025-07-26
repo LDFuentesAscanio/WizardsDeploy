@@ -3,15 +3,17 @@
 import FormInput from '@/components/atoms/FormInput';
 import FormSelect from '@/components/atoms/FormSelect';
 import { Country, Role } from '../types';
+import ProfileImageUpload from '@/components/molecules/ProfileImageUpload';
 
 type Props = {
   countries: Country[];
   roles: Role[];
 };
 
-export function BasicInfoSection({ countries, roles }: Props) {
+export function CommonSection({ countries, roles }: Props) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+      <ProfileImageUpload />
       <FormInput
         label="First Name"
         name="first_name"

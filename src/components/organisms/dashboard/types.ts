@@ -38,7 +38,7 @@ export interface CustomerDashboardData {
   linkedin_profile: string | null;
   other_link: string | null;
   bio: string;
-  company_logo?: string;
+  company_logo?: string | null;
   solutions: string[];
 }
 

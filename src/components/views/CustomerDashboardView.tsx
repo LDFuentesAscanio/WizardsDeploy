@@ -10,60 +10,71 @@ import {
   AboutRow,
   CustomerDashboardData,
 } from '../organisms/dashboard/types';
+import { Solution } from '../organisms/ProfileForm/types';
+import CustomerSolutionModal from '../organisms/dashboard/CustomerSolutionsModal';
+import { saveCustomerSolutions } from '@/utils/saveSolutions';
 
 export default function CustomerDashboardView() {
   const [data, setData] = useState<CustomerDashboardData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [availableSolutions, setAvailableSolutions] = useState<Solution[]>([]);
 
   useEffect(() => {
-    async function fetchCustomerData() {
+    async function fetchAllData() {
       try {
         const { data: authUser } = await supabase.auth.getUser();
         const user_id = authUser.user?.id;
         if (!user_id) throw new Error('No user authenticated');
 
-        // 1. User basic info
-        const { data: user, error: userError } = await supabase
-          .from('users')
-          .select('first_name, last_name, linkedin_profile, other_link')
-          .eq('id', user_id)
-          .single<UserRow>();
+        // Obtener datos en paralelo
+        const [
+          { data: user },
+          { data: about },
+          { data: media },
+          { data: contracted },
+          { data: allSolutions },
+        ] = await Promise.all([
+          supabase
+            .from('users')
+            .select('first_name, last_name, linkedin_profile, other_link')
+            .eq('id', user_id)
+            .single<UserRow>(),
 
-        if (userError || !user) throw new Error('User data not found');
+          supabase
+            .from('about')
+            .select('bio')
+            .eq('user_id', user_id)
+            .maybeSingle<AboutRow>(),
 
-        // 2. About (bio)
-        const { data: about } = await supabase
-          .from('about')
-          .select('bio')
-          .eq('user_id', user_id)
-          .maybeSingle<AboutRow>();
+          supabase
+            .from('user_media')
+            .select('url_storage')
+            .eq('user_id', user_id)
+            .maybeSingle(),
 
-        // 3. Company logo
-        const { data: media } = await supabase
-          .from('user_media')
-          .select('url_storage')
-          .eq('user_id', user_id)
-          .maybeSingle();
+          supabase
+            .from('contracted_solutions')
+            .select('solution_id, solutions:solution_id (name)')
+            .eq('customer_id', user_id),
 
-        // 4. Contracted solutions
-        const { data: contracted } = await supabase
-          .from('contracted_solutions')
-          .select('solution_id, solutions:solution_id (name)')
-          .eq('customer_id', user_id);
+          supabase.from('solutions').select('id, name'),
+        ]);
 
-        // Procesar soluciones de forma segura
+        setAvailableSolutions(allSolutions || []);
+
         const solutionsList =
           (contracted as ContractedSolution[] | null)?.flatMap(
             (item) => item.solutions?.map((solution) => solution.name) || []
           ) || [];
 
         setData({
-          first_name: user.first_name || '',
-          last_name: user.last_name || '',
-          linkedin_profile: user.linkedin_profile,
-          other_link: user.other_link,
+          first_name: user?.first_name || '',
+          last_name: user?.last_name || '',
+          linkedin_profile: user?.linkedin_profile || null, // Corregido aquí
+          other_link: user?.other_link || null, // Corregido aquí
           bio: about?.bio || '',
-          company_logo: media?.url_storage,
+          company_logo: media?.url_storage || null, // Corregido aquí
           solutions: solutionsList,
         });
       } catch (error) {
@@ -74,8 +85,40 @@ export default function CustomerDashboardView() {
       }
     }
 
-    fetchCustomerData();
+    fetchAllData();
   }, []);
+
+  const handleModalSubmit = async (values: {
+    selectedSolutions: string[];
+    description: string;
+  }) => {
+    try {
+      const { data: authUser } = await supabase.auth.getUser();
+      const user_id = authUser.user?.id;
+      if (!user_id) throw new Error('No user authenticated');
+
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const customer_id = await saveCustomerSolutions({
+        user_id,
+        selectedSolutions: values.selectedSolutions,
+        description: values.description,
+      });
+
+      const solutionNames = values.selectedSolutions
+        .map((id) => availableSolutions.find((s) => s.id === id)?.name)
+        .filter(Boolean);
+
+      setData((prev) => ({
+        ...prev!,
+        solutions: solutionNames as string[],
+      }));
+
+      setShowModal(false);
+    } catch (error) {
+      showError('Error updating solutions');
+      console.error('Error updating solutions:', error);
+    }
+  };
 
   if (loading) return <p>Loading dashboard...</p>;
   if (!data) return <p>No data available.</p>;
@@ -125,6 +168,26 @@ export default function CustomerDashboardView() {
           <p className="text-sm text-gray-400">No solutions selected.</p>
         )}
       </div>
+      <p
+        onClick={() => setShowModal(true)}
+        className="mt-4 text-sm underline text-white cursor-pointer hover:text-[#67ff94]"
+      >
+        Are you looking for an expert? Click here
+      </p>
+
+      <CustomerSolutionModal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        solutions={availableSolutions}
+        initialValues={{
+          lookingForExpert: data.solutions.length > 0,
+          selectedSolutions: availableSolutions
+            .filter((s) => data.solutions.includes(s.name))
+            .map((s) => s.id),
+          description: '',
+        }}
+        onSubmit={handleModalSubmit}
+      />
     </section>
   );
 }

@@ -1,13 +1,13 @@
-// components/atoms/FormCheckBox.tsx
 'use client';
-
 import { useField } from 'formik';
+import { ChangeEvent } from 'react';
 
 interface FormCheckboxProps {
   name: string;
   label?: string | React.ReactNode;
   className?: string;
-  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onChange?: (e: ChangeEvent<HTMLInputElement>) => void;
+  checked?: boolean; // Añade esta línea
 }
 
 export default function FormCheckbox({
@@ -15,10 +15,11 @@ export default function FormCheckbox({
   label,
   className,
   onChange,
+  checked, // Añade esto a las props
 }: FormCheckboxProps) {
   const [field, meta, helpers] = useField({ name, type: 'checkbox' });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     helpers.setValue(e.target.checked);
     if (onChange) onChange(e);
   };
@@ -29,7 +30,7 @@ export default function FormCheckbox({
         <input
           type="checkbox"
           {...field}
-          checked={field.value}
+          checked={checked !== undefined ? checked : field.value} // Usa checked si está definido
           onChange={handleChange}
           className="accent-white"
         />
