@@ -96,8 +96,6 @@ export default function CustomerDashboardView() {
       const { data: authUser } = await supabase.auth.getUser();
       const user_id = authUser.user?.id;
       if (!user_id) throw new Error('No user authenticated');
-
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const customer_id = await saveCustomerSolutions({
         user_id,
         selectedSolutions: values.selectedSolutions,

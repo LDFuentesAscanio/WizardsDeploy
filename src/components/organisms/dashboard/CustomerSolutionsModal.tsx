@@ -27,6 +27,7 @@ type Props = {
   onClose: () => void;
   solutions: Solution[];
   initialValues: Partial<FormValues>;
+  onSubmit?: (values: FormValues) => void | Promise<void>; // ✅ OPCIONAL
 };
 
 export default function CustomerSolutionModal({
@@ -34,6 +35,7 @@ export default function CustomerSolutionModal({
   onClose,
   solutions,
   initialValues,
+  onSubmit, // ✅ Desestructurado correctamente
 }: Props) {
   return (
     <Dialog open={isOpen} onClose={onClose} className="relative z-50">
@@ -49,41 +51,36 @@ export default function CustomerSolutionModal({
               acceptedPrivacy: initialValues.acceptedPrivacy ?? false,
             }}
             validationSchema={solutionModalSchema}
-            onSubmit={async (values, formikHelpers) => {
+            onSubmit={async (values) => {
               try {
-                const {
-                  data: { user },
-                  error,
-                } = await supabase.auth.getUser();
-
-                if (error || !user) throw error;
+                const { data: authUser } = await supabase.auth.getUser();
+                const user_id = authUser.user?.id;
+                if (!user_id) throw new Error('No user authenticated');
 
                 await saveCustomerSolutions({
-                  user_id: user.id,
+                  user_id,
                   selectedSolutions: values.selectedSolutions,
                   description: values.description,
                 });
 
-                showSuccess('Solutions saved successfully');
+                if (onSubmit) {
+                  await onSubmit(values); // 🔁 Notifica al padre si lo necesita
+                }
+
+                showSuccess('Solutions updated successfully!');
                 onClose();
-
-                // 👇 (Opcional) resetear el form
-                formikHelpers.resetForm({ values });
-
-                // 👇 (Opcional) Actualizar valores de Formik padre si querés sincronizar
-                // Podrías usar context o props si lo necesitás
-              } catch (err) {
+              } catch (error) {
                 showError('Error saving solutions');
-                console.error(err);
+                console.error('Modal save error:', error);
               }
             }}
             enableReinitialize
           >
             {({ values, setFieldValue, isValid, isSubmitting }) => (
               <Form className="space-y-6">
-                <Dialog.Title className="text-xl font-bold">
+                <h2 id="modal-title" className="text-xl font-bold">
                   Are you looking for an expert?
-                </Dialog.Title>
+                </h2>
 
                 <FormCheckbox
                   name="lookingForExpert"

@@ -1,20 +1,46 @@
 'use client';
 
 import { useState } from 'react';
-import { useFormikContext } from 'formik';
-import { ProfileFormValues, Solution } from '../types';
+import { Solution } from '../types';
 import CustomerSolutionModal from '../../dashboard/CustomerSolutionsModal';
 import { CustomerBasicInfo } from './CustomerBasicInfo';
+import { saveCustomerSolutions } from '@/utils/saveSolutions';
+import { supabase } from '@/utils/supabase/browserClient';
+import { showError, showSuccess } from '@/utils/toastService';
 
 type Props = {
   solutions: Solution[];
 };
 
 export default function CustomerSections({ solutions }: Props) {
-  const { values } = useFormikContext<ProfileFormValues>();
   const [showModal, setShowModal] = useState(false);
+  const [selectedSolutions, setSelectedSolutions] = useState<string[]>([]);
 
-  const selectedSolutions = values.selected_solutions || [];
+  const handleSaveSolutions = async (modalValues: {
+    selectedSolutions: string[];
+    description: string;
+    acceptedTerms: boolean;
+    acceptedPrivacy: boolean;
+  }) => {
+    try {
+      const { data: authUser } = await supabase.auth.getUser();
+      const user_id = authUser.user?.id;
+      if (!user_id) throw new Error('No user authenticated');
+
+      await saveCustomerSolutions({
+        user_id,
+        selectedSolutions: modalValues.selectedSolutions,
+        description: modalValues.description,
+      });
+
+      setSelectedSolutions(modalValues.selectedSolutions);
+      setShowModal(false);
+      showSuccess('Solutions saved!');
+    } catch (error) {
+      console.error('Error saving solutions:', error);
+      showError('Error saving solutions');
+    }
+  };
 
   return (
     <>
@@ -57,12 +83,13 @@ export default function CustomerSections({ solutions }: Props) {
         onClose={() => setShowModal(false)}
         solutions={solutions}
         initialValues={{
-          lookingForExpert: values.looking_for_expert || false,
+          lookingForExpert: selectedSolutions.length > 0,
           selectedSolutions,
-          description: values.solution_description || '',
-          acceptedTerms: values.accepted_terms_conditions || false,
-          acceptedPrivacy: values.accepted_privacy_policy || false,
+          description: '',
+          acceptedTerms: false,
+          acceptedPrivacy: false,
         }}
+        onSubmit={handleSaveSolutions}
       />
     </>
   );
