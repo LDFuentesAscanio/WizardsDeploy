@@ -11,7 +11,7 @@ type Props = {
 };
 
 export default function CustomerSections({ solutions }: Props) {
-  const { values, setValues } = useFormikContext<ProfileFormValues>();
+  const { values } = useFormikContext<ProfileFormValues>();
   const [showModal, setShowModal] = useState(false);
 
   const selectedSolutions = values.selected_solutions || [];
@@ -62,17 +62,6 @@ export default function CustomerSections({ solutions }: Props) {
           description: values.solution_description || '',
           acceptedTerms: values.accepted_terms_conditions || false,
           acceptedPrivacy: values.accepted_privacy_policy || false,
-        }}
-        onSubmit={(modalValues) => {
-          setValues({
-            ...values,
-            selected_solutions: modalValues.selectedSolutions,
-            solution_description: modalValues.description,
-            looking_for_expert: modalValues.selectedSolutions.length > 0,
-            accepted_terms_conditions: modalValues.acceptedTerms,
-            accepted_privacy_policy: modalValues.acceptedPrivacy,
-          });
-          setShowModal(false);
         }}
       />
     </>

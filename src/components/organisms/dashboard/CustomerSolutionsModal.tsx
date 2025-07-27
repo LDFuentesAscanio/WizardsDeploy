@@ -5,6 +5,9 @@ import { Formik, Form, FieldArray } from 'formik';
 import FormInput from '@/components/atoms/FormInput';
 import FormCheckbox from '@/components/atoms/FormCheckbox';
 import { solutionModalSchema } from '@/validations/solutionModalSchema';
+import { showError, showSuccess } from '@/utils/toastService';
+import { supabase } from '@/utils/supabase/browserClient';
+import { saveCustomerSolutions } from '@/utils/saveSolutions';
 
 type Solution = {
   id: string;
@@ -24,7 +27,6 @@ type Props = {
   onClose: () => void;
   solutions: Solution[];
   initialValues: Partial<FormValues>;
-  onSubmit: (values: FormValues) => void;
 };
 
 export default function CustomerSolutionModal({
@@ -32,7 +34,6 @@ export default function CustomerSolutionModal({
   onClose,
   solutions,
   initialValues,
-  onSubmit,
 }: Props) {
   return (
     <Dialog open={isOpen} onClose={onClose} className="relative z-50">
@@ -48,7 +49,34 @@ export default function CustomerSolutionModal({
               acceptedPrivacy: initialValues.acceptedPrivacy ?? false,
             }}
             validationSchema={solutionModalSchema}
-            onSubmit={onSubmit}
+            onSubmit={async (values, formikHelpers) => {
+              try {
+                const {
+                  data: { user },
+                  error,
+                } = await supabase.auth.getUser();
+
+                if (error || !user) throw error;
+
+                await saveCustomerSolutions({
+                  user_id: user.id,
+                  selectedSolutions: values.selectedSolutions,
+                  description: values.description,
+                });
+
+                showSuccess('Solutions saved successfully');
+                onClose();
+
+                // 👇 (Opcional) resetear el form
+                formikHelpers.resetForm({ values });
+
+                // 👇 (Opcional) Actualizar valores de Formik padre si querés sincronizar
+                // Podrías usar context o props si lo necesitás
+              } catch (err) {
+                showError('Error saving solutions');
+                console.error(err);
+              }
+            }}
             enableReinitialize
           >
             {({ values, setFieldValue, isValid, isSubmitting }) => (

@@ -71,10 +71,10 @@ export default function CustomerDashboardView() {
         setData({
           first_name: user?.first_name || '',
           last_name: user?.last_name || '',
-          linkedin_profile: user?.linkedin_profile || null, // Corregido aquí
-          other_link: user?.other_link || null, // Corregido aquí
+          linkedin_profile: user?.linkedin_profile || null,
+          other_link: user?.other_link || null,
           bio: about?.bio || '',
-          company_logo: media?.url_storage || null, // Corregido aquí
+          company_logo: media?.url_storage || null,
           solutions: solutionsList,
         });
       } catch (error) {
@@ -104,13 +104,19 @@ export default function CustomerDashboardView() {
         description: values.description,
       });
 
-      const solutionNames = values.selectedSolutions
-        .map((id) => availableSolutions.find((s) => s.id === id)?.name)
-        .filter(Boolean);
+      const { data: refreshedSolutions } = await supabase
+        .from('contracted_solutions')
+        .select('solution_id, solutions:solution_id (name)')
+        .eq('customer_id', customer_id); // Asegurate de tenerlo definido
+
+      const solutionNames =
+        (refreshedSolutions as ContractedSolution[] | null)?.flatMap(
+          (item) => item.solutions?.map((s) => s.name) || []
+        ) || [];
 
       setData((prev) => ({
         ...prev!,
-        solutions: solutionNames as string[],
+        solutions: solutionNames,
       }));
 
       setShowModal(false);
