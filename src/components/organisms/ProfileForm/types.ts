@@ -33,6 +33,7 @@ export interface CustomerSpecific {
   accepted_privacy_policy: boolean;
   accepted_terms_conditions: boolean;
   description?: string;
+  company_logo_url: string;
 }
 
 // Tipo combinado que incluye TODOS los campos de forma segura
@@ -73,6 +74,10 @@ export interface Solution {
   name: string;
   description?: string;
 }
+
+export type UserMedia = {
+  url_storage: string;
+};
 
 // Tipos para respuestas de Supabase
 export type UserResponse = Pick<
