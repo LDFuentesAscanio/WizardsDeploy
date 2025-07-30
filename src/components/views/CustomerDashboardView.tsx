@@ -5,8 +5,6 @@ import { supabase } from '@/utils/supabase/browserClient';
 import { showError } from '@/utils/toastService';
 import UserCard from '../organisms/dashboard/UserCard';
 import {
-  UserRow,
-  AboutRow,
   CustomerDashboardData,
   SupabaseContractedSolution,
 } from '../organisms/dashboard/types';
@@ -21,19 +19,33 @@ export default function CustomerDashboardView() {
   const [availableSolutions, setAvailableSolutions] = useState<Solution[]>([]);
 
   useEffect(() => {
-    console.log('🔵 [1] Iniciando carga de datos del dashboard');
     async function fetchAllData() {
       try {
-        console.log('🔵 [2] Obteniendo usuario autenticado');
+        console.log('🔵 [1] Iniciando carga de datos');
         const { data: authUser, error: authError } =
           await supabase.auth.getUser();
         if (authError) throw authError;
 
         const user_id = authUser.user?.id;
         if (!user_id) throw new Error('No user authenticated');
-        console.log('🟢 [3] Usuario ID obtenido:', user_id);
+        console.log('🟢 [2] User ID obtenido:', user_id);
 
-        console.log('🔵 [4] Iniciando consultas paralelas');
+        // Primero obtenemos el customer_id asociado al user_id
+        console.log('🔵 [3] Buscando customer_id para el usuario');
+        const { data: customerData, error: customerError } = await supabase
+          .from('customers')
+          .select('id')
+          .eq('user_id', user_id)
+          .single();
+
+        if (customerError) throw customerError;
+        if (!customerData) throw new Error('Customer no encontrado');
+
+        const customer_id = customerData.id;
+        console.log('🟢 [4] Customer ID obtenido:', customer_id);
+
+        // Obtener datos en paralelo
+        console.log('🔵 [5] Iniciando consultas paralelas');
         const [
           { data: user, error: userError },
           { data: about, error: aboutError },
@@ -45,13 +57,13 @@ export default function CustomerDashboardView() {
             .from('users')
             .select('first_name, last_name, linkedin_profile, other_link')
             .eq('id', user_id)
-            .single<UserRow>(),
+            .single(),
 
           supabase
             .from('about')
             .select('bio')
             .eq('user_id', user_id)
-            .maybeSingle<AboutRow>(),
+            .maybeSingle(),
 
           supabase
             .from('user_media')
@@ -59,15 +71,21 @@ export default function CustomerDashboardView() {
             .eq('user_id', user_id)
             .maybeSingle(),
 
+          // Consulta corregida para contracted_solutions
           supabase
             .from('contracted_solutions')
-            .select('solution_id, solutions:solution_id (name)')
-            .eq('customer_id', user_id),
+            .select(
+              `
+            solution_id, 
+            solutions:solution_id (name)
+          `
+            )
+            .eq('customer_id', customer_id), // Usamos customer_id en lugar de user_id
 
           supabase.from('solutions').select('id, name'),
         ]);
 
-        console.log('📊 [5] Resultados de consultas:', {
+        console.log('📊 [6] Resultados de consultas:', {
           user,
           about,
           media,
@@ -81,50 +99,39 @@ export default function CustomerDashboardView() {
         if (contractedError) throw contractedError;
         if (solutionsError) throw solutionsError;
 
+        // Procesar soluciones contratadas
         const solutionsList =
-          ((contracted as SupabaseContractedSolution[] | null)
-            ?.filter((item) => {
-              console.log('🔍 [6] Procesando item contracted_solutions:', item);
-              return item.solutions !== null;
-            })
-            .map((item) => {
-              console.log('📌 [7] Mapeando solución:', item.solutions?.name);
-              return item.solutions?.name;
-            })
-            .filter(Boolean) as string[]) || [];
+          contracted
+            ?.map((item) => ({
+              solution_id: item.solution_id,
+              name: item.solutions?.name,
+            }))
+            .filter((item) => item.name) || [];
 
-        console.log('📋 [8] Lista final de soluciones:', solutionsList);
+        console.log('📋 [7] Soluciones procesadas:', solutionsList);
 
         setAvailableSolutions(allSolutions || []);
-        console.log('🛒 [9] Soluciones disponibles:', allSolutions);
+        console.log('🛒 [8] Soluciones disponibles:', allSolutions);
 
-        const dashboardData = {
+        setData({
           first_name: user?.first_name || '',
           last_name: user?.last_name || '',
           linkedin_profile: user?.linkedin_profile || null,
           other_link: user?.other_link || null,
           bio: about?.bio || '',
           company_logo: media?.url_storage || null,
-          solutions: solutionsList,
-        };
-
-        console.log(
-          '📦 [10] Datos completos para el dashboard:',
-          dashboardData
-        );
-        setData(dashboardData);
+          solutions: solutionsList.map((s) => s.name), // Solo los nombres
+        });
       } catch (error) {
-        console.error('❌ [ERROR] Customer dashboard error:', error);
+        console.error('❌ [ERROR] Error cargando datos:', error);
         showError('Dashboard Error', 'Could not load dashboard data');
       } finally {
-        console.log('✅ [11] Carga de datos completada');
         setLoading(false);
       }
     }
 
     fetchAllData();
   }, []);
-
   const handleModalSubmit = async (values: {
     selectedSolutions: string[];
     description: string;
