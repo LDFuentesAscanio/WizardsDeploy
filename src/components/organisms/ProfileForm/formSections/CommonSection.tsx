@@ -4,6 +4,8 @@ import FormInput from '@/components/atoms/FormInput';
 import FormSelect from '@/components/atoms/FormSelect';
 import { Country, Role } from '../types';
 import ImageUploader from '@/components/molecules/ImageUpload';
+import { useFormikContext } from 'formik';
+import type { ProfileFormValues } from '../types';
 
 type Props = {
   countries: Country[];
@@ -11,9 +13,14 @@ type Props = {
 };
 
 export function CommonSection({ countries, roles }: Props) {
+  const { values } = useFormikContext<ProfileFormValues>();
   return (
     <>
-      <ImageUploader label="Profile Photo" type="avatar" />
+      <ImageUploader
+        label="Profile Photo"
+        type="avatar"
+        initialUrl={values.photo_url}
+      />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <FormInput
           label="First Name"

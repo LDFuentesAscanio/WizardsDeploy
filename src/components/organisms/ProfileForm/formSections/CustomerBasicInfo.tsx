@@ -2,11 +2,19 @@
 
 import FormInput from '@/components/atoms/FormInput';
 import ImageUploader from '@/components/molecules/ImageUpload';
+import { useFormikContext } from 'formik';
+import type { ProfileFormValues } from '../types';
 
 export function CustomerBasicInfo() {
+  const { values } = useFormikContext<ProfileFormValues>();
+
   return (
     <section className="grid gap-4">
-      <ImageUploader label="Company Logo" type="company_logo" />
+      <ImageUploader
+        label="Company Logo"
+        type="company_logo"
+        initialUrl={values.company_logo_url}
+      />
       <FormInput
         label="Your company's name?"
         name="company_name"
