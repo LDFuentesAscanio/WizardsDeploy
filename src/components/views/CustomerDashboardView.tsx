@@ -5,14 +5,16 @@ import { supabase } from '@/utils/supabase/browserClient';
 import { showError } from '@/utils/toastService';
 import UserCard from '../organisms/dashboard/UserCard';
 import {
-  ContractedSolution,
   UserRow,
   AboutRow,
   CustomerDashboardData,
+  SupabaseContractedSolution,
 } from '../organisms/dashboard/types';
 import { Solution } from '../organisms/ProfileForm/types';
 import CustomerSolutionModal from '../organisms/dashboard/CustomerSolutionsModal';
 import { saveCustomerSolutions } from '@/utils/saveSolutions';
+
+// Definimos un tipo para la respuesta de Supabase
 
 export default function CustomerDashboardView() {
   const [data, setData] = useState<CustomerDashboardData | null>(null);
@@ -23,17 +25,20 @@ export default function CustomerDashboardView() {
   useEffect(() => {
     async function fetchAllData() {
       try {
-        const { data: authUser } = await supabase.auth.getUser();
+        const { data: authUser, error: authError } =
+          await supabase.auth.getUser();
+        if (authError) throw authError;
+
         const user_id = authUser.user?.id;
         if (!user_id) throw new Error('No user authenticated');
 
         // Obtener datos en paralelo
         const [
-          { data: user },
-          { data: about },
-          { data: media },
-          { data: contracted },
-          { data: allSolutions },
+          { data: user, error: userError },
+          { data: about, error: aboutError },
+          { data: media, error: mediaError },
+          { data: contracted, error: contractedError },
+          { data: allSolutions, error: solutionsError },
         ] = await Promise.all([
           supabase
             .from('users')
@@ -61,12 +66,21 @@ export default function CustomerDashboardView() {
           supabase.from('solutions').select('id, name'),
         ]);
 
-        setAvailableSolutions(allSolutions || []);
+        // Manejar errores
+        if (userError) throw userError;
+        if (aboutError) throw aboutError;
+        if (mediaError) throw mediaError;
+        if (contractedError) throw contractedError;
+        if (solutionsError) throw solutionsError;
 
+        // Procesar soluciones contratadas
         const solutionsList =
-          (contracted as ContractedSolution[] | null)?.flatMap(
-            (item) => item.solutions?.map((solution) => solution.name) || []
-          ) || [];
+          ((contracted as SupabaseContractedSolution[] | null)
+            ?.filter((item) => item.solutions !== null)
+            .map((item) => item.solutions?.name)
+            .filter(Boolean) as string[]) || [];
+
+        setAvailableSolutions(allSolutions || []);
 
         setData({
           first_name: user?.first_name || '',
@@ -93,24 +107,32 @@ export default function CustomerDashboardView() {
     description: string;
   }) => {
     try {
-      const { data: authUser } = await supabase.auth.getUser();
+      const { data: authUser, error: authError } =
+        await supabase.auth.getUser();
+      if (authError) throw authError;
+
       const user_id = authUser.user?.id;
       if (!user_id) throw new Error('No user authenticated');
+
       const customer_id = await saveCustomerSolutions({
         user_id,
         selectedSolutions: values.selectedSolutions,
         description: values.description,
       });
 
-      const { data: refreshedSolutions } = await supabase
+      // Refrescar las soluciones contratadas
+      const { data: refreshedSolutions, error: refreshedError } = await supabase
         .from('contracted_solutions')
         .select('solution_id, solutions:solution_id (name)')
-        .eq('customer_id', customer_id); // Asegurate de tenerlo definido
+        .eq('customer_id', customer_id);
+
+      if (refreshedError) throw refreshedError;
 
       const solutionNames =
-        (refreshedSolutions as ContractedSolution[] | null)?.flatMap(
-          (item) => item.solutions?.map((s) => s.name) || []
-        ) || [];
+        ((refreshedSolutions as SupabaseContractedSolution[] | null)
+          ?.filter((item) => item.solutions !== null)
+          .map((item) => item.solutions?.name)
+          .filter(Boolean) as string[]) || [];
 
       setData((prev) => ({
         ...prev!,
@@ -161,7 +183,7 @@ export default function CustomerDashboardView() {
           <ul className="flex flex-wrap gap-2">
             {data.solutions.map((name, idx) => (
               <li
-                key={idx}
+                key={`${name}-${idx}`}
                 className="bg-[#67ff94] text-[#2c3d5a] px-3 py-1 rounded-full text-sm font-medium"
               >
                 {name}
@@ -172,6 +194,7 @@ export default function CustomerDashboardView() {
           <p className="text-sm text-gray-400">No solutions selected.</p>
         )}
       </div>
+
       <p
         onClick={() => setShowModal(true)}
         className="mt-4 text-sm underline text-white cursor-pointer hover:text-[#67ff94]"

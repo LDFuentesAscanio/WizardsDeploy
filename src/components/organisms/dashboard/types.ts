@@ -42,7 +42,7 @@ export interface CustomerDashboardData {
   solutions: string[];
 }
 
-export interface ContractedSolution {
+export type SupabaseContractedSolution = {
   solution_id: string;
-  solutions: { name: string }[] | null; // Ahora acepta array
-}
+  solutions: { name: string } | null;
+};
