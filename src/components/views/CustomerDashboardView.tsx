@@ -30,7 +30,7 @@ export default function CustomerDashboardView() {
         if (!user_id) throw new Error('No user authenticated');
         console.log('🟢 [2] User ID obtenido:', user_id);
 
-        // Primero obtenemos el customer_id asociado al user_id
+        // Buscar customer_id
         console.log('🔵 [3] Buscando customer_id para el usuario');
         const { data: customerData, error: customerError } = await supabase
           .from('customers')
@@ -40,18 +40,15 @@ export default function CustomerDashboardView() {
 
         if (customerError) throw customerError;
         if (!customerData) throw new Error('Customer no encontrado');
-
         const customer_id = customerData.id;
         console.log('🟢 [4] Customer ID obtenido:', customer_id);
 
-        // Obtener datos en paralelo
+        // Consultas paralelas básicas
         console.log('🔵 [5] Iniciando consultas paralelas');
         const [
           { data: user, error: userError },
           { data: about, error: aboutError },
           { data: media, error: mediaError },
-          { data: contracted, error: contractedError },
-          { data: allSolutions, error: solutionsError },
         ] = await Promise.all([
           supabase
             .from('users')
@@ -70,48 +67,45 @@ export default function CustomerDashboardView() {
             .select('url_storage')
             .eq('user_id', user_id)
             .maybeSingle(),
-
-          // Consulta corregida para contracted_solutions
-          supabase
-            .from('contracted_solutions')
-            .select(
-              `
-            solution_id, 
-            solutions:solution_id (name)
-          `
-            )
-            .eq('customer_id', customer_id), // Usamos customer_id en lugar de user_id
-
-          supabase.from('solutions').select('id, name'),
         ]);
-
-        console.log('📊 [6] Resultados de consultas:', {
-          user,
-          about,
-          media,
-          contracted,
-          allSolutions,
-        });
 
         if (userError) throw userError;
         if (aboutError) throw aboutError;
         if (mediaError) throw mediaError;
+
+        // Obtener contracted_solutions
+        const { data: contractedRaw, error: contractedError } = await supabase
+          .from('contracted_solutions')
+          .select('solution_id')
+          .eq('customer_id', customer_id);
+
         if (contractedError) throw contractedError;
+        console.log('📦 [6] Contracted Solutions:', contractedRaw);
+
+        // Extraer IDs
+        const solutionIds = contractedRaw?.map((c) => c.solution_id) || [];
+        console.log('🧩 [7] solutionIds:', solutionIds);
+
+        // Obtener nombres
+        const { data: matchingSolutions, error: matchingError } = await supabase
+          .from('solutions')
+          .select('id, name')
+          .in('id', solutionIds);
+
+        if (matchingError) throw matchingError;
+        console.log('📚 [8] Soluciones coincidentes:', matchingSolutions);
+
+        const solutionNames = matchingSolutions?.map((s) => s.name) || [];
+
+        // Obtener todas las soluciones (para mostrar en modal)
+        const { data: allSolutions, error: solutionsError } = await supabase
+          .from('solutions')
+          .select('id, name');
+
         if (solutionsError) throw solutionsError;
 
-        // Procesar soluciones contratadas
-        const solutionsList =
-          contracted
-            ?.map((item) => ({
-              solution_id: item.solution_id,
-              name: item.solutions?.name,
-            }))
-            .filter((item) => item.name) || [];
-
-        console.log('📋 [7] Soluciones procesadas:', solutionsList);
-
         setAvailableSolutions(allSolutions || []);
-        console.log('🛒 [8] Soluciones disponibles:', allSolutions);
+        console.log('🛒 [9] Soluciones disponibles:', allSolutions);
 
         setData({
           first_name: user?.first_name || '',
@@ -120,8 +114,10 @@ export default function CustomerDashboardView() {
           other_link: user?.other_link || null,
           bio: about?.bio || '',
           company_logo: media?.url_storage || null,
-          solutions: solutionsList.map((s) => s.name), // Solo los nombres
+          solutions: solutionNames,
         });
+
+        console.log('🟢 [10] Datos cargados correctamente');
       } catch (error) {
         console.error('❌ [ERROR] Error cargando datos:', error);
         showError('Dashboard Error', 'Could not load dashboard data');
@@ -132,6 +128,7 @@ export default function CustomerDashboardView() {
 
     fetchAllData();
   }, []);
+
   const handleModalSubmit = async (values: {
     selectedSolutions: string[];
     description: string;
