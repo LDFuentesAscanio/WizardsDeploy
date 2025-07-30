@@ -1,10 +1,12 @@
 'use client';
 
 import FormInput from '@/components/atoms/FormInput';
+import ImageUploader from '@/components/molecules/ImageUpload';
 
 export function CustomerBasicInfo() {
   return (
     <section className="grid gap-4">
+      <ImageUploader label="Company Logo" type="company_logo" />
       <FormInput
         label="Your company's name?"
         name="company_name"
