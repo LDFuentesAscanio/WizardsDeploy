@@ -2,21 +2,24 @@
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/utils/supabase/browserClient';
-import { showError } from '@/utils/toastService';
+import { showError, showSuccess } from '@/utils/toastService';
 import UserCard from '../organisms/dashboard/UserCard';
 import {
   CustomerDashboardData,
   SupabaseContractedSolution,
 } from '../organisms/dashboard/types';
-import { Solution } from '../organisms/ProfileForm/types';
 import CustomerSolutionModal from '../organisms/dashboard/CustomerSolutionsModal';
 import { saveCustomerSolutions } from '@/utils/saveSolutions';
+import { Solution } from '../organisms/ProfileForm/types';
 
 export default function CustomerDashboardView() {
   const [data, setData] = useState<CustomerDashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [availableSolutions, setAvailableSolutions] = useState<Solution[]>([]);
+  const [contractedSolutions, setContractedSolutions] = useState<
+    SupabaseContractedSolution[]
+  >([]);
 
   useEffect(() => {
     async function fetchAllData() {
@@ -28,23 +31,24 @@ export default function CustomerDashboardView() {
         const user_id = authUser.user?.id;
         if (!user_id) throw new Error('No user authenticated');
 
-        // Buscar customer_id
+        // Buscar customer_id con tipado explícito
         const { data: customerData, error: customerError } = await supabase
           .from('customers')
-          .select('id')
+          .select('id, company_name')
           .eq('user_id', user_id)
           .single();
 
         if (customerError) throw customerError;
-        if (!customerData) throw new Error('Customer no encontrado');
+        if (!customerData) throw new Error('Customer not found');
         const customer_id = customerData.id;
 
-        // Consultas paralelas básicas
+        // Consultas paralelas con tipado adecuado
         const [
           { data: user, error: userError },
           { data: about, error: aboutError },
           { data: avatarMedia, error: avatarError },
           { data: companyLogoMedia, error: companyLogoError },
+          { data: allSolutions, error: solutionsError },
         ] = await Promise.all([
           supabase
             .from('users')
@@ -71,55 +75,50 @@ export default function CustomerDashboardView() {
             .eq('user_id', user_id)
             .eq('type', 'company_logo')
             .maybeSingle(),
+
+          supabase.from('solutions').select('id, name'),
         ]);
 
+        // Manejo de errores
         if (userError) throw userError;
         if (aboutError) throw aboutError;
         if (avatarError) throw avatarError;
         if (companyLogoError) throw companyLogoError;
+        if (solutionsError) throw solutionsError;
 
-        // Obtener contracted_solutions
+        // Tipado explícito para las soluciones
+        setAvailableSolutions(allSolutions || []);
+
+        // Obtener contracted_solutions con tipado correcto
         const { data: contractedRaw, error: contractedError } = await supabase
           .from('contracted_solutions')
-          .select('solution_id')
-          .eq('customer_id', customer_id);
+          .select('id, solution_id, solutions:solution_id (name)')
+          .eq('customer_id', customer_id)
+          .eq('is_active', true);
 
         if (contractedError) throw contractedError;
 
-        // Extraer IDs
-        const solutionIds = contractedRaw?.map((c) => c.solution_id) || [];
+        setContractedSolutions(contractedRaw || []);
 
-        // Obtener nombres
-        const { data: matchingSolutions, error: matchingError } = await supabase
-          .from('solutions')
-          .select('id, name')
-          .in('id', solutionIds);
-
-        if (matchingError) throw matchingError;
-
-        const solutionNames = matchingSolutions?.map((s) => s.name) || [];
-
-        // Obtener todas las soluciones (para mostrar en modal)
-        const { data: allSolutions, error: solutionsError } = await supabase
-          .from('solutions')
-          .select('id, name');
-
-        if (solutionsError) throw solutionsError;
-
-        setAvailableSolutions(allSolutions || []);
+        // Mapeo seguro de nombres de soluciones
+        const solutionNames =
+          contractedRaw
+            ?.map((item) => item.solutions?.name)
+            .filter((name): name is string => !!name) || [];
 
         setData({
           first_name: user?.first_name || '',
           last_name: user?.last_name || '',
           linkedin_profile: user?.linkedin_profile || null,
           other_link: user?.other_link || null,
+          company_name: customerData?.company_name || '',
           bio: about?.bio || '',
           avatar: avatarMedia?.url_storage || null,
           company_logo: companyLogoMedia?.url_storage || null,
           solutions: solutionNames,
         });
       } catch (error) {
-        console.error('❌ [ERROR] Error cargando datos:', error);
+        console.error('Error loading data:', error);
         showError('Dashboard Error', 'Could not load dashboard data');
       } finally {
         setLoading(false);
@@ -129,17 +128,57 @@ export default function CustomerDashboardView() {
     fetchAllData();
   }, []);
 
+  const handleDeleteSolution = async (solutionId: string) => {
+    try {
+      const { data: authUser } = await supabase.auth.getUser();
+      const user_id = authUser.user?.id;
+      if (!user_id) throw new Error('User not authenticated');
+
+      const { data: customerData } = await supabase
+        .from('customers')
+        .select('id')
+        .eq('user_id', user_id)
+        .single();
+
+      if (!customerData) throw new Error('Customer not found');
+
+      const { error: deleteError } = await supabase
+        .from('contracted_solutions')
+        .update({ is_active: false })
+        .eq('solution_id', solutionId)
+        .eq('customer_id', customerData.id);
+
+      if (deleteError) throw deleteError;
+
+      setContractedSolutions((prev) =>
+        prev.filter((sol) => sol.solution_id !== solutionId)
+      );
+
+      setData((prev) => ({
+        ...prev!,
+        solutions: prev!.solutions.filter(
+          (name) =>
+            !availableSolutions.find(
+              (sol) => sol.id === solutionId && sol.name === name
+            )
+        ),
+      }));
+
+      showSuccess('Solution removed successfully');
+    } catch (error) {
+      console.error('Error deleting solution:', error);
+      showError('Error', 'Failed to remove solution');
+    }
+  };
+
   const handleModalSubmit = async (values: {
     selectedSolutions: string[];
     description: string;
   }) => {
     try {
-      const { data: authUser, error: authError } =
-        await supabase.auth.getUser();
-      if (authError) throw authError;
-
+      const { data: authUser } = await supabase.auth.getUser();
       const user_id = authUser.user?.id;
-      if (!user_id) throw new Error('No user authenticated');
+      if (!user_id) throw new Error('User not authenticated');
 
       const customer_id = await saveCustomerSolutions({
         user_id,
@@ -147,35 +186,29 @@ export default function CustomerDashboardView() {
         description: values.description,
       });
 
-      const { data: refreshedSolutions, error: refreshedError } = await supabase
+      const { data: refreshedSolutions } = await supabase
         .from('contracted_solutions')
-        .select('solution_id, solutions:solution_id (name)')
-        .eq('customer_id', customer_id);
+        .select('id, solution_id, solutions:solution_id (name)')
+        .eq('customer_id', customer_id)
+        .eq('is_active', true);
 
-      if (refreshedError) throw refreshedError;
+      setContractedSolutions(refreshedSolutions || []);
 
       const solutionNames =
-        ((refreshedSolutions as SupabaseContractedSolution[] | null)
-          ?.filter((item) => {
-            return item.solutions !== null;
-          })
-          .map((item) => {
-            return item.solutions?.name;
-          })
-          .filter(Boolean) as string[]) || [];
+        refreshedSolutions
+          ?.map((item) => item.solutions?.name)
+          .filter((name): name is string => !!name) || [];
 
-      setData((prev) => {
-        const newData = {
-          ...prev!,
-          solutions: solutionNames,
-        };
-        return newData;
-      });
+      setData((prev) => ({
+        ...prev!,
+        solutions: solutionNames,
+      }));
 
       setShowModal(false);
+      showSuccess('Solutions updated successfully');
     } catch (error) {
-      console.error('❌ [ERROR] Error updating solutions:', error);
-      showError('Error updating solutions');
+      console.error('Error updating solutions:', error);
+      showError('Error', 'Failed to update solutions');
     }
   };
 
@@ -211,20 +244,52 @@ export default function CustomerDashboardView() {
               />
             </div>
           )}
+          <h2 className="text-xl font-semibold">{data.company_name}</h2>
           <p className="text-[#e7e7e7]">{data.bio}</p>
         </div>
       </div>
 
       <div className="bg-white/10 backdrop-blur rounded-xl p-6 shadow">
-        <h2 className="text-xl font-semibold mb-2">Solutions Needed</h2>
+        <div className="flex justify-between items-center mb-2">
+          <h2 className="text-xl font-semibold">Solutions Needed</h2>
+          <button
+            onClick={() => setShowModal(true)}
+            className="text-sm text-[#67ff94] hover:underline"
+          >
+            Add Solutions
+          </button>
+        </div>
+
         {data.solutions.length > 0 ? (
           <ul className="flex flex-wrap gap-2">
-            {data.solutions.map((name, idx) => (
+            {contractedSolutions.map((item) => (
               <li
-                key={`${name}-${idx}`}
-                className="bg-[#67ff94] text-[#2c3d5a] px-3 py-1 rounded-full text-sm font-medium"
+                key={item.id}
+                className="bg-[#67ff94] text-[#2c3d5a] px-3 py-1 rounded-full text-sm font-medium flex items-center gap-2"
               >
-                {name}
+                {item.solutions?.name}
+                <button
+                  onClick={() =>
+                    item.solution_id && handleDeleteSolution(item.solution_id)
+                  }
+                  className="text-[#2c3d5a] hover:text-red-500"
+                  aria-label="Remove solution"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-4 w-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
               </li>
             ))}
           </ul>
@@ -233,22 +298,15 @@ export default function CustomerDashboardView() {
         )}
       </div>
 
-      <p
-        onClick={() => setShowModal(true)}
-        className="mt-4 text-sm underline text-white cursor-pointer hover:text-[#67ff94]"
-      >
-        Are you looking for an expert? Click here
-      </p>
-
       <CustomerSolutionModal
         isOpen={showModal}
         onClose={() => setShowModal(false)}
         solutions={availableSolutions}
         initialValues={{
           lookingForExpert: data.solutions.length > 0,
-          selectedSolutions: availableSolutions
-            .filter((s) => data.solutions.includes(s.name))
-            .map((s) => s.id),
+          selectedSolutions: contractedSolutions
+            .map((item) => item.solution_id)
+            .filter((id): id is string => !!id),
           description: '',
         }}
         onSubmit={handleModalSubmit}

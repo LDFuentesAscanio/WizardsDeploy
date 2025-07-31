@@ -37,6 +37,7 @@ export interface CustomerDashboardData {
   last_name: string;
   linkedin_profile: string | null;
   other_link: string | null;
+  company_name: string;
   bio: string;
   avatar?: string | null;
   company_logo?: string | null;
@@ -44,6 +45,7 @@ export interface CustomerDashboardData {
 }
 
 export type SupabaseContractedSolution = {
+  id: string;
   solution_id: string;
   solutions: { name: string } | null;
 };
