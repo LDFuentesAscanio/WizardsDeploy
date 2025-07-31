@@ -1,4 +1,5 @@
 import { supabase } from '@/utils/supabase/browserClient';
+import type { PostgrestError } from '@supabase/supabase-js';
 
 type ExistingSolution = {
   id: string;
@@ -7,73 +8,86 @@ type ExistingSolution = {
   description_solution: string;
 };
 
+type SupabaseResponse = {
+  error: PostgrestError | null;
+};
+
+type SaveCustomerSolutionsParams = {
+  user_id: string;
+  selectedSolutions: string[]; // solo una opción permitida
+  description: string;
+};
+
 export async function saveCustomerSolutions({
   user_id,
   selectedSolutions,
   description,
-}: {
-  user_id: string;
-  selectedSolutions: string[];
-  description: string;
-}) {
-  // 1. Obtener el ID del cliente
-  const { data: customerRow } = await supabase
+}: SaveCustomerSolutionsParams): Promise<string> {
+  // 1. Obtener customer_id
+  const { data: customerRow, error: customerError } = await supabase
     .from('customers')
     .select('id')
     .eq('user_id', user_id)
     .single();
 
-  if (!customerRow) throw new Error('Customer not found');
+  if (customerError || !customerRow) {
+    throw new Error('Customer not found');
+  }
+
   const customer_id = customerRow.id;
 
-  // 2. Obtener todas las soluciones contratadas con sus descripciones
-  const { data: allCustomerSolutions } = await supabase
+  // 2. Obtener soluciones existentes
+  const { data: allCustomerSolutionsRaw, error: solutionError } = await supabase
     .from('contracted_solutions')
     .select('id, solution_id, is_active, description_solution')
     .eq('customer_id', customer_id);
 
-  // 3. Preparar operaciones batch
-  const operations = [];
+  if (solutionError) {
+    throw new Error('Error fetching existing solutions');
+  }
 
-  // 4. Clasificar soluciones existentes
+  const allCustomerSolutions: ExistingSolution[] =
+    allCustomerSolutionsRaw?.map((s) => ({
+      id: s.id,
+      solution_id: s.solution_id,
+      is_active: s.is_active ?? false,
+      description_solution: s.description_solution ?? '',
+    })) ?? [];
+
+  // 3. Clasificar por solution_id
   const existingSolutionsMap = new Map<string, ExistingSolution[]>();
+  for (const sol of allCustomerSolutions) {
+    const list = existingSolutionsMap.get(sol.solution_id) ?? [];
+    list.push(sol);
+    existingSolutionsMap.set(sol.solution_id, list);
+  }
 
-  allCustomerSolutions?.forEach((sol) => {
-    if (!existingSolutionsMap.has(sol.solution_id)) {
-      existingSolutionsMap.set(sol.solution_id, []);
-    }
-    existingSolutionsMap.get(sol.solution_id)?.push({
-      id: sol.id,
-      solution_id: sol.solution_id,
-      is_active: sol.is_active ?? false, // Valor por defecto false si es null
-      description_solution: sol.description_solution ?? '', // Cadena vacía si es null
-    });
-  });
+  // 4. Procesar solución seleccionada
+  const [solution_id] = selectedSolutions;
+  const existingSolutions = existingSolutionsMap.get(solution_id) || [];
 
-  // 5. Procesar cada solución seleccionada
-  for (const solution_id of selectedSolutions) {
-    const existingSolutions = existingSolutionsMap.get(solution_id) || [];
+  const operations: Promise<SupabaseResponse>[] = [];
 
-    // Buscar si existe una solución con la misma descripción
-    const existingWithSameDesc = existingSolutions.find(
-      (s) => s.description_solution === description
+  const existingWithSameDesc = existingSolutions.find(
+    (s) => s.description_solution === description
+  );
+
+  if (existingWithSameDesc) {
+    operations.push(
+      supabase
+        .from('contracted_solutions')
+        .update({
+          is_active: true,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', existingWithSameDesc.id)
+        .then(({ error }) => ({ error })) as Promise<SupabaseResponse>
     );
-
-    if (existingWithSameDesc) {
-      // Actualizar solución existente con misma descripción
-      operations.push(
-        supabase
-          .from('contracted_solutions')
-          .update({
-            is_active: true,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', existingWithSameDesc.id)
-      );
-    } else {
-      // Insertar nueva solución (aunque tenga mismo solution_id pero distinta descripción)
-      operations.push(
-        supabase.from('contracted_solutions').insert({
+  } else {
+    operations.push(
+      supabase
+        .from('contracted_solutions')
+        .insert({
           customer_id,
           solution_id,
           description_solution: description,
@@ -82,37 +96,32 @@ export async function saveCustomerSolutions({
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         })
+        .then(({ error }) => ({ error })) as Promise<SupabaseResponse>
+    );
+  }
+
+  // 5. Desactivar otras soluciones con misma solución pero diferente descripción
+  for (const sol of existingSolutions) {
+    if (sol.description_solution !== description && sol.is_active) {
+      operations.push(
+        supabase
+          .from('contracted_solutions')
+          .update({
+            is_active: false,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', sol.id)
+          .then(({ error }) => ({ error })) as Promise<SupabaseResponse>
       );
     }
   }
 
-  // 6. Marcar soluciones no seleccionadas como inactivas
-  const selectedSolutionIds = [...new Set(selectedSolutions)];
-
-  if (allCustomerSolutions && allCustomerSolutions.length > 0) {
-    for (const existingSol of allCustomerSolutions) {
-      if (!selectedSolutionIds.includes(existingSol.solution_id)) {
-        operations.push(
-          supabase
-            .from('contracted_solutions')
-            .update({
-              is_active: false,
-              updated_at: new Date().toISOString(),
-            })
-            .eq('id', existingSol.id)
-        );
-      }
-    }
-  }
-
-  // 7. Ejecutar todas las operaciones
+  // 6. Ejecutar todas las operaciones
   const results = await Promise.all(operations);
-  const hasErrors = results.some((result) => result.error);
+  const hasErrors = results.some((r) => r.error);
 
   if (hasErrors) {
-    const errors = results
-      .filter((result) => result.error)
-      .map((result) => result.error);
+    const errors = results.filter((r) => r.error).map((r) => r.error);
     console.error('Errors in saveCustomerSolutions:', errors);
     throw new Error('Failed to save some solutions');
   }

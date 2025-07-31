@@ -92,7 +92,9 @@ export default function CustomerDashboardView() {
         // Obtener contracted_solutions con tipado correcto
         const { data: contractedRaw, error: contractedError } = await supabase
           .from('contracted_solutions')
-          .select('id, solution_id, solutions:solution_id (name)')
+          .select(
+            'id, solution_id, description_solution, solutions:solution_id (name)'
+          )
           .eq('customer_id', customer_id)
           .eq('is_active', true);
 
@@ -128,11 +130,16 @@ export default function CustomerDashboardView() {
     fetchAllData();
   }, []);
 
-  const handleDeleteSolution = async (solutionId: string) => {
+  const handleDeleteSolution = async (solutionRecordId: string) => {
+    const confirmed = window.confirm(
+      'Are you sure you want to remove this solution?'
+    );
+    if (!confirmed) return;
+
     try {
       const { data: authUser } = await supabase.auth.getUser();
       const user_id = authUser.user?.id;
-      if (!user_id) throw new Error('User not authenticated');
+      if (!user_id) throw new Error('No user authenticated');
 
       const { data: customerData } = await supabase
         .from('customers')
@@ -144,24 +151,23 @@ export default function CustomerDashboardView() {
 
       const { error: deleteError } = await supabase
         .from('contracted_solutions')
-        .update({ is_active: false })
-        .eq('solution_id', solutionId)
-        .eq('customer_id', customerData.id);
+        .update({ is_active: false, updated_at: new Date().toISOString() })
+        .eq('id', solutionRecordId)
+        .select();
 
       if (deleteError) throw deleteError;
 
+      // Refrescar datos
       setContractedSolutions((prev) =>
-        prev.filter((sol) => sol.solution_id !== solutionId)
+        prev.filter((s) => s.id !== solutionRecordId)
       );
 
       setData((prev) => ({
         ...prev!,
-        solutions: prev!.solutions.filter(
-          (name) =>
-            !availableSolutions.find(
-              (sol) => sol.id === solutionId && sol.name === name
-            )
-        ),
+        solutions: contractedSolutions
+          .filter((s) => s.id !== solutionRecordId)
+          .map((s) => s.solutions?.name)
+          .filter(Boolean) as string[],
       }));
 
       showSuccess('Solution removed successfully');
@@ -188,7 +194,9 @@ export default function CustomerDashboardView() {
 
       const { data: refreshedSolutions } = await supabase
         .from('contracted_solutions')
-        .select('id, solution_id, solutions:solution_id (name)')
+        .select(
+          'id, solution_id, description_solution, solutions:solution_id (name)'
+        )
         .eq('customer_id', customer_id)
         .eq('is_active', true);
 
@@ -261,38 +269,47 @@ export default function CustomerDashboardView() {
         </div>
 
         {data.solutions.length > 0 ? (
-          <ul className="flex flex-wrap gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {contractedSolutions.map((item) => (
-              <li
+              <div
                 key={item.id}
-                className="bg-[#67ff94] text-[#2c3d5a] px-3 py-1 rounded-full text-sm font-medium flex items-center gap-2"
+                className="bg-[#67ff94] text-[#2c3d5a] p-4 rounded-xl shadow flex flex-col gap-2"
               >
-                {item.solutions?.name}
-                <button
-                  onClick={() =>
-                    item.solution_id && handleDeleteSolution(item.solution_id)
-                  }
-                  className="text-[#2c3d5a] hover:text-red-500"
-                  aria-label="Remove solution"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-4 w-4"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="font-semibold text-md">
+                      {item.solutions?.name || 'Unnamed Solution'}
+                    </h3>
+                    {item.description_solution && (
+                      <p className="text-sm text-[#1d2c45] mt-1">
+                        {item.description_solution}
+                      </p>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => handleDeleteSolution(item.id)}
+                    className="text-[#2c3d5a] hover:text-red-500"
+                    aria-label="Remove solution"
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
-                </button>
-              </li>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-5 w-5"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                </div>
+              </div>
             ))}
-          </ul>
+          </div>
         ) : (
           <p className="text-sm text-gray-400">No solutions selected.</p>
         )}

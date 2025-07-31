@@ -104,20 +104,13 @@ export default function CustomerSolutionModal({
                               {solutions.map((solution) => (
                                 <FormCheckbox
                                   key={solution.id}
-                                  name={`solution-${solution.id}`}
+                                  name="selectedSolutions"
                                   label={solution.name}
                                   onChange={(e) => {
-                                    const newSelection = e.target.checked
-                                      ? [
-                                          ...values.selectedSolutions,
-                                          solution.id,
-                                        ]
-                                      : values.selectedSolutions.filter(
-                                          (id) => id !== solution.id
-                                        );
+                                    const checked = e.target.checked;
                                     setFieldValue(
                                       'selectedSolutions',
-                                      newSelection
+                                      checked ? [solution.id] : []
                                     );
                                   }}
                                   checked={values.selectedSolutions.includes(

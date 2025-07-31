@@ -47,5 +47,6 @@ export interface CustomerDashboardData {
 export type SupabaseContractedSolution = {
   id: string;
   solution_id: string;
+  description_solution?: string | null;
   solutions: { name: string } | null;
 };
