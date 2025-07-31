@@ -28,12 +28,16 @@ export default function ImageUploader({
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      showError('Invalid file', 'Only images are allowed.');
+      showError('Invalid file', {
+        description: 'Only images are allowed.',
+      });
       return;
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      showError('File too large', 'Max 5MB allowed.');
+      showError('File too large', {
+        description: 'Max 5MB allowed.',
+      });
       return;
     }
 
@@ -106,7 +110,9 @@ export default function ImageUploader({
     } catch (error: unknown) {
       if (error instanceof Error) {
         console.error('Known error:', error.message);
-        showError('Error uploading image', error.message);
+        showError('Error uploading image', {
+          description: error.message,
+        });
       } else {
         console.error('Unknown error:', error);
         showError('Unknown error');

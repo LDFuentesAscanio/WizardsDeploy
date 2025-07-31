@@ -96,10 +96,9 @@ export async function fetchProfileFormData(userId: string) {
         .map((e) => e.name)
         .join(', ')}`;
       console.error('Errors in Supabase queries:', errors);
-      showError(
-        'Profile loading error',
-        'Some data could not be loaded. Please try again.'
-      );
+      showError('Profile loading error', {
+        description: 'Some data could not be loaded. Please try again.',
+      });
       throw new Error(errorMessage);
     }
 
@@ -145,10 +144,9 @@ export async function fetchProfileFormData(userId: string) {
     };
   } catch (error) {
     console.error('Error in fetchProfileFormData:', error);
-    showError(
-      'Profile error',
-      'There was a problem loading your profile data.'
-    );
+    showError('Profile error', {
+      description: 'There was a problem loading your profile data.',
+    });
     throw error;
   }
 }

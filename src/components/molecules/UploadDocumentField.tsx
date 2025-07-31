@@ -26,12 +26,16 @@ export default function UploadDocumentField() {
     ];
 
     if (!allowedTypes.includes(file.type)) {
-      showError('Invalid format', 'Only PDF or DOCX files are allowed.');
+      showError('Invalid format', {
+        description: 'Only PDF or DOCX files are allowed.',
+      });
       return;
     }
 
     if (file.size > 10 * 1024 * 1024) {
-      showError('File too large', 'Must be less than 10MB.');
+      showError('File too large', {
+        description: 'Must be less than 10MB.',
+      });
       return;
     }
 
@@ -74,10 +78,14 @@ export default function UploadDocumentField() {
       setFieldValue('filename', file.name); // mostramos solo el nombre, no la URL
       setFileName(file.name);
 
-      showSuccess('File uploaded successfully', file.name);
+      showSuccess('File uploaded successfully', {
+        description: file.name,
+      });
     } catch (err) {
       console.error('Error uploading document:', err);
-      showError('Upload failed', 'Please try again later.');
+      showError('Upload failed', {
+        description: 'Please try again later.',
+      });
     } finally {
       setUploading(false);
     }
