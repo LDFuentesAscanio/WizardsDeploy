@@ -2,7 +2,12 @@
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/utils/supabase/browserClient';
-import { showError, showSuccess } from '@/utils/toastService';
+import {
+  showError,
+  showInfo,
+  showSuccess,
+  showConfirmWithCancel,
+} from '@/utils/toastService';
 import UserCard from '../organisms/dashboard/UserCard';
 import {
   CustomerDashboardData,
@@ -121,7 +126,9 @@ export default function CustomerDashboardView() {
         });
       } catch (error) {
         console.error('Error loading data:', error);
-        showError('Dashboard Error', 'Could not load dashboard data');
+        showError('Dashboard Error', {
+          description: 'Could not load dashboard data',
+        });
       } finally {
         setLoading(false);
       }
@@ -131,50 +138,53 @@ export default function CustomerDashboardView() {
   }, []);
 
   const handleDeleteSolution = async (solutionRecordId: string) => {
-    const confirmed = window.confirm(
-      'Are you sure you want to remove this solution?'
-    );
-    if (!confirmed) return;
+    showConfirmWithCancel('Remove solution', {
+      description: 'Are you sure you want to remove this solution?',
+      confirmText: 'Remove',
+      cancelText: 'Cancel',
+      onConfirm: async () => {
+        try {
+          const { data: authUser } = await supabase.auth.getUser();
+          const user_id = authUser.user?.id;
+          if (!user_id) throw new Error('No user authenticated');
 
-    try {
-      const { data: authUser } = await supabase.auth.getUser();
-      const user_id = authUser.user?.id;
-      if (!user_id) throw new Error('No user authenticated');
+          const { data: customerData } = await supabase
+            .from('customers')
+            .select('id')
+            .eq('user_id', user_id)
+            .single();
 
-      const { data: customerData } = await supabase
-        .from('customers')
-        .select('id')
-        .eq('user_id', user_id)
-        .single();
+          if (!customerData) throw new Error('Customer not found');
 
-      if (!customerData) throw new Error('Customer not found');
+          const { error: deleteError } = await supabase
+            .from('contracted_solutions')
+            .update({ is_active: false, updated_at: new Date().toISOString() })
+            .eq('id', solutionRecordId)
+            .select();
 
-      const { error: deleteError } = await supabase
-        .from('contracted_solutions')
-        .update({ is_active: false, updated_at: new Date().toISOString() })
-        .eq('id', solutionRecordId)
-        .select();
+          if (deleteError) throw deleteError;
 
-      if (deleteError) throw deleteError;
+          setContractedSolutions((prev) =>
+            prev.filter((s) => s.id !== solutionRecordId)
+          );
+          setData((prev) => ({
+            ...prev!,
+            solutions: contractedSolutions
+              .filter((s) => s.id !== solutionRecordId)
+              .map((s) => s.solutions?.name)
+              .filter(Boolean) as string[],
+          }));
 
-      // Refrescar datos
-      setContractedSolutions((prev) =>
-        prev.filter((s) => s.id !== solutionRecordId)
-      );
-
-      setData((prev) => ({
-        ...prev!,
-        solutions: contractedSolutions
-          .filter((s) => s.id !== solutionRecordId)
-          .map((s) => s.solutions?.name)
-          .filter(Boolean) as string[],
-      }));
-
-      showSuccess('Solution removed successfully');
-    } catch (error) {
-      console.error('Error deleting solution:', error);
-      showError('Error', 'Failed to remove solution');
-    }
+          showSuccess('Solution removed successfully');
+        } catch (error) {
+          console.error('Error deleting solution:', error);
+          showError('Failed to remove solution');
+        }
+      },
+      onCancel: () => {
+        showInfo('Removal cancelled');
+      },
+    });
   };
 
   const handleModalSubmit = async (values: {
@@ -216,7 +226,7 @@ export default function CustomerDashboardView() {
       showSuccess('Solutions updated successfully');
     } catch (error) {
       console.error('Error updating solutions:', error);
-      showError('Error', 'Failed to update solutions');
+      showError('Failed to update solutions');
     }
   };
 
