@@ -39,7 +39,7 @@ export default function DashboardNavbar() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    router.push('/auth'); // Redirige al login
+    router.push('/');
   };
 
   return (
