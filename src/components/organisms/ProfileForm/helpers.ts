@@ -1,10 +1,9 @@
-import { showError, showInfo } from '@/utils/toastService';
+import { showError } from '@/utils/toastService';
 import { About, CustomerResponse, ProfileFormValues, UserMedia } from './types';
 import { supabase } from '@/utils/supabase/browserClient';
 
 export async function fetchProfileFormData(userId: string) {
   try {
-    showInfo('Loading profile data...');
     const [
       { data: userData, error: userError },
       { data: customersData, error: customersError },
