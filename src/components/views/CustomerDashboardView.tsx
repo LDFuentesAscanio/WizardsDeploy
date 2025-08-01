@@ -1,13 +1,9 @@
 'use client';
+
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/utils/supabase/browserClient';
-import {
-  showError,
-  showInfo,
-  showSuccess,
-  showConfirmWithCancel,
-} from '@/utils/toastService';
+import { showError, showSuccess } from '@/utils/toastService';
 import UserCard from '../organisms/dashboard/UserCard';
 import {
   CustomerDashboardData,
@@ -16,11 +12,14 @@ import {
 import CustomerSolutionModal from '../organisms/dashboard/CustomerSolutionsModal';
 import { saveCustomerSolutions } from '@/utils/saveSolutions';
 import { Solution } from '../organisms/ProfileForm/types';
+import { ConfirmDialog } from '../organisms/dashboard/ConfirmDialog';
 
 export default function CustomerDashboardView() {
   const [data, setData] = useState<CustomerDashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [solutionToDelete, setSolutionToDelete] = useState<string | null>(null);
   const [availableSolutions, setAvailableSolutions] = useState<Solution[]>([]);
   const [contractedSolutions, setContractedSolutions] = useState<
     SupabaseContractedSolution[]
@@ -36,24 +35,21 @@ export default function CustomerDashboardView() {
         const user_id = authUser.user?.id;
         if (!user_id) throw new Error('No user authenticated');
 
-        // Buscar customer_id con tipado explícito
         const { data: customerData, error: customerError } = await supabase
           .from('customers')
           .select('id, company_name')
           .eq('user_id', user_id)
           .single();
 
-        if (customerError) throw customerError;
-        if (!customerData) throw new Error('Customer not found');
+        if (customerError || !customerData) throw customerError;
         const customer_id = customerData.id;
 
-        // Consultas paralelas con tipado adecuado
         const [
-          { data: user, error: userError },
-          { data: about, error: aboutError },
-          { data: avatarMedia, error: avatarError },
-          { data: companyLogoMedia, error: companyLogoError },
-          { data: allSolutions, error: solutionsError },
+          { data: user },
+          { data: about },
+          { data: avatarMedia },
+          { data: companyLogoMedia },
+          { data: allSolutions },
         ] = await Promise.all([
           supabase
             .from('users')
@@ -84,18 +80,9 @@ export default function CustomerDashboardView() {
           supabase.from('solutions').select('id, name'),
         ]);
 
-        // Manejo de errores
-        if (userError) throw userError;
-        if (aboutError) throw aboutError;
-        if (avatarError) throw avatarError;
-        if (companyLogoError) throw companyLogoError;
-        if (solutionsError) throw solutionsError;
-
-        // Tipado explícito para las soluciones
         setAvailableSolutions(allSolutions || []);
 
-        // Obtener contracted_solutions con tipado correcto
-        const { data: contractedRaw, error: contractedError } = await supabase
+        const { data: contractedRaw } = await supabase
           .from('contracted_solutions')
           .select(
             'id, solution_id, description_solution, solutions:solution_id (name)'
@@ -103,11 +90,8 @@ export default function CustomerDashboardView() {
           .eq('customer_id', customer_id)
           .eq('is_active', true);
 
-        if (contractedError) throw contractedError;
-
         setContractedSolutions(contractedRaw || []);
 
-        // Mapeo seguro de nombres de soluciones
         const solutionNames =
           contractedRaw
             ?.map((item) => item.solutions?.name)
@@ -118,7 +102,7 @@ export default function CustomerDashboardView() {
           last_name: user?.last_name || '',
           linkedin_profile: user?.linkedin_profile || null,
           other_link: user?.other_link || null,
-          company_name: customerData?.company_name || '',
+          company_name: customerData.company_name || '',
           bio: about?.bio || '',
           avatar: avatarMedia?.url_storage || null,
           company_logo: companyLogoMedia?.url_storage || null,
@@ -137,54 +121,54 @@ export default function CustomerDashboardView() {
     fetchAllData();
   }, []);
 
-  const handleDeleteSolution = async (solutionRecordId: string) => {
-    showConfirmWithCancel('Remove solution', {
-      description: 'Are you sure you want to remove this solution?',
-      confirmText: 'Remove',
-      cancelText: 'Cancel',
-      onConfirm: async () => {
-        try {
-          const { data: authUser } = await supabase.auth.getUser();
-          const user_id = authUser.user?.id;
-          if (!user_id) throw new Error('No user authenticated');
+  const confirmDelete = (solutionId: string) => {
+    setSolutionToDelete(solutionId);
+    setConfirmOpen(true);
+  };
 
-          const { data: customerData } = await supabase
-            .from('customers')
-            .select('id')
-            .eq('user_id', user_id)
-            .single();
+  const handleDeleteConfirmed = async () => {
+    if (!solutionToDelete) return;
 
-          if (!customerData) throw new Error('Customer not found');
+    try {
+      const { data: authUser } = await supabase.auth.getUser();
+      const user_id = authUser.user?.id;
+      if (!user_id) throw new Error('No user authenticated');
 
-          const { error: deleteError } = await supabase
-            .from('contracted_solutions')
-            .update({ is_active: false, updated_at: new Date().toISOString() })
-            .eq('id', solutionRecordId)
-            .select();
+      const { data: customerData } = await supabase
+        .from('customers')
+        .select('id')
+        .eq('user_id', user_id)
+        .single();
 
-          if (deleteError) throw deleteError;
+      if (!customerData) throw new Error('Customer not found');
 
-          setContractedSolutions((prev) =>
-            prev.filter((s) => s.id !== solutionRecordId)
-          );
-          setData((prev) => ({
-            ...prev!,
-            solutions: contractedSolutions
-              .filter((s) => s.id !== solutionRecordId)
-              .map((s) => s.solutions?.name)
-              .filter(Boolean) as string[],
-          }));
+      const { error: deleteError } = await supabase
+        .from('contracted_solutions')
+        .update({ is_active: false, updated_at: new Date().toISOString() })
+        .eq('id', solutionToDelete)
+        .select();
 
-          showSuccess('Solution removed successfully');
-        } catch (error) {
-          console.error('Error deleting solution:', error);
-          showError('Failed to remove solution');
-        }
-      },
-      onCancel: () => {
-        showInfo('Removal cancelled');
-      },
-    });
+      if (deleteError) throw deleteError;
+
+      setContractedSolutions((prev) =>
+        prev.filter((s) => s.id !== solutionToDelete)
+      );
+      setData((prev) => ({
+        ...prev!,
+        solutions: contractedSolutions
+          .filter((s) => s.id !== solutionToDelete)
+          .map((s) => s.solutions?.name)
+          .filter(Boolean) as string[],
+      }));
+
+      showSuccess('Solution removed successfully');
+    } catch (error) {
+      console.error('Error deleting solution:', error);
+      showError('Failed to remove solution');
+    } finally {
+      setConfirmOpen(false);
+      setSolutionToDelete(null);
+    }
   };
 
   const handleModalSubmit = async (values: {
@@ -230,13 +214,8 @@ export default function CustomerDashboardView() {
     }
   };
 
-  if (loading) {
-    return <p>Loading dashboard...</p>;
-  }
-
-  if (!data) {
-    return <p>No data available.</p>;
-  }
+  if (loading) return <p>Loading dashboard...</p>;
+  if (!data) return <p>No data available.</p>;
 
   return (
     <section className="w-full max-w-5xl mx-auto px-4 py-6 space-y-6">
@@ -297,7 +276,7 @@ export default function CustomerDashboardView() {
                     )}
                   </div>
                   <button
-                    onClick={() => handleDeleteSolution(item.id)}
+                    onClick={() => confirmDelete(item.id)}
                     className="text-[#2c3d5a] hover:text-red-500"
                     aria-label="Remove solution"
                   >
@@ -337,6 +316,14 @@ export default function CustomerDashboardView() {
           description: '',
         }}
         onSubmit={handleModalSubmit}
+      />
+
+      <ConfirmDialog
+        isOpen={confirmOpen}
+        title="Remove Solution"
+        description="Are you sure you want to remove this solution?"
+        onConfirm={handleDeleteConfirmed}
+        onCancel={() => setConfirmOpen(false)}
       />
     </section>
   );

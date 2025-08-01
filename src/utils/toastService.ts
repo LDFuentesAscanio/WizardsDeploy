@@ -1,18 +1,9 @@
+// utils/toastService.ts
 import { toast } from 'sonner';
 
 type ToastOptions = {
   description?: string;
   duration?: number;
-  action?: {
-    label: string;
-    onClick: () => void;
-  };
-};
-
-type ConfirmOptions = {
-  description?: string;
-  confirmText?: string;
-  onConfirm: () => void | Promise<void>;
 };
 
 export const showSuccess = (message: string, options?: ToastOptions) => {
@@ -35,54 +26,6 @@ export const dismissToast = (id: string | number) => {
   toast.dismiss(id);
 };
 
-export const showConfirm = (message: string, options: ConfirmOptions) => {
-  toast(message, {
-    description: options.description,
-    duration: Infinity,
-    action: {
-      label: options.confirmText || 'Confirm',
-      onClick: async () => {
-        await options.onConfirm();
-      },
-    },
-  });
-};
-
-// Versión mejorada para confirmación con cancelación
-export const showConfirmWithCancel = (
-  message: string,
-  options: ConfirmOptions & { cancelText?: string; onCancel?: () => void }
-) => {
-  const toastId = toast(message, {
-    description: options.description,
-    duration: Infinity,
-    action: {
-      label: options.confirmText || 'Confirm',
-      onClick: async () => {
-        await options.onConfirm();
-        toast.dismiss(toastId);
-      },
-    },
-  });
-
-  // Botón de cancelación como toast separado
-  if (options.onCancel) {
-    toast.info(options.cancelText || 'Cancel', {
-      duration: Infinity,
-      id: `${toastId}-cancel`,
-      action: {
-        label: 'Cancel',
-        onClick: () => {
-          options.onCancel?.();
-          toast.dismiss(toastId);
-          toast.dismiss(`${toastId}-cancel`);
-        },
-      },
-    });
-  }
-};
-
-// Para operaciones async con feedback
 export const showPromise = <T>(
   promise: Promise<T>,
   messages: {
