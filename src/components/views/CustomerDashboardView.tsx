@@ -146,7 +146,8 @@ export default function CustomerDashboardView() {
       const { error: deleteError } = await supabase
         .from('contracted_solutions')
         .update({ is_active: false, updated_at: new Date().toISOString() })
-        .eq('id', solutionToDelete);
+        .eq('id', solutionToDelete)
+        .select();
 
       if (deleteError) throw deleteError;
 
