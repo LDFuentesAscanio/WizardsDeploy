@@ -142,25 +142,10 @@ export default function CustomerDashboardView() {
 
       if (!customerData) throw new Error('Customer not found');
 
-      console.log('Deleting solution with ID:', solutionToDelete);
-
-      const row = await supabase
-        .from('contracted_solutions')
-        .select('*')
-        .eq('id', solutionToDelete)
-        .single();
-
-      console.log('Fila existente antes de eliminar:', row);
-
-      const { data: updated, error: deleteError } = await supabase
+      const { error: deleteError } = await supabase
         .from('contracted_solutions')
         .update({ is_active: false, updated_at: new Date().toISOString() })
         .eq('id', solutionToDelete);
-
-      //.select();
-
-      console.log('Delete result:', updated);
-      console.log('Delete error:', deleteError);
 
       if (deleteError) throw deleteError;
 
