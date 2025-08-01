@@ -150,15 +150,24 @@ export default function CustomerDashboardView() {
 
       if (deleteError) throw deleteError;
 
-      setContractedSolutions((prev) =>
-        prev.filter((s) => s.id !== solutionToDelete)
-      );
+      const { data: refreshedSolutions } = await supabase
+        .from('contracted_solutions')
+        .select(
+          'id, solution_id, description_solution, solutions:solution_id (name)'
+        )
+        .eq('customer_id', customerData.id)
+        .eq('is_active', true);
+
+      setContractedSolutions(refreshedSolutions || []);
+
+      const solutionNames =
+        refreshedSolutions
+          ?.map((item) => item.solutions?.name)
+          .filter((name): name is string => !!name) || [];
+
       setData((prev) => ({
         ...prev!,
-        solutions: contractedSolutions
-          .filter((s) => s.id !== solutionToDelete)
-          .map((s) => s.solutions?.name)
-          .filter(Boolean) as string[],
+        solutions: solutionNames,
       }));
 
       showSuccess('Solution removed successfully');
@@ -218,90 +227,102 @@ export default function CustomerDashboardView() {
   if (!data) return <p>No data available.</p>;
 
   return (
-    <section className="w-full max-w-5xl mx-auto px-4 py-6 space-y-6">
-      <UserCard
-        firstName={data.first_name}
-        lastName={data.last_name}
-        avatarUrl={data.avatar ?? '/icons/avatar.svg'}
-        linkedin={data.linkedin_profile}
-        otherLink={data.other_link}
-      />
-
-      <div className="bg-white/10 backdrop-blur rounded-xl p-6 shadow">
-        <h2 className="text-xl font-semibold mb-2">About the Company</h2>
-        <div className="flex gap-4 items-start">
-          {data.company_logo && (
-            <div className="relative w-20 h-20 rounded-lg overflow-hidden">
-              <Image
-                src={data.company_logo}
-                alt="Company Logo"
-                fill
-                className="object-cover"
-                sizes="80px"
-              />
-            </div>
-          )}
-          <h2 className="text-xl font-semibold">{data.company_name}</h2>
-          <p className="text-[#e7e7e7]">{data.bio}</p>
-        </div>
-      </div>
-
-      <div className="bg-white/10 backdrop-blur rounded-xl p-6 shadow">
-        <div className="flex justify-between items-center mb-2">
-          <h2 className="text-xl font-semibold">Solutions Needed</h2>
-          <button
-            onClick={() => setShowModal(true)}
-            className="text-sm text-[#67ff94] hover:underline"
-          >
-            Add Solutions
-          </button>
+    <section className="w-full max-w-6xl mx-auto px-4 py-6">
+      <div className="flex flex-col md:flex-row gap-6 items-start">
+        {/* Columna izquierda */}
+        <div className="w-full md:w-1/3">
+          <UserCard
+            firstName={data.first_name}
+            lastName={data.last_name}
+            avatarUrl={data.avatar ?? '/icons/avatar.svg'}
+            linkedin={data.linkedin_profile}
+            otherLink={data.other_link}
+          />
         </div>
 
-        {data.solutions.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {contractedSolutions.map((item) => (
-              <div
-                key={item.id}
-                className="bg-[#67ff94] text-[#2c3d5a] p-4 rounded-xl shadow flex flex-col gap-2"
-              >
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="font-semibold text-md">
-                      {item.solutions?.name || 'Unnamed Solution'}
-                    </h3>
-                    {item.description_solution && (
-                      <p className="text-sm text-[#1d2c45] mt-1">
-                        {item.description_solution}
-                      </p>
-                    )}
-                  </div>
-                  <button
-                    onClick={() => confirmDelete(item.id)}
-                    className="text-[#2c3d5a] hover:text-red-500"
-                    aria-label="Remove solution"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-5 w-5"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M6 18L18 6M6 6l12 12"
-                      />
-                    </svg>
-                  </button>
+        {/* Columna derecha */}
+        <div className="w-full md:w-2/3 space-y-6">
+          {/* About the company */}
+          <div className="bg-white/10 backdrop-blur rounded-xl p-6 shadow">
+            <h2 className="text-xl font-semibold mb-2">About the Company</h2>
+            <div className="flex gap-4 items-start">
+              {data.company_logo && (
+                <div className="relative w-20 h-20 rounded-lg overflow-hidden">
+                  <Image
+                    src={data.company_logo}
+                    alt="Company Logo"
+                    fill
+                    className="object-cover"
+                    sizes="80px"
+                  />
                 </div>
+              )}
+              <div>
+                <h2 className="text-xl font-semibold">{data.company_name}</h2>
+                <p className="text-[#e7e7e7]">{data.bio}</p>
               </div>
-            ))}
+            </div>
           </div>
-        ) : (
-          <p className="text-sm text-gray-400">No solutions selected.</p>
-        )}
+
+          {/* Solutions Needed */}
+          <div className="bg-white/10 backdrop-blur rounded-xl p-6 shadow">
+            <div className="flex justify-between items-center mb-2">
+              <h2 className="text-xl font-semibold">Solutions Needed</h2>
+              <button
+                onClick={() => setShowModal(true)}
+                className="text-sm text-[#67ff94] hover:underline"
+              >
+                Add Solutions
+              </button>
+            </div>
+
+            {data.solutions.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {contractedSolutions.map((item) => (
+                  <div
+                    key={item.id}
+                    className="bg-[#67ff94] text-[#2c3d5a] p-4 rounded-xl shadow flex flex-col gap-2"
+                  >
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="font-semibold text-md">
+                          {item.solutions?.name || 'Unnamed Solution'}
+                        </h3>
+                        {item.description_solution && (
+                          <p className="text-sm text-[#1d2c45] mt-1">
+                            {item.description_solution}
+                          </p>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => confirmDelete(item.id)}
+                        className="text-[#2c3d5a] hover:text-red-500"
+                        aria-label="Remove solution"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-5 w-5"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M6 18L18 6M6 6l12 12"
+                          />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-400">No solutions selected.</p>
+            )}
+          </div>
+        </div>
       </div>
 
       <CustomerSolutionModal
