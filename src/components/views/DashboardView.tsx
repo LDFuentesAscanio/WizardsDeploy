@@ -7,7 +7,6 @@ import { DashboardData } from '../organisms/dashboard/types';
 import { supabase } from '@/utils/supabase/browserClient';
 import { fetchDashboardData } from '@/utils/fetchDashboardData';
 //UI local components
-import ClockWidget from '../molecules/ClockWidget';
 import UserCard from '@/components/organisms/dashboard/UserCard';
 import BioSection from '@/components/organisms/dashboard/BioSection';
 import StatsSection from '@/components/organisms/dashboard/StatsSection';
@@ -55,7 +54,6 @@ export default function DashboardView() {
             linkedin={data.linkedin}
             otherLink={data.otherLink}
           />
-          <ClockWidget />
           <StatsSection
             stats={[
               { label: 'Projects', value: 0 }, // ❌ aún no disponible

@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 import { supabase } from '@/utils/supabase/browserClient';
 import { showError, showSuccess } from '@/utils/toastService';
 import UserCard from '../organisms/dashboard/UserCard';
@@ -228,10 +229,15 @@ export default function CustomerDashboardView() {
   if (!data) return <p>No data available.</p>;
 
   return (
-    <section className="w-full max-w-6xl mx-auto px-4 py-6">
-      <div className="flex flex-col md:flex-row gap-6 items-start">
+    <main className="min-h-screen bg-[#2c3d5a] text-white">
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="w-full px-6 py-8 max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8"
+      >
         {/* Columna izquierda */}
-        <div className="w-full md:w-1/3">
+        <div className="space-y-6">
           <UserCard
             firstName={data.first_name}
             lastName={data.last_name}
@@ -242,10 +248,10 @@ export default function CustomerDashboardView() {
         </div>
 
         {/* Columna derecha */}
-        <div className="w-full md:w-2/3 space-y-6">
-          {/* About the company */}
+        <div className="col-span-2 space-y-6">
+          {/* Sección empresa */}
           <div className="bg-white/10 backdrop-blur rounded-xl p-6 shadow">
-            <h2 className="text-xl font-semibold mb-2">About the Company</h2>
+            <h2 className="text-xl font-semibold mb-4">About the Company</h2>
             <div className="flex gap-4 items-start">
               {data.company_logo && (
                 <div className="relative w-20 h-20 rounded-lg overflow-hidden">
@@ -258,16 +264,16 @@ export default function CustomerDashboardView() {
                   />
                 </div>
               )}
-              <div>
-                <h2 className="text-xl font-semibold">{data.company_name}</h2>
-                <p className="text-[#e7e7e7]">{data.bio}</p>
+              <div className="flex flex-col gap-1">
+                <h3 className="text-lg font-bold">{data.company_name}</h3>
+                <p className="text-sm text-white/70">{data.bio}</p>
               </div>
             </div>
           </div>
 
-          {/* Solutions Needed */}
+          {/* Sección soluciones */}
           <div className="bg-white/10 backdrop-blur rounded-xl p-6 shadow">
-            <div className="flex justify-between items-center mb-2">
+            <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold">Solutions Needed</h2>
               <button
                 onClick={() => setShowModal(true)}
@@ -280,8 +286,11 @@ export default function CustomerDashboardView() {
             {data.solutions.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {contractedSolutions.map((item) => (
-                  <div
+                  <motion.div
                     key={item.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3 }}
                     className="bg-[#67ff94] text-[#2c3d5a] p-4 rounded-xl shadow flex flex-col gap-2"
                   >
                     <div className="flex justify-between items-start">
@@ -316,16 +325,17 @@ export default function CustomerDashboardView() {
                         </svg>
                       </button>
                     </div>
-                  </div>
+                  </motion.div>
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-gray-400">No solutions selected.</p>
+              <p className="text-sm text-white/70">No solutions selected.</p>
             )}
           </div>
         </div>
-      </div>
+      </motion.div>
 
+      {/* Modales */}
       <CustomerSolutionModal
         isOpen={showModal}
         onClose={() => setShowModal(false)}
@@ -347,6 +357,6 @@ export default function CustomerDashboardView() {
         onConfirm={handleDeleteConfirmed}
         onCancel={() => setConfirmOpen(false)}
       />
-    </section>
+    </main>
   );
 }
