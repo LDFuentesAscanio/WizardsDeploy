@@ -13,8 +13,8 @@ const config: Config = {
         foreground: '#ededed',
       },
       fontFamily: {
-        grotesck: ['Grotesck', 'sans-serif'],
-        sans: ['Mulish', 'sans-serif'],
+        sans: ['var(--font-mulish)', 'sans-serif'], // para cuerpo de texto
+        display: ['var(--font-rubik)', 'sans-serif'],
       },
     },
   },

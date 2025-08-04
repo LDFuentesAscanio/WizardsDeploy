@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Mulish } from 'next/font/google';
+import { Mulish, Rubik } from 'next/font/google';
 import './globals.css';
 import { Toaster } from 'sonner';
 import Providers from './providers';
@@ -8,6 +8,13 @@ const mulish = Mulish({
   subsets: ['latin'],
   weight: ['400', '600', '700'],
   variable: '--font-sans',
+});
+
+const rubik = Rubik({
+  subsets: ['latin'],
+  variable: '--font-rubik',
+  display: 'swap',
+  weight: ['300', '400', '500', '600', '700'], // elegí los pesos que necesites
 });
 
 export const metadata: Metadata = {
@@ -24,7 +31,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={mulish.variable}>
+    <html lang="en" className={`${rubik.variable} ${mulish.variable}`}>
       <body className="antialiased">
         <Toaster
           position="top-right"
