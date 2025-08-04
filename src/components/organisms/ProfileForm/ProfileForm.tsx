@@ -37,7 +37,9 @@ export default function ProfileForm() {
     >
       {({ isSubmitting, isValid }) => (
         <Form className="w-full max-w-xl bg-white/10 backdrop-blur p-8 rounded-2xl shadow-xl space-y-4">
-          <h1 className="text-2xl font-bold text-center">Profile</h1>
+          <h1 className="text-2xl font-grotesck font-bold text-center">
+            Profile
+          </h1>
           <CommonSection countries={countries} roles={roles} />
           {isCustomer && <CustomerSections solutions={solutions} />}
           {isExpert && <ExpertInfoSection />}
