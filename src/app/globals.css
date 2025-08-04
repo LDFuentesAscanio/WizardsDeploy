@@ -27,7 +27,6 @@
     --color-sonner-success: #67ff94;
     --color-sonner-error: #ff6767;
     --border-radius-sonner: 8px;
-    --font-family-sonner: 'Mulish', sans-serif;
   }
 
   /* 3. Reset básico */
@@ -38,7 +37,6 @@
 
     background-color: var(--color-background);
     color: var(--color-foreground);
-    font-family: var(--font-sans);
   }
 }
 
