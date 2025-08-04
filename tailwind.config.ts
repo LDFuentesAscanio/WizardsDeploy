@@ -13,7 +13,7 @@ const config: Config = {
         foreground: '#ededed',
       },
       fontFamily: {
-        sans: ['var(--font-mulish)', 'sans-serif'], // para cuerpo de texto
+        sans: ['var(--font-mulish)', 'sans-serif'], // <- para `font-sans`
         display: ['var(--font-rubik)', 'sans-serif'],
       },
     },
