@@ -3,7 +3,7 @@ import Button from '@/components/atoms/Button';
 
 export default function LandingContent() {
   return (
-    <div className="flex flex-col items-center justify-center h-screen bg-white">
+    <div className="flex flex-col items-center font-display justify-center h-screen bg-white">
       <div className="flex gap-4">
         <Link href="/auth?mode=login">
           <Button variant="secondary">Sign In</Button>
