@@ -342,11 +342,11 @@ export default function CustomerDashboardView() {
         onClose={() => setShowModal(false)}
         solutions={availableSolutions}
         initialValues={{
-          lookingForExpert: data.solutions.length > 0,
-          selectedSolutions: contractedSolutions
-            .map((item) => item.solution_id)
-            .filter((id): id is string => !!id),
+          lookingForExpert: false,
+          selectedSolutions: [],
           description: '',
+          acceptedTerms: false,
+          acceptedPrivacy: false,
         }}
         onSubmit={handleModalSubmit}
       />
