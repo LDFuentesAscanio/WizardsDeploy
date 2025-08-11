@@ -13,7 +13,7 @@ export default function UploadDocumentField() {
   const [fileName, setFileName] = useState<string | null>(null);
   const { setFieldValue, values } = useFormikContext<ProfileFormValues>();
 
-  // ✅ URL base correctamente definida (sin barra final)
+  // URL base correctamente definida (sin barra final)
   const storageBaseUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/expert-documents`;
 
   const handleUpload = async (e: ChangeEvent<HTMLInputElement>) => {
@@ -52,8 +52,20 @@ export default function UploadDocumentField() {
         throw new Error('Not authenticated');
       }
 
+      // Buscamos el expert_id relacionado al user.id
+      const { data: expertData, error: expertError } = await supabase
+        .from('experts')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (expertError || !expertData) {
+        throw new Error('Expert profile not found');
+      }
+
       const uniqueFilename = `${Date.now()}_${file.name}`;
-      const filePath = `${user.id}/${uniqueFilename}`;
+      // Usa el expert_id en la ruta, no el user.id
+      const filePath = `${expertData.id}/${uniqueFilename}`;
 
       const { error: uploadError } = await supabase.storage
         .from('expert-documents')
@@ -61,13 +73,13 @@ export default function UploadDocumentField() {
 
       if (uploadError) throw uploadError;
 
-      // ✅ URL bien formada
+      // Construir URL pública correcta
       const fullUrl = `${storageBaseUrl}/${filePath}`;
 
       const { error: insertError } = await supabase
         .from('expert_documents')
         .insert({
-          expert_id: user.id, // Cambiar user_id por expert_id
+          expert_id: expertData.id,
           filename: file.name,
           url_storage: fullUrl,
         });
@@ -91,7 +103,7 @@ export default function UploadDocumentField() {
     }
   };
 
-  // ✅ Mostrar solo el nombre de archivo limpio, nunca el user ID
+  // Mostrar solo el nombre de archivo limpio, nunca el user ID
   const uploadedFileName = values.filename || fileName || 'Document';
 
   return (
