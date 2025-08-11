@@ -25,6 +25,7 @@ export async function fetchProfileFormData(userId: string) {
       { data: companyLogoData, error: companyLogoError },
       { data: documentData, error: documentError },
       { data: solutionsData, error: solutionsError },
+      { data: professionsData, error: professionsError },
     ] = await Promise.all([
       supabase
         .from('users')
@@ -81,6 +82,7 @@ export async function fetchProfileFormData(userId: string) {
         .limit(1),
 
       supabase.from('solutions').select('id, name'),
+      supabase.from('it_professions').select('id, profession_name'),
     ]);
 
     let professionName = '';
@@ -106,6 +108,7 @@ export async function fetchProfileFormData(userId: string) {
       { name: 'companyLogoData', error: companyLogoError },
       { name: 'documentData', error: documentError },
       { name: 'solutionsData', error: solutionsError },
+      { name: 'professionsData', error: professionsError },
     ].filter((item) => item.error);
 
     if (errors.length > 0) {
@@ -125,6 +128,7 @@ export async function fetchProfileFormData(userId: string) {
       linkedin_profile: userData?.linkedin_profile || '',
       other_link: userData?.other_link || '',
       bio: expertData?.bio || '',
+      profession_id: expertData?.profession_id || '',
       profession: professionName,
       certified: expertData?.certified || false,
       is_currently_working: expertData?.is_currently_working || true,
@@ -156,6 +160,7 @@ export async function fetchProfileFormData(userId: string) {
       countries: (countriesData as Country[]) ?? [],
       roles: (rolesData as Role[]) ?? [],
       solutions: (solutionsData as Solution[]) ?? [],
+      professions: professionsData ?? [],
     };
   } catch (error) {
     console.error('Error in fetchProfileFormData:', error);

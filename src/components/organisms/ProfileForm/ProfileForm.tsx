@@ -9,7 +9,7 @@ import CustomerSections from './formSections/CustomerSections';
 import { ExpertInfoSection } from './formSections/ExpertInfoSection';
 
 export default function ProfileForm() {
-  const { initialValues, countries, roles, loading, solutions } =
+  const { initialValues, countries, roles, loading, solutions, professions } =
     useProfileFormData();
   const [userRole, setUserRole] = useState<string | null>(null);
   const { handleSubmit } = useProfileSubmit();
@@ -42,7 +42,7 @@ export default function ProfileForm() {
           </h1>
           <CommonSection countries={countries} roles={roles} />
           {isCustomer && <CustomerSections solutions={solutions} />}
-          {isExpert && <ExpertInfoSection />}
+          {isExpert && <ExpertInfoSection professions={professions} />}
           <button
             type="submit"
             disabled={isSubmitting || !isValid}

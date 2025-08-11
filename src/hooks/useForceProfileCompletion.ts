@@ -2,6 +2,7 @@
 import { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { supabase } from '@/utils/supabase/browserClient';
+import { ProfileData } from '@/components/organisms/ProfileForm/types';
 
 export function useForceProfileCompletion() {
   const router = useRouter();
@@ -14,11 +15,12 @@ export function useForceProfileCompletion() {
         pathname.startsWith('/profile') ||
         pathname.startsWith('/auth') ||
         pathname.startsWith('/onboarding') ||
-        pathname.startsWith('/force-profile/edit') // Evitar bucle infinito
+        pathname.startsWith('/force-profile/edit')
       ) {
         return;
       }
 
+      // 1️⃣ Sesión de usuario
       const {
         data: { user },
         error: userError,
@@ -29,22 +31,60 @@ export function useForceProfileCompletion() {
         return router.replace('/auth');
       }
 
-      const { data: userData, error: userDataError } = await supabase
+      // 2️⃣ Consulta única optimizada
+      const { data: profileData, error: profileError } = await supabase
         .from('users')
-        .select('first_name, last_name, country_id, role_id')
+        .select(
+          `
+          first_name,
+          last_name,
+          country_id,
+          role_id,
+          user_role:role_id(name),
+          experts (
+            bio,
+            profession_id,
+            it_professions:profession_id(profession_name)
+          ),
+          customers (
+            job_title,
+            description
+          )
+        `
+        )
         .eq('id', user.id)
-        .single();
+        .single<ProfileData>(); // ← Aquí le pasamos el tipo
 
-      if (userDataError) {
-        console.error('Error fetching user data:', userDataError);
+      if (profileError) {
+        console.error('Error fetching profile data:', profileError);
         return;
       }
 
-      const isProfileComplete =
-        userData?.first_name &&
-        userData?.last_name &&
-        userData?.country_id &&
-        userData?.role_id;
+      const basicComplete =
+        !!profileData?.first_name &&
+        !!profileData?.last_name &&
+        !!profileData?.country_id &&
+        !!profileData?.role_id;
+
+      let isProfileComplete = basicComplete;
+
+      if (basicComplete) {
+        const roleName = profileData.user_role?.name?.toLowerCase();
+
+        if (roleName === 'expert') {
+          isProfileComplete =
+            !!profileData.experts?.bio && !!profileData.experts?.profession_id;
+
+          // Solo para debug o usar en otro lado
+          const professionName =
+            profileData.experts?.it_professions?.profession_name || '';
+          console.log('Profession:', professionName);
+        } else if (roleName === 'customer') {
+          isProfileComplete =
+            !!profileData.customers?.job_title &&
+            !!profileData.customers?.description;
+        }
+      }
 
       if (!isProfileComplete) {
         localStorage.setItem('forcedToCompleteProfile', 'true');

@@ -22,13 +22,13 @@ export function CustomerBasicInfo() {
       />
 
       <FormInput
-        label="What's your actual role?"
-        name="actual_role"
+        label="What's your Job Title?"
+        name="job_title"
         placeholder="Your current position"
       />
 
       <FormInput
-        label="Email"
+        label="What's the email address of your company?"
         name="email"
         placeholder="Company email"
         type="email"

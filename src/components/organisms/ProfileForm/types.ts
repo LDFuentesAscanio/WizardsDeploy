@@ -16,6 +16,7 @@ export interface BaseProfile {
 // Tipos específicos para Expert
 export interface ExpertSpecific {
   bio: string;
+  profession_id: string;
   profession: string; // Ahora es el nombre, no el ID
   certified: boolean;
   is_currently_working: boolean;
@@ -26,6 +27,13 @@ export interface ExpertSpecific {
   tools: string[];
   cv_url?: string;
   filename?: string;
+}
+
+export interface ITProfession {
+  id: string;
+  profession_name: string;
+  category?: string;
+  description?: string;
 }
 
 // Tipos específicos para Customer
@@ -166,6 +174,28 @@ export interface CustomerResponse {
   accepted_terms_conditions: boolean;
   description?: string;
   company_url?: string;
+}
+
+// 📌 Tipo para la respuesta del hook useForceProfileCompletion
+export interface ProfileData {
+  first_name: string | null;
+  last_name: string | null;
+  country_id: string | null;
+  role_id: string | null;
+  user_role: {
+    name: string | null;
+  } | null;
+  experts: {
+    bio: string | null;
+    profession_id: string | null;
+    it_professions: {
+      profession_name: string | null;
+    } | null;
+  } | null;
+  customers: {
+    job_title: string | null;
+    description: string | null;
+  } | null;
 }
 
 // Type Guards mejorados

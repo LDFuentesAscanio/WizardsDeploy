@@ -1,6 +1,12 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { ProfileFormValues, Country, Role, Solution } from './types';
+import {
+  ProfileFormValues,
+  Country,
+  Role,
+  Solution,
+  ITProfession,
+} from './types';
 import { supabase } from '@/utils/supabase/browserClient';
 import { fetchProfileFormData } from './helpers';
 
@@ -13,6 +19,7 @@ export function useProfileFormData() {
   const [solutions, setSolutions] = useState<Solution[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [professions, setProfessions] = useState<ITProfession[]>([]);
 
   useEffect(() => {
     const loadProfileData = async () => {
@@ -31,7 +38,7 @@ export function useProfileFormData() {
         if (userError) throw userError;
 
         // Cargar datos según el rol
-        const { initialValues, countries, roles, solutions } =
+        const { initialValues, countries, roles, solutions, professions } =
           await fetchProfileFormData(auth.user.id);
 
         // Filtrar roles y establecer valores iniciales
@@ -44,6 +51,7 @@ export function useProfileFormData() {
         setCountries(countries);
         setRoles(filteredRoles);
         setSolutions(solutions);
+        setProfessions(professions);
       } catch (err) {
         console.error('Profile data loading error:', err);
         setError(
@@ -57,5 +65,13 @@ export function useProfileFormData() {
     loadProfileData();
   }, []);
 
-  return { initialValues, countries, roles, solutions, loading, error };
+  return {
+    initialValues,
+    countries,
+    roles,
+    solutions,
+    professions,
+    loading,
+    error,
+  };
 }
