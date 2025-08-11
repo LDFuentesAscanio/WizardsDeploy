@@ -10,6 +10,9 @@ interface FormValues {
   role: string;
 }
 
+// UUID exacto del registro "Other" en it_professions
+const DEFAULT_PROFESSION_ID = '8470973c-7bf7-4ea4-9529-f754dc9c042e';
+
 export function useOnboarding() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -24,16 +27,16 @@ export function useOnboarding() {
       } = await supabase.auth.getUser();
       if (authError || !user) throw new Error('Usuario no autenticado');
 
-      // 2. Buscar ID del rol seleccionado
+      // 2. Buscar ID del rol seleccionado (case-insensitive)
       const { data: role, error: roleError } = await supabase
         .from('user_role')
-        .select('id')
+        .select('id, name')
         .ilike('name', values.role)
         .single();
 
       if (roleError || !role?.id) throw new Error('Rol no encontrado');
 
-      // 3. Actualizar perfil del usuario
+      // 3. Actualizar perfil del usuario en users
       const { error: profileError } = await supabase.from('users').upsert(
         {
           id: user.id,
@@ -47,10 +50,34 @@ export function useOnboarding() {
 
       if (profileError) throw profileError;
 
-      // 4. Marcar como nuevo usuario y redirigir
+      // 4. Si es Expert, crear registro en tabla experts con profesión "Other" si no existe
+      if (values.role.toLowerCase() === 'expert') {
+        // use maybeSingle para evitar errores cuando no hay rows
+        const { data: existingExpert, error: expertQueryError } = await supabase
+          .from('experts')
+          .select('id')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (expertQueryError) throw expertQueryError;
+
+        if (!existingExpert) {
+          // Insertamos el expert con profession_id default
+          const { error: insertExpertError } = await supabase
+            .from('experts')
+            .insert({
+              user_id: user.id,
+              profession_id: DEFAULT_PROFESSION_ID,
+            });
+
+          if (insertExpertError) throw insertExpertError;
+        }
+      }
+
+      // 5. Marcar como nuevo usuario y redirigir
       localStorage.setItem('isNewUser', 'true');
       showSuccess('Onboarding completed successfully!');
-      router.push('/dashboard'); // Será redirigido si faltan datos
+      router.push('/dashboard');
     } catch (error) {
       console.error('Error en onboarding:', error);
       showError(
@@ -58,7 +85,7 @@ export function useOnboarding() {
           ? error.message
           : 'Error al guardar el perfil. Por favor intenta nuevamente.'
       );
-      throw error; // Permite manejar el error en el componente
+      throw error;
     } finally {
       setLoading(false);
     }
