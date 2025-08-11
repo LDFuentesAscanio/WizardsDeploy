@@ -8,7 +8,7 @@ import { showError, showSuccess } from '@/utils/toastService';
 import UserCard from '../organisms/dashboard/UserCard';
 import {
   CustomerDashboardData,
-  SupabaseContractedSolution,
+  FrontendContractedSolution,
 } from '../organisms/dashboard/types';
 import CustomerSolutionModal from '../organisms/dashboard/CustomerSolutionsModal';
 import { saveCustomerSolutions } from '@/utils/saveSolutions';
@@ -23,7 +23,7 @@ export default function CustomerDashboardView() {
   const [solutionToDelete, setSolutionToDelete] = useState<string | null>(null);
   const [availableSolutions, setAvailableSolutions] = useState<Solution[]>([]);
   const [contractedSolutions, setContractedSolutions] = useState<
-    SupabaseContractedSolution[]
+    FrontendContractedSolution[]
   >([]);
 
   useEffect(() => {
@@ -36,9 +36,10 @@ export default function CustomerDashboardView() {
         const user_id = authUser.user?.id;
         if (!user_id) throw new Error('No user authenticated');
 
+        // Obtener datos del customer
         const { data: customerData, error: customerError } = await supabase
           .from('customers')
-          .select('id, company_name')
+          .select('id, company_name, job_title, description')
           .eq('user_id', user_id)
           .single();
 
@@ -47,10 +48,10 @@ export default function CustomerDashboardView() {
 
         const [
           { data: user },
-          { data: about },
           { data: avatarMedia },
           { data: companyLogoMedia },
           { data: allSolutions },
+          { data: contractedRaw },
         ] = await Promise.all([
           supabase
             .from('users')
@@ -59,44 +60,57 @@ export default function CustomerDashboardView() {
             .single(),
 
           supabase
-            .from('about')
-            .select('bio')
-            .eq('user_id', user_id)
-            .maybeSingle(),
-
-          supabase
-            .from('user_media')
+            .from('customer_media')
             .select('url_storage')
-            .eq('user_id', user_id)
+            .eq('customer_id', customer_id)
             .eq('type', 'avatar')
             .maybeSingle(),
 
           supabase
-            .from('user_media')
+            .from('customer_media')
             .select('url_storage')
-            .eq('user_id', user_id)
+            .eq('customer_id', customer_id)
             .eq('type', 'company_logo')
             .maybeSingle(),
 
           supabase.from('solutions').select('id, name'),
+
+          supabase
+            .from('contracted_solutions')
+            .select(
+              `
+              id, 
+              solution_id, 
+              customer_id,
+              description_solution,
+              is_active,
+              contract_date,
+              solutions:solution_id (name)
+            `
+            )
+            .eq('customer_id', customer_id)
+            .eq('is_active', true),
         ]);
 
         setAvailableSolutions(allSolutions || []);
 
-        const { data: contractedRaw } = await supabase
-          .from('contracted_solutions')
-          .select(
-            'id, solution_id, description_solution, solutions:solution_id (name)'
-          )
-          .eq('customer_id', customer_id)
-          .eq('is_active', true);
+        // Mapear los datos para que coincidan con nuestro tipo
+        const formattedSolutions: FrontendContractedSolution[] =
+          contractedRaw?.map((item) => ({
+            id: item.id,
+            solution_id: item.solution_id,
+            customer_id: item.customer_id,
+            description_solution: item.description_solution,
+            is_active: item.is_active ?? false,
+            contract_date: item.contract_date,
+            solutions: item.solutions,
+          })) || [];
 
-        setContractedSolutions(contractedRaw || []);
+        setContractedSolutions(formattedSolutions);
 
-        const solutionNames =
-          contractedRaw
-            ?.map((item) => item.solutions?.name)
-            .filter((name): name is string => !!name) || [];
+        const solutionNames = formattedSolutions
+          .map((item) => item.solutions?.name)
+          .filter((name): name is string => !!name);
 
         setData({
           first_name: user?.first_name || '',
@@ -104,7 +118,8 @@ export default function CustomerDashboardView() {
           linkedin_profile: user?.linkedin_profile || null,
           other_link: user?.other_link || null,
           company_name: customerData.company_name || '',
-          bio: about?.bio || '',
+          job_title: customerData.job_title || '',
+          description: customerData.description || '',
           avatar: avatarMedia?.url_storage || null,
           company_logo: companyLogoMedia?.url_storage || null,
           solutions: solutionNames,
@@ -151,22 +166,38 @@ export default function CustomerDashboardView() {
 
       if (deleteError) throw deleteError;
 
-      if (deleteError) throw deleteError;
-
       const { data: refreshedSolutions } = await supabase
         .from('contracted_solutions')
         .select(
-          'id, solution_id, description_solution, solutions:solution_id (name)'
+          `
+          id, 
+          solution_id, 
+          customer_id,
+          description_solution,
+          is_active,
+          contract_date,
+          solutions:solution_id (name)
+        `
         )
         .eq('customer_id', customerData.id)
         .eq('is_active', true);
 
-      setContractedSolutions(refreshedSolutions || []);
+      const formattedSolutions: FrontendContractedSolution[] =
+        refreshedSolutions?.map((item) => ({
+          id: item.id,
+          solution_id: item.solution_id,
+          customer_id: item.customer_id,
+          description_solution: item.description_solution,
+          is_active: item.is_active ?? false,
+          contract_date: item.contract_date,
+          solutions: item.solutions,
+        })) || [];
 
-      const solutionNames =
-        refreshedSolutions
-          ?.map((item) => item.solutions?.name)
-          .filter((name): name is string => !!name) || [];
+      setContractedSolutions(formattedSolutions);
+
+      const solutionNames = formattedSolutions
+        .map((item) => item.solutions?.name)
+        .filter((name): name is string => !!name);
 
       setData((prev) => ({
         ...prev!,
@@ -201,17 +232,35 @@ export default function CustomerDashboardView() {
       const { data: refreshedSolutions } = await supabase
         .from('contracted_solutions')
         .select(
-          'id, solution_id, description_solution, solutions:solution_id (name)'
+          `
+          id, 
+          solution_id, 
+          customer_id,
+          description_solution,
+          is_active,
+          contract_date,
+          solutions:solution_id (name)
+        `
         )
         .eq('customer_id', customer_id)
         .eq('is_active', true);
 
-      setContractedSolutions(refreshedSolutions || []);
+      const formattedSolutions: FrontendContractedSolution[] =
+        refreshedSolutions?.map((item) => ({
+          id: item.id,
+          solution_id: item.solution_id,
+          customer_id: item.customer_id,
+          description_solution: item.description_solution,
+          is_active: item.is_active ?? false,
+          contract_date: item.contract_date,
+          solutions: item.solutions,
+        })) || [];
 
-      const solutionNames =
-        refreshedSolutions
-          ?.map((item) => item.solutions?.name)
-          .filter((name): name is string => !!name) || [];
+      setContractedSolutions(formattedSolutions);
+
+      const solutionNames = formattedSolutions
+        .map((item) => item.solutions?.name)
+        .filter((name): name is string => !!name);
 
       setData((prev) => ({
         ...prev!,
@@ -242,6 +291,7 @@ export default function CustomerDashboardView() {
           <UserCard
             firstName={data.first_name}
             lastName={data.last_name}
+            profession={data.job_title}
             avatarUrl={data.avatar ?? '/icons/avatar.svg'}
             linkedin={data.linkedin_profile}
             otherLink={data.other_link}
@@ -267,7 +317,7 @@ export default function CustomerDashboardView() {
               )}
               <div className="flex flex-col gap-1">
                 <h3 className="text-lg font-bold">{data.company_name}</h3>
-                <p className="text-sm text-white/70">{data.bio}</p>
+                <p className="text-sm text-white/70">{data.description}</p>
               </div>
             </div>
           </div>

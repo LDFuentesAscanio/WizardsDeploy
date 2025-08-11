@@ -65,10 +65,10 @@ export default function UploadDocumentField() {
       const fullUrl = `${storageBaseUrl}/${filePath}`;
 
       const { error: insertError } = await supabase
-        .from('user_documents')
+        .from('expert_documents')
         .insert({
-          user_id: user.id,
-          filename: file.name, // este es el nombre limpio, sin ID
+          expert_id: user.id, // Cambiar user_id por expert_id
+          filename: file.name,
           url_storage: fullUrl,
         });
 

@@ -1,65 +1,93 @@
-// utils/fetchDashboardData.ts
 import { supabase } from '@/utils/supabase/browserClient';
 import {
   DashboardData,
   UserRow,
-  AboutRow,
+  ExpertRow,
+  ExpertMediaRow,
+  ExpertDocumentRow,
+  SkillRow,
+  ToolRow,
+  ExpertiseRow,
+  PlatformRow,
+  ProfessionRow,
+  Experience,
 } from '@/components/organisms/dashboard/types';
 
 export async function fetchDashboardData(
   userId: string
 ): Promise<DashboardData> {
+  // Primero obtenemos los datos básicos del usuario y experto
+  const { data: userData } = await supabase
+    .from('users')
+    .select('first_name, last_name, country_id, linkedin_profile, other_link')
+    .eq('id', userId)
+    .single<UserRow>();
+
+  const { data: expertData } = await supabase
+    .from('experts')
+    .select('bio, profession_id')
+    .eq('user_id', userId)
+    .maybeSingle<ExpertRow>();
+
+  // Luego obtenemos el resto de los datos en paralelo
   const [
-    { data: userData },
-    { data: aboutData },
-    { data: mediaData },
+    { data: avatarData },
     { data: docData },
     { data: skillsData },
     { data: toolsData },
     { data: expertiseData },
     { data: platformsData },
+    { data: professionData },
   ] = await Promise.all([
     supabase
-      .from('users')
-      .select('first_name, last_name, country_id, linkedin_profile, other_link')
-      .eq('id', userId)
-      .single<UserRow>(),
-
-    supabase
-      .from('about')
-      .select('profession, bio')
-      .eq('user_id', userId)
-      .maybeSingle<AboutRow>(),
-
-    supabase
-      .from('user_media')
+      .from('expert_media')
       .select('url_storage')
-      .eq('user_id', userId)
-      .maybeSingle(),
+      .eq('expert_id', userId)
+      .eq('type', 'avatar')
+      .maybeSingle<ExpertMediaRow>(),
 
     supabase
-      .from('user_documents')
+      .from('expert_documents')
       .select('url_storage')
-      .eq('user_id', userId)
+      .eq('expert_id', userId)
       .order('created_at', { ascending: false })
-      .limit(1),
-
-    supabase.from('skills').select('skill_name').eq('user_id', userId),
-
-    supabase.from('tools').select('tool_name').eq('user_id', userId),
+      .limit(1)
+      .maybeSingle<ExpertDocumentRow>(),
 
     supabase
-      .from('user_expertise')
-      .select('platform_id, rating, experience_time')
-      .eq('user_id', userId),
+      .from('skills')
+      .select('skill_name')
+      .eq('expert_id', userId)
+      .returns<SkillRow[]>(),
 
-    supabase.from('platforms').select('id, name'),
+    supabase
+      .from('tools')
+      .select('tool_name')
+      .eq('expert_id', userId)
+      .returns<ToolRow[]>(),
+
+    supabase
+      .from('expert_expertise')
+      .select('platform_id, rating, experience_time')
+      .eq('expert_id', userId)
+      .returns<ExpertiseRow[]>(),
+
+    supabase.from('platforms').select('id, name').returns<PlatformRow[]>(),
+
+    expertData?.profession_id
+      ? supabase
+          .from('it_professions')
+          .select('profession_name')
+          .eq('id', expertData.profession_id)
+          .single<ProfessionRow>()
+      : Promise.resolve({ data: null, error: null }),
   ]);
 
+  // Procesamiento de datos
   const skills = skillsData?.map((s) => s.skill_name) ?? [];
   const tools = toolsData?.map((t) => t.tool_name) ?? [];
 
-  const experiences =
+  const experiences: Experience[] =
     expertiseData?.map((exp) => {
       const platformName =
         platformsData?.find((p) => p.id === exp.platform_id)?.name || 'Unknown';
@@ -70,26 +98,33 @@ export async function fetchDashboardData(
       };
     }) ?? [];
 
+  // Validación de campos obligatorios
   const missingFields: string[] = [];
+  const requiredFields = [
+    { name: 'First Name', value: userData?.first_name },
+    { name: 'Last Name', value: userData?.last_name },
+    { name: 'Country', value: userData?.country_id },
+    { name: 'Profession', value: professionData?.profession_name },
+    { name: 'Bio', value: expertData?.bio },
+    { name: 'Profile Photo', value: avatarData?.url_storage },
+    { name: 'CV', value: docData?.url_storage },
+    { name: 'LinkedIn', value: userData?.linkedin_profile },
+  ];
 
-  if (!userData?.first_name || !userData?.last_name) missingFields.push('Name');
-  if (!userData?.country_id) missingFields.push('Country');
-  if (!aboutData?.profession) missingFields.push('Profession');
-  if (!aboutData?.bio) missingFields.push('Bio');
-  if (!mediaData?.url_storage) missingFields.push('Profile Photo');
-  if (!docData?.[0]?.url_storage) missingFields.push('CV');
-  if (!userData?.linkedin_profile) missingFields.push('LinkedIn');
+  requiredFields.forEach((field) => {
+    if (!field.value) missingFields.push(field.name);
+  });
 
-  const totalFields = 7;
+  const totalFields = requiredFields.length;
   const completedFields = totalFields - missingFields.length;
   const completion = Math.round((completedFields / totalFields) * 100);
 
   return {
     firstName: userData?.first_name ?? '',
     lastName: userData?.last_name ?? '',
-    profession: aboutData?.profession ?? '',
-    avatarUrl: mediaData?.url_storage ?? '',
-    bio: aboutData?.bio ?? '',
+    profession: professionData?.profession_name ?? '',
+    avatarUrl: avatarData?.url_storage ?? '',
+    bio: expertData?.bio ?? '',
     skills,
     tools,
     experiences,

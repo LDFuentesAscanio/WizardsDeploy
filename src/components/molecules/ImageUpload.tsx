@@ -68,9 +68,9 @@ export default function ImageUploader({
 
       // Verificamos si ya existe un registro para ese user_id + type
       const { data: existing, error: fetchError } = await supabase
-        .from('user_media')
+        .from('expert_media')
         .select('id')
-        .eq('user_id', user.id)
+        .eq('expert_id', user.id)
         .eq('type', type)
         .maybeSingle();
 
@@ -79,7 +79,7 @@ export default function ImageUploader({
       if (existing) {
         // Si existe: actualizamos
         const { error: updateError } = await supabase
-          .from('user_media')
+          .from('expert_media')
           .update({
             filename: file.name,
             url_storage: fullUrl,
@@ -91,9 +91,9 @@ export default function ImageUploader({
       } else {
         // Si no existe: insertamos
         const { error: insertError } = await supabase
-          .from('user_media')
+          .from('expert_media')
           .insert({
-            user_id: user.id,
+            expert_id: user.id,
             filename: file.name,
             url_storage: fullUrl,
             type,

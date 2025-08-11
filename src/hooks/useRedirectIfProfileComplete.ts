@@ -1,8 +1,6 @@
 'use client';
-//External libraries
 import { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-//Utilities
 import { supabase } from '@/utils/supabase/browserClient';
 
 export function useRedirectIfProfileComplete() {
@@ -11,6 +9,7 @@ export function useRedirectIfProfileComplete() {
 
   useEffect(() => {
     const checkProfile = async () => {
+      // No redirigir si ya estamos en estas rutas
       if (pathname === '/dashboard' || pathname === '/force-profile/edit')
         return;
 
@@ -26,36 +25,70 @@ export function useRedirectIfProfileComplete() {
       }
 
       try {
-        const [{ data: userData }, { data: aboutData }] = await Promise.all([
-          supabase
-            .from('users')
-            .select('first_name, last_name, role_id')
-            .eq('id', user.id)
-            .single(),
-          supabase
-            .from('about')
-            .select('bio, profession')
-            .eq('user_id', user.id) // 👈 esta línea estaba mal antes, ahora está correcta
-            .single(),
-        ]);
+        // Obtenemos datos básicos del usuario y su rol
+        const { data: userData } = await supabase
+          .from('users')
+          .select('first_name, last_name, role_id')
+          .eq('id', user.id)
+          .single();
 
-        // 🔍 Registro para depurar
-        console.log('🔍 Profile data check:', {
-          first_name: userData?.first_name,
-          last_name: userData?.last_name,
-          role_id: userData?.role_id,
-          bio: aboutData?.bio,
-          profession: aboutData?.profession,
-        });
+        if (!userData) {
+          console.error('User data not found');
+          return;
+        }
 
-        const isComplete =
-          userData?.first_name?.trim() &&
-          userData?.last_name?.trim() &&
-          userData?.role_id &&
-          aboutData?.bio?.trim() &&
-          aboutData?.profession?.trim();
+        // Verificamos si es experto o cliente
+        const isExpert = userData.role_id === 'expert_role_id'; // Ajusta este ID
+        const isCustomer = userData.role_id === 'customer_role_id'; // Ajusta este ID
 
-        if (isComplete) {
+        let profileComplete = false;
+
+        if (isExpert) {
+          // Para expertos: verificamos bio y profession de la tabla experts
+          const { data: expertData } = await supabase
+            .from('experts')
+            .select('bio, profession_id')
+            .eq('user_id', user.id)
+            .single();
+
+          profileComplete = Boolean(
+            userData.first_name?.trim() &&
+              userData.last_name?.trim() &&
+              expertData?.bio?.trim() &&
+              expertData?.profession_id
+          );
+
+          console.log('Expert profile complete:', profileComplete, {
+            first_name: userData.first_name,
+            last_name: userData.last_name,
+            bio: expertData?.bio,
+            profession_id: expertData?.profession_id,
+          });
+        } else if (isCustomer) {
+          // Para clientes: verificamos job_title y description de customers
+          const { data: customerData } = await supabase
+            .from('customers')
+            .select('job_title, description')
+            .eq('user_id', user.id)
+            .single();
+
+          profileComplete = Boolean(
+            userData.first_name?.trim() &&
+              userData.last_name?.trim() &&
+              customerData?.job_title?.trim() &&
+              customerData?.description?.trim()
+          );
+
+          console.log('Customer profile complete:', profileComplete, {
+            first_name: userData.first_name,
+            last_name: userData.last_name,
+            job_title: customerData?.job_title,
+            description: customerData?.description,
+          });
+        }
+
+        // Redirigir si el perfil está completo
+        if (profileComplete) {
           router.replace('/dashboard');
         }
       } catch (err) {

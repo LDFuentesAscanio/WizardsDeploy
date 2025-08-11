@@ -1,15 +1,23 @@
 import { showError } from '@/utils/toastService';
-import { About, CustomerResponse, ProfileFormValues, UserMedia } from './types';
+import {
+  CustomerResponse,
+  ProfileFormValues,
+  ExpertMedia,
+  ExpertResponse,
+  Country,
+  Role,
+  Solution,
+} from './types';
 import { supabase } from '@/utils/supabase/browserClient';
 
 export async function fetchProfileFormData(userId: string) {
   try {
     const [
       { data: userData, error: userError },
-      { data: customersData, error: customersError },
+      { data: expertData, error: expertError },
+      { data: customerData, error: customerError },
       { data: countriesData, error: countriesError },
       { data: rolesData, error: rolesError },
-      { data: aboutDataRaw, error: aboutError },
       { data: skillsData, error: skillsError },
       { data: toolsData, error: toolsError },
       { data: expertiseData, error: expertiseError },
@@ -27,60 +35,70 @@ export async function fetchProfileFormData(userId: string) {
         .single(),
 
       supabase
+        .from('experts')
+        .select(
+          'certified, anything_share_with_us, understand_subject_pp, is_currently_working, bio, profession_id'
+        )
+        .eq('user_id', userId)
+        .maybeSingle<ExpertResponse>(),
+
+      supabase
         .from('customers')
         .select(
-          'company_name, actual_role, email, accepted_privacy_policy, accepted_terms_conditions'
+          'company_name, job_title, email, accepted_privacy_policy, accepted_terms_conditions, description, company_url'
         )
         .eq('user_id', userId)
         .maybeSingle<CustomerResponse>(),
 
       supabase.from('country').select('id, name'),
       supabase.from('user_role').select('id, name'),
-
+      supabase.from('skills').select('skill_name').eq('expert_id', userId),
+      supabase.from('tools').select('tool_name').eq('expert_id', userId),
       supabase
-        .from('about')
-        .select('bio, profession')
-        .eq('user_id', userId)
-        .maybeSingle<About>(),
-
-      supabase.from('skills').select('skill_name').eq('user_id', userId),
-      supabase.from('tools').select('tool_name').eq('user_id', userId),
-
-      supabase
-        .from('user_expertise')
+        .from('expert_expertise')
         .select('platform_id, rating, experience_time')
-        .eq('user_id', userId),
+        .eq('expert_id', userId),
 
       supabase
-        .from('user_media')
+        .from('expert_media')
         .select('url_storage')
-        .eq('user_id', userId)
+        .eq('expert_id', userId)
         .eq('type', 'avatar')
-        .maybeSingle<UserMedia>(),
+        .maybeSingle<ExpertMedia>(),
 
       supabase
-        .from('user_media')
+        .from('expert_media') // Cambiado de user_media a expert_media
         .select('url_storage')
-        .eq('user_id', userId)
+        .eq('expert_id', userId)
         .eq('type', 'company_logo')
-        .maybeSingle<UserMedia>(),
+        .maybeSingle<ExpertMedia>(),
 
       supabase
-        .from('user_documents')
+        .from('expert_documents')
         .select('url_storage, filename')
-        .eq('user_id', userId)
+        .eq('expert_id', userId)
         .order('id', { ascending: false })
         .limit(1),
 
       supabase.from('solutions').select('id, name'),
     ]);
 
+    let professionName = '';
+    if (expertData?.profession_id) {
+      const { data: professionData } = await supabase
+        .from('it_professions')
+        .select('profession_name')
+        .eq('id', expertData.profession_id)
+        .single();
+      professionName = professionData?.profession_name || '';
+    }
+
     const errors = [
       { name: 'userData', error: userError },
-      { name: 'customersData', error: customersError },
+      { name: 'expertData', error: expertError }, // Ahora incluido
+      { name: 'customerData', error: customerError },
       { name: 'countriesData', error: countriesError },
       { name: 'rolesData', error: rolesError },
-      { name: 'aboutData', error: aboutError },
       { name: 'skillsData', error: skillsError },
       { name: 'toolsData', error: toolsError },
       { name: 'expertiseData', error: expertiseError },
@@ -91,17 +109,13 @@ export async function fetchProfileFormData(userId: string) {
     ].filter((item) => item.error);
 
     if (errors.length > 0) {
-      const errorMessage = `Failed to load: ${errors
-        .map((e) => e.name)
-        .join(', ')}`;
+      const errorMessage = `Failed to load: ${errors.map((e) => e.name).join(', ')}`;
       console.error('Errors in Supabase queries:', errors);
       showError('Profile loading error', {
         description: 'Some data could not be loaded. Please try again.',
       });
       throw new Error(errorMessage);
     }
-
-    const aboutData = aboutDataRaw ?? { bio: '', profession: '' };
 
     const initialValues: ProfileFormValues = {
       first_name: userData?.first_name || '',
@@ -110,8 +124,10 @@ export async function fetchProfileFormData(userId: string) {
       role_id: userData?.role_id || '',
       linkedin_profile: userData?.linkedin_profile || '',
       other_link: userData?.other_link || '',
-      bio: aboutData?.bio ?? '',
-      profession: aboutData?.profession ?? '',
+      bio: expertData?.bio || '',
+      profession: professionName,
+      certified: expertData?.certified || false,
+      is_currently_working: expertData?.is_currently_working || true,
       expertise:
         expertiseData?.map((item) => ({
           ...item,
@@ -124,22 +140,22 @@ export async function fetchProfileFormData(userId: string) {
       company_logo_url: companyLogoData?.url_storage ?? '',
       cv_url: documentData?.[0]?.url_storage || '',
       filename: documentData?.[0]?.filename || '',
-      company_name: customersData?.company_name || '',
-      actual_role: customersData?.actual_role || '',
-      email: customersData?.email || '',
-      solution_description: '',
+      company_name: customerData?.company_name || '',
+      actual_role: customerData?.job_title || '',
+      email: customerData?.email || '',
+      solution_description: customerData?.description || '',
       selected_solutions: [],
       looking_for_expert: false,
-      accepted_privacy_policy: customersData?.accepted_privacy_policy ?? false,
+      accepted_privacy_policy: customerData?.accepted_privacy_policy ?? false,
       accepted_terms_conditions:
-        customersData?.accepted_terms_conditions ?? false,
+        customerData?.accepted_terms_conditions ?? false,
     };
 
     return {
       initialValues,
-      countries: countriesData ?? [],
-      roles: rolesData ?? [],
-      solutions: solutionsData ?? [],
+      countries: (countriesData as Country[]) ?? [],
+      roles: (rolesData as Role[]) ?? [],
+      solutions: (solutionsData as Solution[]) ?? [],
     };
   } catch (error) {
     console.error('Error in fetchProfileFormData:', error);
