@@ -68,7 +68,7 @@ export async function fetchProfileFormData(userId: string) {
         .maybeSingle<ExpertMedia>(),
 
       supabase
-        .from('expert_media')
+        .from('expert_media') // Cambiado de user_media a expert_media
         .select('url_storage')
         .eq('expert_id', userId)
         .eq('type', 'company_logo')
@@ -92,12 +92,12 @@ export async function fetchProfileFormData(userId: string) {
         .select('profession_name')
         .eq('id', expertData.profession_id)
         .single();
-      professionName = professionData?.profession_name ?? '';
+      professionName = professionData?.profession_name || '';
     }
 
     const errors = [
       { name: 'userData', error: userError },
-      { name: 'expertData', error: expertError },
+      { name: 'expertData', error: expertError }, // Ahora incluido
       { name: 'customerData', error: customerError },
       { name: 'countriesData', error: countriesError },
       { name: 'rolesData', error: rolesError },
@@ -112,30 +112,26 @@ export async function fetchProfileFormData(userId: string) {
     ].filter((item) => item.error);
 
     if (errors.length > 0) {
+      const errorMessage = `Failed to load: ${errors.map((e) => e.name).join(', ')}`;
       console.error('Errors in Supabase queries:', errors);
       showError('Profile loading error', {
         description: 'Some data could not be loaded. Please try again.',
       });
-      throw new Error(
-        `Failed to load: ${errors.map((e) => e.name).join(', ')}`
-      );
+      throw new Error(errorMessage);
     }
 
     const initialValues: ProfileFormValues = {
-      /** Datos generales */
-      first_name: userData?.first_name ?? '',
-      last_name: userData?.last_name ?? '',
-      country_id: userData?.country_id ?? '',
-      role_id: userData?.role_id ?? '',
-      linkedin_profile: userData?.linkedin_profile ?? '',
-      other_link: userData?.other_link ?? '',
-
-      /** Datos Expert */
-      bio: expertData?.bio ?? '',
-      profession_id: expertData?.profession_id ?? '',
-      profession: professionName ?? '',
-      certified: expertData?.certified ?? false,
-      is_currently_working: expertData?.is_currently_working ?? true,
+      first_name: userData?.first_name || '',
+      last_name: userData?.last_name || '',
+      country_id: userData?.country_id || '',
+      role_id: userData?.role_id || '',
+      linkedin_profile: userData?.linkedin_profile || '',
+      other_link: userData?.other_link || '',
+      bio: expertData?.bio || '',
+      profession_id: expertData?.profession_id || '',
+      profession: professionName,
+      certified: expertData?.certified || false,
+      is_currently_working: expertData?.is_currently_working || true,
       expertise:
         expertiseData?.map((item) => ({
           ...item,
@@ -144,20 +140,14 @@ export async function fetchProfileFormData(userId: string) {
         })) ?? [],
       skills: skillsData?.map((s) => s.skill_name) ?? [],
       tools: toolsData?.map((t) => t.tool_name) ?? [],
-      cv_url: documentData?.[0]?.url_storage ?? '',
-      filename: documentData?.[0]?.filename ?? '',
-
-      /** Multimedia */
       photo_url: avatarData?.url_storage ?? '',
       company_logo_url: companyLogoData?.url_storage ?? '',
-
-      /** Datos Customer */
-      company_name: customerData?.company_name ?? '',
-      actual_role: customerData?.job_title ?? '',
-      email: customerData?.email ?? '',
-      description: customerData?.description ?? '',
-      company_url: customerData?.company_url ?? '',
-      solution_description: customerData?.description ?? '',
+      cv_url: documentData?.[0]?.url_storage || '',
+      filename: documentData?.[0]?.filename || '',
+      company_name: customerData?.company_name || '',
+      actual_role: customerData?.job_title || '',
+      email: customerData?.email || '',
+      solution_description: customerData?.description || '',
       selected_solutions: [],
       looking_for_expert: false,
       accepted_privacy_policy: customerData?.accepted_privacy_policy ?? false,
