@@ -6,7 +6,6 @@ export const getProfileSchema = (role: string | null) => {
     last_name: Yup.string().required('Last name is required'),
     country_id: Yup.string().required('Country is required'),
     role_id: Yup.string().required('Role is required'),
-    email: Yup.string().email('Invalid email').required('Email is required'),
   };
 
   const customerSchema = {
