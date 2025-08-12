@@ -3,7 +3,6 @@
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/utils/supabase/browserClient';
 import { showError, showInfo, showSuccess } from '@/utils/toastService';
-
 import { CustomerInsert, ExpertInsert } from '@/supabase-types';
 import {
   Expertise,
@@ -31,7 +30,7 @@ export function useProfileSubmit() {
         return;
       }
 
-      // 1. Update base user
+      // 1️⃣ Update base user
       const { error: userError } = await supabase.from('users').upsert(
         {
           id: user.id,
@@ -46,7 +45,7 @@ export function useProfileSubmit() {
       );
       if (userError) throw userError;
 
-      // 2. Customer update
+      // 2️⃣ Customer update
       if (isCustomer) {
         const customerData: CustomerInsert = {
           user_id: user.id,
@@ -64,106 +63,105 @@ export function useProfileSubmit() {
         if (customerError) throw customerError;
       }
 
-      // 3. Expert update
+      // 3️⃣ Expert update
       if (isExpert) {
-        try {
-          // Obtener profession_id - ahora con valor por defecto
-          let professionId = ''; // Valor por defecto como string vacío
-          if (values.profession) {
-            const { data: profession } = await supabase
-              .from('it_professions')
-              .select('id')
-              .eq('profession_name', values.profession)
-              .single();
-            professionId = profession?.id || '';
-          }
+        // Obtener profession_id
+        let professionId = '';
+        if (values.profession) {
+          const { data: profession } = await supabase
+            .from('it_professions')
+            .select('id')
+            .eq('profession_name', values.profession)
+            .single();
+          professionId = profession?.id || '';
+        }
 
-          // Upsert expert data
-          const expertData: ExpertInsert = {
-            user_id: user.id,
-            bio: values.bio || null,
-            profession_id: professionId, // Ahora siempre es string
-            certified: values.certified || false,
-            is_currently_working: values.is_currently_working ?? true,
-            understand_subject_pp: true,
-            anything_share_with_us: null,
-          };
+        // Upsert expert y obtener su ID real
+        const { data: expertRecord, error: expertError } = await supabase
+          .from('experts')
+          .upsert(
+            {
+              user_id: user.id,
+              bio: values.bio || null,
+              profession_id: professionId,
+              certified: values.certified || false,
+              is_currently_working: values.is_currently_working ?? true,
+              understand_subject_pp: true,
+              anything_share_with_us: null,
+            } as ExpertInsert,
+            { onConflict: 'user_id' }
+          )
+          .select('id')
+          .single();
 
-          const { error: expertError } = await supabase
-            .from('experts')
-            .upsert(expertData, { onConflict: 'user_id' });
-          if (expertError) throw expertError;
+        if (expertError) throw expertError;
+        const expertId = expertRecord.id;
 
-          // Profile picture
-          if (values.photo_url) {
-            await supabase.from('expert_media').upsert(
-              {
-                expert_id: user.id,
-                url_storage: values.photo_url,
-                filename: values.photo_url.split('/').pop() || 'profile.jpg',
-                type: 'avatar',
-              },
-              { onConflict: 'expert_id,type' }
-            );
-          }
+        // Profile picture
+        if (values.photo_url) {
+          await supabase.from('expert_media').upsert(
+            {
+              expert_id: expertId,
+              url_storage: values.photo_url,
+              filename: values.photo_url.split('/').pop() || 'profile.jpg',
+              type: 'avatar',
+            },
+            { onConflict: 'expert_id,type' }
+          );
+        }
 
-          // Expertise
-          await supabase
-            .from('expert_expertise')
-            .delete()
-            .eq('expert_id', user.id);
-          const expertise: Expertise[] = values.expertise ?? [];
-          if (expertise.length > 0) {
-            const { error } = await supabase.from('expert_expertise').insert(
-              expertise.map((e: Expertise) => ({
-                expert_id: user.id,
-                platform_id: e.platform_id,
-                rating: Number(e.rating),
-                experience_time: e.experience_time,
-              }))
-            );
-            if (error) throw error;
-          }
+        // Expertise
+        await supabase
+          .from('expert_expertise')
+          .delete()
+          .eq('expert_id', expertId);
+        if (values.expertise?.length) {
+          const { error } = await supabase.from('expert_expertise').insert(
+            values.expertise.map((e: Expertise) => ({
+              expert_id: expertId,
+              platform_id: e.platform_id,
+              rating: Number(e.rating),
+              experience_time: e.experience_time,
+            }))
+          );
+          if (error) throw error;
+        }
 
-          // Skills
-          await supabase.from('skills').delete().eq('expert_id', user.id);
-          if (values.skills?.length) {
-            await supabase.from('skills').insert(
-              values.skills.map((skill: string) => ({
-                expert_id: user.id,
-                user_id: user.id,
-                skill_name: skill,
-                skill_level: null,
-              }))
-            );
-          }
+        // Skills
+        await supabase.from('skills').delete().eq('expert_id', expertId);
+        if (values.skills?.length) {
+          await supabase.from('skills').insert(
+            values.skills.map((skill: string) => ({
+              expert_id: expertId,
+              user_id: user.id,
+              skill_name: skill,
+              skill_level: null,
+            }))
+          );
+        }
 
-          // Tools
-          await supabase.from('tools').delete().eq('expert_id', user.id);
-          if (values.tools?.length) {
-            await supabase.from('tools').insert(
-              values.tools.map((tool: string) => ({
-                expert_id: user.id,
-                user_id: user.id,
-                tool_name: tool,
-              }))
-            );
-          }
+        // Tools
+        await supabase.from('tools').delete().eq('expert_id', expertId);
+        if (values.tools?.length) {
+          await supabase.from('tools').insert(
+            values.tools.map((tool: string) => ({
+              expert_id: expertId,
+              user_id: user.id,
+              tool_name: tool,
+            }))
+          );
+        }
 
-          // Documents
-          if (values.cv_url) {
-            await supabase.from('expert_documents').upsert(
-              {
-                expert_id: user.id,
-                url_storage: values.cv_url,
-                filename: values.filename || 'document.pdf',
-              },
-              { onConflict: 'expert_id' }
-            );
-          }
-        } catch (expertError) {
-          console.error('Error updating expert data:', expertError);
-          throw expertError;
+        // Documents
+        if (values.cv_url) {
+          await supabase.from('expert_documents').upsert(
+            {
+              expert_id: expertId,
+              url_storage: values.cv_url,
+              filename: values.filename || 'document.pdf',
+            },
+            { onConflict: 'expert_id' }
+          );
         }
       }
 
