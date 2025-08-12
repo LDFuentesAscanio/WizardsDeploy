@@ -87,8 +87,6 @@ export function useProfileSubmit() {
             is_currently_working: values.is_currently_working ?? true,
             understand_subject_pp: true,
             anything_share_with_us: null,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
           };
 
           const { error: expertError } = await supabase
@@ -104,8 +102,6 @@ export function useProfileSubmit() {
                 url_storage: values.photo_url,
                 filename: values.photo_url.split('/').pop() || 'profile.jpg',
                 type: 'avatar',
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
               },
               { onConflict: 'expert_id,type' }
             );
@@ -124,7 +120,6 @@ export function useProfileSubmit() {
                 platform_id: e.platform_id,
                 rating: Number(e.rating),
                 experience_time: e.experience_time,
-                created_at: new Date().toISOString(),
               }))
             );
             if (error) throw error;
@@ -139,8 +134,6 @@ export function useProfileSubmit() {
                 user_id: user.id,
                 skill_name: skill,
                 skill_level: null,
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
               }))
             );
           }
@@ -153,8 +146,6 @@ export function useProfileSubmit() {
                 expert_id: user.id,
                 user_id: user.id,
                 tool_name: tool,
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
               }))
             );
           }
@@ -166,7 +157,6 @@ export function useProfileSubmit() {
                 expert_id: user.id,
                 url_storage: values.cv_url,
                 filename: values.filename || 'document.pdf',
-                created_at: new Date().toISOString(),
               },
               { onConflict: 'expert_id' }
             );
