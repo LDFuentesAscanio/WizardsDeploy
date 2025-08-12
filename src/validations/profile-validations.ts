@@ -9,7 +9,7 @@ export const getProfileSchema = (role: string | null) => {
 
   const customerSchema = {
     company_name: Yup.string().required('Company name is required'),
-    job_title: Yup.string(),
+    job_title: Yup.string().required('Job title is required'),
     description: Yup.string().min(
       20,
       'Company description must be at least 20 characters'
@@ -18,7 +18,7 @@ export const getProfileSchema = (role: string | null) => {
 
   const expertSchema = {
     bio: Yup.string().required('Bio is required'),
-    profession: Yup.string(),
+    profession_id: Yup.string().required('Profession is required'),
     expertise: Yup.array()
       .min(1, 'At least one expertise is required')
       .required('Expertise is required'),
