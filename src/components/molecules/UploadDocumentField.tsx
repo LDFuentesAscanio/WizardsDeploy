@@ -52,7 +52,7 @@ export default function UploadDocumentField() {
         throw new Error('Not authenticated');
       }
 
-      // Buscamos el expert_id relacionado al user.id
+      // Buscar expert_id
       const { data: expertData, error: expertError } = await supabase
         .from('experts')
         .select('id')
@@ -63,8 +63,25 @@ export default function UploadDocumentField() {
         throw new Error('Expert profile not found');
       }
 
+      // Si ya existe un documento previo, eliminarlo
+      if (values.cv_url) {
+        // Extraer la ruta dentro del bucket (lo que viene después de expert-documents/)
+        const prevPath = values.cv_url.split('/expert-documents/')[1];
+
+        if (prevPath) {
+          // Eliminar del bucket
+          await supabase.storage.from('expert-documents').remove([prevPath]);
+
+          // Eliminar registro de la DB
+          await supabase
+            .from('expert_documents')
+            .delete()
+            .eq('expert_id', expertData.id);
+        }
+      }
+
+      // Subir nuevo archivo
       const uniqueFilename = `${Date.now()}_${file.name}`;
-      // Usa el expert_id en la ruta, no el user.id
       const filePath = `${expertData.id}/${uniqueFilename}`;
 
       const { error: uploadError } = await supabase.storage
@@ -73,9 +90,10 @@ export default function UploadDocumentField() {
 
       if (uploadError) throw uploadError;
 
-      // Construir URL pública correcta
+      // Construir URL pública
       const fullUrl = `${storageBaseUrl}/${filePath}`;
 
+      // Insertar registro en DB
       const { error: insertError } = await supabase
         .from('expert_documents')
         .insert({
@@ -86,8 +104,9 @@ export default function UploadDocumentField() {
 
       if (insertError) throw insertError;
 
+      // Actualizar valores en Formik
       setFieldValue('cv_url', fullUrl);
-      setFieldValue('filename', file.name); // mostramos solo el nombre, no la URL
+      setFieldValue('filename', file.name);
       setFileName(file.name);
 
       showSuccess('File uploaded successfully', {
@@ -103,9 +122,6 @@ export default function UploadDocumentField() {
     }
   };
 
-  // Mostrar solo el nombre de archivo limpio, nunca el user ID
-  const uploadedFileName = values.filename || fileName || 'Document';
-
   return (
     <div className="space-y-1" lang="en">
       <label className="block text-sm font-medium">Resume (PDF or DOCX)</label>
@@ -120,10 +136,12 @@ export default function UploadDocumentField() {
       {uploading && <p className="text-sm text-gray-300">Uploading file...</p>}
 
       {fileName && (
-        <p className="text-sm text-green-400">✅ File uploaded: {fileName}</p>
+        <p className="text-sm text-green-400">
+          ✅ New file uploaded: {fileName}
+        </p>
       )}
 
-      {values.cv_url && !fileName && (
+      {values.cv_url && (
         <p className="text-sm text-blue-300 mt-1">
           📎 Current file:{' '}
           <a
@@ -132,7 +150,7 @@ export default function UploadDocumentField() {
             rel="noopener noreferrer"
             className="underline hover:text-blue-400"
           >
-            {uploadedFileName}
+            {values.filename || 'Document'}
           </a>
         </p>
       )}
