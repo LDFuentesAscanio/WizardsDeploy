@@ -104,7 +104,6 @@ export async function fetchProfileFormData(userId: string) {
         .single();
       professionName = professionData?.profession_name || '';
     }
-
     // Manejo de errores
     const errors = [
       { name: 'userData', error: userError },
@@ -130,6 +129,12 @@ export async function fetchProfileFormData(userId: string) {
       });
       throw new Error(errorMessage);
     }
+    console.log('Skills from DB:', skillsData);
+    console.log('Tools from DB:', toolsData);
+    console.log('Expertise from DB:', expertiseData);
+
+    // Verifica también el userId que se está usando
+    console.log('User ID used for queries:', userId);
 
     // Valores iniciales del formulario
     const initialValues: ProfileFormValues = {
