@@ -42,6 +42,7 @@ export default function DashboardGuard({
           return;
         }
 
+        // Consulta simplificada - solo verifica campos esenciales
         const { data: profileData, error } = await supabase
           .from('users')
           .select(
@@ -60,7 +61,12 @@ export default function DashboardGuard({
 
         if (error) throw error;
 
-        console.log('DashboardGuard profile data:', profileData);
+        console.log('Perfil completo:', {
+          datos: profileData,
+          expert: profileData.experts?.[0],
+          customer: profileData.customers?.[0],
+          rol: profileData.user_role?.name,
+        });
 
         // Verificación básica común
         const basicComplete = Boolean(
@@ -70,31 +76,58 @@ export default function DashboardGuard({
             profileData?.role_id
         );
 
-        let roleComplete = false;
+        if (!basicComplete) {
+          console.log('Faltan datos básicos');
+          router.replace('/force-profile/edit');
+          return;
+        }
+
         const roleName = profileData?.user_role?.name?.toLowerCase();
 
+        // Verificación por rol
         if (roleName === 'expert') {
           const expert = profileData.experts?.[0];
-          roleComplete = Boolean(expert?.bio?.trim() && expert?.profession_id);
-          console.log('DashboardGuard - Expert complete:', roleComplete);
+          const expertComplete = Boolean(
+            expert?.bio?.trim() && expert?.profession_id
+          );
+
+          console.log('Verificación experto:', {
+            bio: !!expert?.bio,
+            profession_id: !!expert?.profession_id,
+            completo: expertComplete,
+          });
+
+          if (!expertComplete) {
+            router.replace('/force-profile/edit');
+          } else {
+            setLoading(false);
+          }
         } else if (roleName === 'customer') {
           const customer = profileData.customers?.[0];
-          roleComplete = Boolean(
+          const customerComplete = Boolean(
             customer?.job_title?.trim() &&
               customer?.description?.trim() &&
               customer?.company_name?.trim()
           );
-          console.log('DashboardGuard - Customer complete:', roleComplete);
-        }
 
-        if (!basicComplete || !roleComplete) {
-          console.log(
-            'DashboardGuard - Profile incomplete, redirecting to edit'
-          );
+          console.log('Verificación cliente:', {
+            job_title: !!customer?.job_title,
+            description: !!customer?.description,
+            company_name: !!customer?.company_name,
+            completo: customerComplete,
+          });
+
+          if (!customerComplete) {
+            router.replace('/force-profile/edit');
+          } else {
+            setLoading(false);
+          }
+        } else {
+          // Rol no reconocido
           router.replace('/force-profile/edit');
         }
       } catch (err) {
-        console.error('DashboardGuard error:', err);
+        console.error('Error verificando perfil:', err);
         router.replace('/force-profile/edit');
       } finally {
         setLoading(false);
