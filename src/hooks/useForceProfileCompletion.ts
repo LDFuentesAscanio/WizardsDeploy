@@ -4,108 +4,119 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/utils/supabase/browserClient';
 
-type ExpertRow = {
-  id: string;
-  bio: string | null;
-  profession_id: string | null;
-};
-type CustomerRow = { id: string; company_name: string | null };
-
 interface ProfileData {
-  experts?: ExpertRow[];
-  customers?: CustomerRow[];
+  first_name: string | null;
+  last_name: string | null;
+  country_id: string | null;
+  role_id: string | null;
+  user_role: { name: string | null } | null;
+  experts: Array<{
+    bio: string | null;
+    profession_id: string | null;
+    skills: Array<{ skill_name: string }>;
+    tools: Array<{ tool_name: string }>;
+    expertises: Array<{ platform_id: string }>;
+  }> | null;
+  customers: Array<{
+    job_title: string | null;
+    description: string | null;
+    company_name: string | null;
+  }> | null;
 }
-
-const DEBUG = process.env.NEXT_PUBLIC_DEBUG_PROFILE === 'true';
-const log = (...args: Parameters<typeof console.log>) =>
-  DEBUG && console.log('[ForceProfile]', ...args);
-
-const hasText = (v?: string | null) => !!(v && v.trim().length > 0);
 
 export function useForceProfileCompletion() {
   const router = useRouter();
 
   useEffect(() => {
-    const forceProfileCheck = async () => {
+    const checkProfile = async () => {
       try {
-        const { data: auth, error: authErr } = await supabase.auth.getUser();
-        if (authErr) log('auth error:', authErr);
-        if (!auth?.user) {
-          log('No user -> /login');
+        const {
+          data: { user },
+          error: authError,
+        } = await supabase.auth.getUser();
+
+        if (authError || !user) {
+          console.log('No user found, redirecting to login');
           router.replace('/login');
           return;
         }
 
-        // 1) Intento con relaciones explícitas (ajusta el nombre de la FK si no coincide)
-        const { data, error } = await supabase
+        const { data: profileData, error } = await supabase
           .from('users')
           .select(
             `
-            id,
-            experts:experts!experts_user_id_fkey ( id, bio, profession_id ),
-            customers:customers!customers_user_id_fkey ( id, company_name )
+            first_name,
+            last_name,
+            country_id,
+            role_id,
+            user_role:role_id(name),
+            experts (
+              bio,
+              profession_id,
+              skills:skills(skill_name),
+              tools:tools(tool_name),
+              expertises:expert_expertise(platform_id)
+            ),
+            customers (
+              job_title,
+              description,
+              company_name
+            )
           `
           )
-          .eq('id', auth.user.id)
+          .eq('id', user.id)
           .single<ProfileData>();
 
-        if (error) log('users select error:', error);
-        log('users row:', data);
-
-        let expert = data?.experts?.[0] ?? null;
-        let customer = data?.customers?.[0] ?? null;
-
-        // 2) Fallback si el join vino vacío (útil si la relación no está registrada en el esquema)
-        if (!expert) {
-          const { data: directExpert, error: dErr } = await supabase
-            .from('experts')
-            .select('id, bio, profession_id')
-            .eq('user_id', auth.user.id)
-            .maybeSingle<ExpertRow>();
-
-          if (dErr) log('direct expert error:', dErr);
-          log('direct expert row:', directExpert);
-          if (directExpert) expert = directExpert;
+        if (error) {
+          console.error('Profile query error:', error);
+          return;
         }
 
-        if (!customer) {
-          const { data: directCustomer, error: cErr } = await supabase
-            .from('customers')
-            .select('id, company_name')
-            .eq('user_id', auth.user.id)
-            .maybeSingle<CustomerRow>();
+        console.log('Profile data:', profileData);
 
-          if (cErr) log('direct customer error:', cErr);
-          log('direct customer row:', directCustomer);
-          if (directCustomer) customer = directCustomer;
+        // Verificación básica común
+        const basicComplete = Boolean(
+          profileData?.first_name?.trim() &&
+            profileData?.last_name?.trim() &&
+            profileData?.country_id &&
+            profileData?.role_id
+        );
+
+        let roleComplete = false;
+        const roleName = profileData?.user_role?.name?.toLowerCase();
+
+        if (roleName === 'expert') {
+          const expert = profileData.experts?.[0];
+          roleComplete = Boolean(
+            expert?.bio?.trim() &&
+              expert?.profession_id &&
+              (expert?.skills?.length ?? 0) > 0 &&
+              (expert?.tools?.length ?? 0) > 0 &&
+              (expert?.expertises?.length ?? 0) > 0
+          );
+          console.log('Expert complete:', roleComplete, expert);
+        } else if (roleName === 'customer') {
+          const customer = profileData.customers?.[0];
+          roleComplete = Boolean(
+            customer?.job_title?.trim() &&
+              customer?.description?.trim() &&
+              customer?.company_name?.trim()
+          );
+          console.log('Customer complete:', roleComplete, customer);
         }
 
-        // 3) Reglas de “completitud”
-        const isExpertComplete =
-          !!expert && hasText(expert.bio) && hasText(expert.profession_id);
-
-        const isCustomerComplete = !!customer && hasText(customer.company_name);
-
-        log('computed ->', {
-          isExpertComplete,
-          isCustomerComplete,
-          expert,
-          customer,
-        });
-
-        if (!isExpertComplete && !isCustomerComplete) {
+        if (!basicComplete || !roleComplete) {
+          console.log('Profile incomplete, redirecting to edit');
           localStorage.setItem('forcedToCompleteProfile', 'true');
-          log('Redirect -> /force-profile/edit');
           router.replace('/force-profile/edit');
         }
-      } catch (e) {
-        console.error('[ForceProfile] unexpected error:', e);
-        // En caso de error inesperado, mejor forzar edición que dejar pasar
+      } catch (err) {
+        console.error('Profile check error:', err);
         localStorage.setItem('forcedToCompleteProfile', 'true');
         router.replace('/force-profile/edit');
       }
     };
 
-    forceProfileCheck();
+    checkProfile();
   }, [router]);
 }
