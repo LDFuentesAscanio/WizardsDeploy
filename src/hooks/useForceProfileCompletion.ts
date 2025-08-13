@@ -20,7 +20,7 @@ export function useForceProfileCompletion() {
         return;
       }
 
-      // 1️⃣ Sesión de usuario
+      // 1. Verificar sesión de usuario
       const {
         data: { user },
         error: userError,
@@ -31,7 +31,7 @@ export function useForceProfileCompletion() {
         return router.replace('/auth');
       }
 
-      // 2️⃣ Consulta única optimizada
+      // 2. Consulta optimizada con todas las relaciones necesarias
       const { data: profileData, error: profileError } = await supabase
         .from('users')
         .select(
@@ -44,27 +44,34 @@ export function useForceProfileCompletion() {
           experts (
             bio,
             profession_id,
+            skills:skills(skill_name),
+            tools:tools(tool_name),
+            expertises:expert_expertise(platform_id),
             it_professions:profession_id(profession_name)
           ),
           customers (
             job_title,
-            description
+            description,
+            company_name,
+            company_url
           )
         `
         )
         .eq('id', user.id)
-        .single<ProfileData>(); // ← Aquí le pasamos el tipo
+        .single<ProfileData>();
 
       if (profileError) {
         console.error('Error fetching profile data:', profileError);
         return;
       }
 
-      const basicComplete =
-        !!profileData?.first_name &&
-        !!profileData?.last_name &&
-        !!profileData?.country_id &&
-        !!profileData?.role_id;
+      // 3. Verificación básica de campos obligatorios
+      const basicComplete = Boolean(
+        profileData?.first_name?.trim() &&
+          profileData?.last_name?.trim() &&
+          profileData?.country_id &&
+          profileData?.role_id
+      );
 
       let isProfileComplete = basicComplete;
 
@@ -72,23 +79,42 @@ export function useForceProfileCompletion() {
         const roleName = profileData.user_role?.name?.toLowerCase();
 
         if (roleName === 'expert') {
-          isProfileComplete =
-            !!profileData.experts?.bio && !!profileData.experts?.profession_id;
+          // Verificación para perfiles de experto (acceso directo a objeto)
+          isProfileComplete = Boolean(
+            profileData.experts?.bio?.trim() &&
+              profileData.experts?.profession_id &&
+              (profileData.experts?.skills?.length ?? 0) > 0 &&
+              (profileData.experts?.tools?.length ?? 0) > 0 &&
+              (profileData.experts?.expertises?.length ?? 0) > 0
+          );
 
-          // Solo para debug o usar en otro lado
-          const professionName =
-            profileData.experts?.it_professions?.profession_name || '';
-          console.log('Profession:', professionName);
+          console.log('Expert profile complete check:', {
+            bio: !!profileData.experts?.bio,
+            profession: !!profileData.experts?.profession_id,
+            skills: profileData.experts?.skills?.length,
+            tools: profileData.experts?.tools?.length,
+            expertises: profileData.experts?.expertises?.length,
+          });
         } else if (roleName === 'customer') {
-          isProfileComplete =
-            !!profileData.customers?.job_title &&
-            !!profileData.customers?.description;
+          // Verificación para perfiles de cliente (acceso directo a objeto)
+          isProfileComplete = Boolean(
+            profileData.customers?.job_title?.trim() &&
+              profileData.customers?.description?.trim() &&
+              profileData.customers?.company_name?.trim()
+          );
+
+          console.log('Customer profile complete check:', {
+            job_title: !!profileData.customers?.job_title,
+            description: !!profileData.customers?.description,
+            company_name: !!profileData.customers?.company_name,
+          });
         }
       }
 
+      // 4. Redirección según estado del perfil
       if (!isProfileComplete) {
         localStorage.setItem('forcedToCompleteProfile', 'true');
-        return router.replace('/force-profile/edit');
+        router.replace('/force-profile/edit');
       }
     };
 

@@ -2,6 +2,7 @@
 import { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { supabase } from '@/utils/supabase/browserClient';
+import { ProfileData } from '@/components/organisms/ProfileForm/types';
 
 export function useRedirectIfProfileComplete() {
   const router = useRouter();
@@ -9,7 +10,6 @@ export function useRedirectIfProfileComplete() {
 
   useEffect(() => {
     const checkProfile = async () => {
-      // No redirigir si ya estamos en estas rutas
       if (pathname === '/dashboard' || pathname === '/force-profile/edit')
         return;
 
@@ -20,74 +20,96 @@ export function useRedirectIfProfileComplete() {
 
       if (userError || !user) {
         console.error('No user found or error in session:', userError);
-        router.replace('/auth');
-        return;
+        return router.replace('/auth');
       }
 
       try {
-        // Obtenemos datos básicos del usuario y su rol
-        const { data: userData } = await supabase
+        // Consulta optimizada con tipos explícitos
+        const { data: profileData, error: queryError } = await supabase
           .from('users')
-          .select('first_name, last_name, role_id')
+          .select(
+            `
+            first_name,
+            last_name,
+            country_id,
+            role_id,
+            user_role:role_id(name),
+            experts (
+              bio,
+              profession_id,
+              skills:skills(skill_name),
+              tools:tools(tool_name),
+              expertises:expert_expertise(platform_id),
+              it_professions:profession_id(profession_name)
+            ),
+            customers (
+              job_title,
+              description,
+              company_name,
+              company_url
+            )
+          `
+          )
           .eq('id', user.id)
-          .single();
+          .single<ProfileData>();
 
-        if (!userData) {
-          console.error('User data not found');
+        if (queryError || !profileData) {
+          console.error('Error fetching profile data:', queryError);
           return;
         }
 
-        // Verificamos si es experto o cliente
-        const isExpert = userData.role_id === 'expert_role_id'; // Ajusta este ID
-        const isCustomer = userData.role_id === 'customer_role_id'; // Ajusta este ID
+        // Verificación básica
+        const basicComplete = Boolean(
+          profileData.first_name?.trim() &&
+            profileData.last_name?.trim() &&
+            profileData.country_id &&
+            profileData.role_id
+        );
 
-        let profileComplete = false;
+        let profileComplete = basicComplete;
 
-        if (isExpert) {
-          // Para expertos: verificamos bio y profession de la tabla experts
-          const { data: expertData } = await supabase
-            .from('experts')
-            .select('bio, profession_id')
-            .eq('user_id', user.id)
-            .single();
+        if (basicComplete) {
+          const roleName = profileData.user_role?.name?.toLowerCase();
 
-          profileComplete = Boolean(
-            userData.first_name?.trim() &&
-              userData.last_name?.trim() &&
-              expertData?.bio?.trim() &&
-              expertData?.profession_id
-          );
+          if (roleName === 'expert') {
+            // Acceso seguro a datos de experto
+            profileComplete = Boolean(
+              profileData.experts?.bio?.trim() &&
+                profileData.experts?.profession_id &&
+                (profileData.experts?.skills?.length ?? 0) > 0 &&
+                (profileData.experts?.tools?.length ?? 0) > 0 &&
+                (profileData.experts?.expertises?.length ?? 0) > 0
+            );
 
-          console.log('Expert profile complete:', profileComplete, {
-            first_name: userData.first_name,
-            last_name: userData.last_name,
-            bio: expertData?.bio,
-            profession_id: expertData?.profession_id,
-          });
-        } else if (isCustomer) {
-          // Para clientes: verificamos job_title y description de customers
-          const { data: customerData } = await supabase
-            .from('customers')
-            .select('job_title, description')
-            .eq('user_id', user.id)
-            .single();
+            console.log('Expert profile complete status:', {
+              completed: profileComplete,
+              details: {
+                bio: !!profileData.experts?.bio,
+                profession: !!profileData.experts?.profession_id,
+                skills: profileData.experts?.skills?.length,
+                tools: profileData.experts?.tools?.length,
+                expertises: profileData.experts?.expertises?.length,
+              },
+            });
+          } else if (roleName === 'customer') {
+            // Acceso seguro a datos de cliente
+            profileComplete = Boolean(
+              profileData.customers?.job_title?.trim() &&
+                profileData.customers?.description?.trim() &&
+                profileData.customers?.company_name?.trim()
+            );
 
-          profileComplete = Boolean(
-            userData.first_name?.trim() &&
-              userData.last_name?.trim() &&
-              customerData?.job_title?.trim() &&
-              customerData?.description?.trim()
-          );
-
-          console.log('Customer profile complete:', profileComplete, {
-            first_name: userData.first_name,
-            last_name: userData.last_name,
-            job_title: customerData?.job_title,
-            description: customerData?.description,
-          });
+            console.log('Customer profile complete status:', {
+              completed: profileComplete,
+              details: {
+                job_title: !!profileData.customers?.job_title,
+                description: !!profileData.customers?.description,
+                company_name: !!profileData.customers?.company_name,
+              },
+            });
+          }
         }
 
-        // Redirigir si el perfil está completo
         if (profileComplete) {
           router.replace('/dashboard');
         }

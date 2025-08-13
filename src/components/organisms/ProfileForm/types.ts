@@ -170,13 +170,18 @@ export interface ProfileData {
   experts: {
     bio: string | null;
     profession_id: string | null;
+    skills: { skill_name: string }[];
+    tools: { tool_name: string }[];
+    expertises: { platform_id: string }[];
     it_professions: {
       profession_name: string | null;
     } | null;
   } | null;
   customers: {
-    job_title: string | null;
+    job_title: string;
     description: string | null;
+    company_name: string;
+    company_url: string | null;
   } | null;
 }
 
