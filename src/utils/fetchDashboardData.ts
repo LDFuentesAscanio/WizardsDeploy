@@ -16,20 +16,23 @@ import {
 export async function fetchDashboardData(
   userId: string
 ): Promise<DashboardData> {
-  // Primero obtenemos los datos básicos del usuario y experto
+  // 1️⃣ Datos del usuario
   const { data: userData } = await supabase
     .from('users')
     .select('first_name, last_name, country_id, linkedin_profile, other_link')
     .eq('id', userId)
     .single<UserRow>();
 
+  // 2️⃣ Datos del experto (incluye su ID para usar en relaciones)
   const { data: expertData } = await supabase
     .from('experts')
-    .select('bio, profession_id')
+    .select('id, bio, profession_id')
     .eq('user_id', userId)
-    .maybeSingle<ExpertRow>();
+    .maybeSingle<Pick<ExpertRow, 'id' | 'bio' | 'profession_id'>>();
 
-  // Luego obtenemos el resto de los datos en paralelo
+  const expertId = expertData?.id ?? null;
+
+  // 3️⃣ Consultas en paralelo
   const [
     { data: avatarData },
     { data: docData },
@@ -39,38 +42,48 @@ export async function fetchDashboardData(
     { data: platformsData },
     { data: professionData },
   ] = await Promise.all([
-    supabase
-      .from('expert_media')
-      .select('url_storage')
-      .eq('expert_id', userId)
-      .eq('type', 'avatar')
-      .maybeSingle<ExpertMediaRow>(),
+    expertId
+      ? supabase
+          .from('expert_media')
+          .select('url_storage')
+          .eq('expert_id', expertId)
+          .eq('type', 'avatar')
+          .maybeSingle<ExpertMediaRow>()
+      : Promise.resolve({ data: null }),
 
-    supabase
-      .from('expert_documents')
-      .select('url_storage')
-      .eq('expert_id', userId)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle<ExpertDocumentRow>(),
+    expertId
+      ? supabase
+          .from('expert_documents')
+          .select('url_storage')
+          .eq('expert_id', expertId)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle<ExpertDocumentRow>()
+      : Promise.resolve({ data: null }),
 
-    supabase
-      .from('skills')
-      .select('skill_name')
-      .eq('expert_id', userId)
-      .returns<SkillRow[]>(),
+    expertId
+      ? supabase
+          .from('skills')
+          .select('skill_name')
+          .eq('expert_id', expertId)
+          .returns<SkillRow[]>()
+      : Promise.resolve({ data: [] }),
 
-    supabase
-      .from('tools')
-      .select('tool_name')
-      .eq('expert_id', userId)
-      .returns<ToolRow[]>(),
+    expertId
+      ? supabase
+          .from('tools')
+          .select('tool_name')
+          .eq('expert_id', expertId)
+          .returns<ToolRow[]>()
+      : Promise.resolve({ data: [] }),
 
-    supabase
-      .from('expert_expertise')
-      .select('platform_id, rating, experience_time')
-      .eq('expert_id', userId)
-      .returns<ExpertiseRow[]>(),
+    expertId
+      ? supabase
+          .from('expert_expertise')
+          .select('platform_id, rating, experience_time')
+          .eq('expert_id', expertId)
+          .returns<ExpertiseRow[]>()
+      : Promise.resolve({ data: [] }),
 
     supabase.from('platforms').select('id, name').returns<PlatformRow[]>(),
 
@@ -80,10 +93,10 @@ export async function fetchDashboardData(
           .select('profession_name')
           .eq('id', expertData.profession_id)
           .single<ProfessionRow>()
-      : Promise.resolve({ data: null, error: null }),
+      : Promise.resolve({ data: null }),
   ]);
 
-  // Procesamiento de datos
+  // 4️⃣ Procesar arrays
   const skills = skillsData?.map((s) => s.skill_name) ?? [];
   const tools = toolsData?.map((t) => t.tool_name) ?? [];
 
@@ -98,7 +111,7 @@ export async function fetchDashboardData(
       };
     }) ?? [];
 
-  // Validación de campos obligatorios
+  // 5️⃣ Validar campos obligatorios
   const missingFields: string[] = [];
   const requiredFields = [
     { name: 'First Name', value: userData?.first_name },
@@ -119,6 +132,7 @@ export async function fetchDashboardData(
   const completedFields = totalFields - missingFields.length;
   const completion = Math.round((completedFields / totalFields) * 100);
 
+  // 6️⃣ Retornar datos listos para el Dashboard
   return {
     firstName: userData?.first_name ?? '',
     lastName: userData?.last_name ?? '',
