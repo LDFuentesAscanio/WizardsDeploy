@@ -4,21 +4,25 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/utils/supabase/browserClient';
 
+interface ExpertData {
+  bio: string | null;
+  profession_id: string | null;
+}
+
+interface CustomerData {
+  job_title: string | null;
+  description: string | null;
+  company_name: string | null;
+}
+
 interface ProfileData {
   first_name: string | null;
   last_name: string | null;
   country_id: string | null;
   role_id: string | null;
   user_role: { name: string | null } | null;
-  experts: Array<{
-    bio: string | null;
-    profession_id: string | null;
-  }> | null;
-  customers: Array<{
-    job_title: string | null;
-    description: string | null;
-    company_name: string | null;
-  }> | null;
+  experts: ExpertData | null;
+  customers: CustomerData | null;
 }
 
 export default function DashboardGuard({
@@ -42,7 +46,6 @@ export default function DashboardGuard({
           return;
         }
 
-        // Consulta simplificada - solo verifica campos esenciales
         const { data: profileData, error } = await supabase
           .from('users')
           .select(
@@ -61,14 +64,8 @@ export default function DashboardGuard({
 
         if (error) throw error;
 
-        console.log('Perfil completo:', {
-          datos: profileData,
-          expert: profileData.experts?.[0],
-          customer: profileData.customers?.[0],
-          rol: profileData.user_role?.name,
-        });
+        console.log('Perfil completo:', profileData);
 
-        // Verificación básica común
         const basicComplete = Boolean(
           profileData?.first_name?.trim() &&
             profileData?.last_name?.trim() &&
@@ -77,60 +74,44 @@ export default function DashboardGuard({
         );
 
         if (!basicComplete) {
-          console.log('Faltan datos básicos');
           router.replace('/force-profile/edit');
           return;
         }
 
-        const roleName = profileData?.user_role?.name?.toLowerCase();
+        const roleName = profileData.user_role?.name?.toLowerCase();
 
-        // Verificación por rol
         if (roleName === 'expert') {
-          const expert = profileData.experts?.[0];
           const expertComplete = Boolean(
-            expert?.bio?.trim() && expert?.profession_id
+            profileData.experts?.bio?.trim() &&
+              profileData.experts?.profession_id
           );
 
-          console.log('Verificación experto:', {
-            bio: !!expert?.bio,
-            profession_id: !!expert?.profession_id,
-            completo: expertComplete,
-          });
-
+          console.log('Verificación experto:', expertComplete);
           if (!expertComplete) {
             router.replace('/force-profile/edit');
-          } else {
-            setLoading(false);
+            return;
           }
         } else if (roleName === 'customer') {
-          const customer = profileData.customers?.[0];
           const customerComplete = Boolean(
-            customer?.job_title?.trim() &&
-              customer?.description?.trim() &&
-              customer?.company_name?.trim()
+            profileData.customers?.job_title?.trim() &&
+              profileData.customers?.description?.trim() &&
+              profileData.customers?.company_name?.trim()
           );
 
-          console.log('Verificación cliente:', {
-            job_title: !!customer?.job_title,
-            description: !!customer?.description,
-            company_name: !!customer?.company_name,
-            completo: customerComplete,
-          });
-
+          console.log('Verificación cliente:', customerComplete);
           if (!customerComplete) {
             router.replace('/force-profile/edit');
-          } else {
-            setLoading(false);
+            return;
           }
         } else {
-          // Rol no reconocido
           router.replace('/force-profile/edit');
+          return;
         }
+
+        setLoading(false);
       } catch (err) {
         console.error('Error verificando perfil:', err);
         router.replace('/force-profile/edit');
-      } finally {
-        setLoading(false);
       }
     };
 
