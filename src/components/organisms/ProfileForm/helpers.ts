@@ -7,6 +7,8 @@ import {
   Country,
   Role,
   Solution,
+  Expertise,
+  ExpertDocument,
 } from './types';
 import { supabase } from '@/utils/supabase/browserClient';
 
@@ -52,13 +54,18 @@ export async function fetchProfileFormData(userId: string) {
         .maybeSingle<CustomerResponse>(),
 
       supabase.from('country').select('id, name'),
+
       supabase.from('user_role').select('id, name'),
+
       supabase.from('skills').select('skill_name').eq('expert_id', userId),
+
       supabase.from('tools').select('tool_name').eq('expert_id', userId),
+
       supabase
         .from('expert_expertise')
         .select('platform_id, rating, experience_time')
-        .eq('expert_id', userId),
+        .eq('expert_id', userId)
+        .returns<Expertise[]>(),
 
       supabase
         .from('expert_media')
@@ -68,7 +75,7 @@ export async function fetchProfileFormData(userId: string) {
         .maybeSingle<ExpertMedia>(),
 
       supabase
-        .from('expert_media') // Cambiado de user_media a expert_media
+        .from('expert_media')
         .select('url_storage')
         .eq('expert_id', userId)
         .eq('type', 'company_logo')
@@ -79,12 +86,15 @@ export async function fetchProfileFormData(userId: string) {
         .select('url_storage, filename')
         .eq('expert_id', userId)
         .order('id', { ascending: false })
-        .limit(1),
+        .limit(1)
+        .returns<ExpertDocument[]>(),
 
       supabase.from('solutions').select('id, name'),
+
       supabase.from('it_professions').select('id, profession_name'),
     ]);
 
+    // Obtener nombre de la profesión
     let professionName = '';
     if (expertData?.profession_id) {
       const { data: professionData } = await supabase
@@ -95,9 +105,10 @@ export async function fetchProfileFormData(userId: string) {
       professionName = professionData?.profession_name || '';
     }
 
+    // Manejo de errores
     const errors = [
       { name: 'userData', error: userError },
-      { name: 'expertData', error: expertError }, // Ahora incluido
+      { name: 'expertData', error: expertError },
       { name: 'customerData', error: customerError },
       { name: 'countriesData', error: countriesError },
       { name: 'rolesData', error: rolesError },
@@ -120,6 +131,7 @@ export async function fetchProfileFormData(userId: string) {
       throw new Error(errorMessage);
     }
 
+    // Valores iniciales del formulario
     const initialValues: ProfileFormValues = {
       first_name: userData?.first_name || '',
       last_name: userData?.last_name || '',
@@ -131,7 +143,7 @@ export async function fetchProfileFormData(userId: string) {
       profession_id: expertData?.profession_id || '',
       profession: professionName,
       certified: expertData?.certified || false,
-      is_currently_working: expertData?.is_currently_working || true,
+      is_currently_working: expertData?.is_currently_working ?? true,
       expertise:
         expertiseData?.map((item) => ({
           ...item,
