@@ -72,6 +72,11 @@ export interface Solution {
   description?: string;
 }
 
+export interface Platform {
+  id: string;
+  name: string;
+}
+
 export interface ITProfession {
   id: string;
   profession_name: string;
