@@ -7,28 +7,45 @@ import {
   Country,
   Role,
   Solution,
-  Expertise,
   ExpertDocument,
+  ITProfession,
 } from './types';
 import { supabase } from '@/utils/supabase/browserClient';
 
 export async function fetchProfileFormData(userId: string) {
   try {
+    // 1. Primero obtenemos el expert_id correspondiente al user_id
+    const { data: expertRecord, error: expertRecordError } = await supabase
+      .from('experts')
+      .select('id')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    // No lanzar error si no hay registro de experto (podría ser un cliente)
+    if (expertRecordError && expertRecordError.code !== 'PGRST116') {
+      console.error('Error fetching expert record:', expertRecordError);
+      throw expertRecordError;
+    }
+
+    const expertId = expertRecord?.id;
+
+    // 2. Ejecutamos todas las consultas en paralelo
     const [
       { data: userData, error: userError },
       { data: expertData, error: expertError },
       { data: customerData, error: customerError },
       { data: countriesData, error: countriesError },
       { data: rolesData, error: rolesError },
-      { data: skillsData, error: skillsError },
-      { data: toolsData, error: toolsError },
-      { data: expertiseData, error: expertiseError },
-      { data: avatarData, error: avatarError },
-      { data: companyLogoData, error: companyLogoError },
-      { data: documentData, error: documentError },
       { data: solutionsData, error: solutionsError },
       { data: professionsData, error: professionsError },
+      skillsQuery,
+      toolsQuery,
+      expertiseQuery,
+      avatarQuery,
+      companyLogoQuery,
+      documentQuery,
     ] = await Promise.all([
+      // Consulta de datos básicos del usuario
       supabase
         .from('users')
         .select(
@@ -37,14 +54,18 @@ export async function fetchProfileFormData(userId: string) {
         .eq('id', userId)
         .single(),
 
-      supabase
-        .from('experts')
-        .select(
-          'certified, anything_share_with_us, understand_subject_pp, is_currently_working, bio, profession_id'
-        )
-        .eq('user_id', userId)
-        .maybeSingle<ExpertResponse>(),
+      // Consulta de datos del experto (solo si existe expertId)
+      expertId
+        ? supabase
+            .from('experts')
+            .select(
+              'certified, anything_share_with_us, understand_subject_pp, is_currently_working, bio, profession_id'
+            )
+            .eq('user_id', userId)
+            .maybeSingle<ExpertResponse>()
+        : Promise.resolve({ data: null, error: null }),
 
+      // Consulta de datos del cliente
       supabase
         .from('customers')
         .select(
@@ -53,48 +74,61 @@ export async function fetchProfileFormData(userId: string) {
         .eq('user_id', userId)
         .maybeSingle<CustomerResponse>(),
 
+      // Consultas de datos de referencia
       supabase.from('country').select('id, name'),
-
       supabase.from('user_role').select('id, name'),
-
-      supabase.from('skills').select('skill_name').eq('expert_id', userId),
-
-      supabase.from('tools').select('tool_name').eq('expert_id', userId),
-
-      supabase
-        .from('expert_expertise')
-        .select('platform_id, rating, experience_time')
-        .eq('expert_id', userId)
-        .returns<Expertise[]>(),
-
-      supabase
-        .from('expert_media')
-        .select('url_storage')
-        .eq('expert_id', userId)
-        .eq('type', 'avatar')
-        .maybeSingle<ExpertMedia>(),
-
-      supabase
-        .from('expert_media')
-        .select('url_storage')
-        .eq('expert_id', userId)
-        .eq('type', 'company_logo')
-        .maybeSingle<ExpertMedia>(),
-
-      supabase
-        .from('expert_documents')
-        .select('url_storage, filename')
-        .eq('expert_id', userId)
-        .order('id', { ascending: false })
-        .limit(1)
-        .returns<ExpertDocument[]>(),
-
       supabase.from('solutions').select('id, name'),
-
       supabase.from('it_professions').select('id, profession_name'),
+
+      // Consultas relacionadas con el experto (solo si existe expertId)
+      expertId
+        ? supabase.from('skills').select('skill_name').eq('expert_id', expertId)
+        : Promise.resolve({ data: null, error: null }),
+      expertId
+        ? supabase.from('tools').select('tool_name').eq('expert_id', expertId)
+        : Promise.resolve({ data: null, error: null }),
+      expertId
+        ? supabase
+            .from('expert_expertise')
+            .select('platform_id, rating, experience_time')
+            .eq('expert_id', expertId)
+        : Promise.resolve({ data: null, error: null }),
+      expertId
+        ? supabase
+            .from('expert_media')
+            .select('url_storage')
+            .eq('expert_id', expertId)
+            .eq('type', 'avatar')
+            .maybeSingle<ExpertMedia>()
+        : Promise.resolve({ data: null, error: null }),
+      expertId
+        ? supabase
+            .from('expert_media')
+            .select('url_storage')
+            .eq('expert_id', expertId)
+            .eq('type', 'company_logo')
+            .maybeSingle<ExpertMedia>()
+        : Promise.resolve({ data: null, error: null }),
+      expertId
+        ? supabase
+            .from('expert_documents')
+            .select('url_storage, filename')
+            .eq('expert_id', expertId)
+            .order('id', { ascending: false })
+            .limit(1)
+            .maybeSingle<ExpertDocument>()
+        : Promise.resolve({ data: null, error: null }),
     ]);
 
-    // Obtener nombre de la profesión
+    // Extraer datos de las consultas condicionales
+    const skillsData = skillsQuery.data;
+    const toolsData = toolsQuery.data;
+    const expertiseData = expertiseQuery.data;
+    const avatarData = avatarQuery.data;
+    const companyLogoData = companyLogoQuery.data;
+    const documentData = documentQuery.data;
+
+    // 3. Obtener nombre de la profesión
     let professionName = '';
     if (expertData?.profession_id) {
       const { data: professionData } = await supabase
@@ -104,21 +138,22 @@ export async function fetchProfileFormData(userId: string) {
         .single();
       professionName = professionData?.profession_name || '';
     }
-    // Manejo de errores
+
+    // 4. Manejo de errores
     const errors = [
       { name: 'userData', error: userError },
       { name: 'expertData', error: expertError },
       { name: 'customerData', error: customerError },
       { name: 'countriesData', error: countriesError },
       { name: 'rolesData', error: rolesError },
-      { name: 'skillsData', error: skillsError },
-      { name: 'toolsData', error: toolsError },
-      { name: 'expertiseData', error: expertiseError },
-      { name: 'avatarData', error: avatarError },
-      { name: 'companyLogoData', error: companyLogoError },
-      { name: 'documentData', error: documentError },
       { name: 'solutionsData', error: solutionsError },
       { name: 'professionsData', error: professionsError },
+      { name: 'skillsData', error: skillsQuery.error },
+      { name: 'toolsData', error: toolsQuery.error },
+      { name: 'expertiseData', error: expertiseQuery.error },
+      { name: 'avatarData', error: avatarQuery.error },
+      { name: 'companyLogoData', error: companyLogoQuery.error },
+      { name: 'documentData', error: documentQuery.error },
     ].filter((item) => item.error);
 
     if (errors.length > 0) {
@@ -129,14 +164,14 @@ export async function fetchProfileFormData(userId: string) {
       });
       throw new Error(errorMessage);
     }
+
+    // 5. Logs para depuración
+    console.log('Expert ID used for queries:', expertId);
     console.log('Skills from DB:', skillsData);
     console.log('Tools from DB:', toolsData);
     console.log('Expertise from DB:', expertiseData);
 
-    // Verifica también el userId que se está usando
-    console.log('User ID used for queries:', userId);
-
-    // Valores iniciales del formulario
+    // 6. Construcción de los valores iniciales del formulario
     const initialValues: ProfileFormValues = {
       first_name: userData?.first_name || '',
       last_name: userData?.last_name || '',
@@ -151,16 +186,17 @@ export async function fetchProfileFormData(userId: string) {
       is_currently_working: expertData?.is_currently_working ?? true,
       expertise:
         expertiseData?.map((item) => ({
-          ...item,
+          platform_id: item.platform_id,
           rating: item.rating ?? 0,
           experience_time: item.experience_time ?? 'less than 1 year',
         })) ?? [],
-      skills: skillsData?.map((s) => s.skill_name) ?? [],
-      tools: toolsData?.map((t) => t.tool_name) ?? [],
+      skills:
+        skillsData?.map((s: { skill_name: string }) => s.skill_name) ?? [],
+      tools: toolsData?.map((t: { tool_name: string }) => t.tool_name) ?? [],
       photo_url: avatarData?.url_storage ?? '',
       company_logo_url: companyLogoData?.url_storage ?? '',
-      cv_url: documentData?.[0]?.url_storage || '',
-      filename: documentData?.[0]?.filename || '',
+      cv_url: documentData?.url_storage || '',
+      filename: documentData?.filename || '',
       company_name: customerData?.company_name || '',
       actual_role: customerData?.job_title || '',
       email: customerData?.email || '',
@@ -177,7 +213,7 @@ export async function fetchProfileFormData(userId: string) {
       countries: (countriesData as Country[]) ?? [],
       roles: (rolesData as Role[]) ?? [],
       solutions: (solutionsData as Solution[]) ?? [],
-      professions: professionsData ?? [],
+      professions: (professionsData as ITProfession[]) ?? [],
     };
   } catch (error) {
     console.error('Error in fetchProfileFormData:', error);
