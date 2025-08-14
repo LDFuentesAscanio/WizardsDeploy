@@ -68,7 +68,6 @@ export default function ImageUploader({
       // 2. Determinar el rol y configuraciones
       let bucketName: string;
       let tableName: 'expert_media' | 'customer_media';
-      let upsertData: ExpertMedia | CustomerMedia;
       let entityId: string;
 
       if (roleName?.toLowerCase() === 'expert') {
@@ -82,13 +81,6 @@ export default function ImageUploader({
         entityId = data.id;
         bucketName = 'expert-documents';
         tableName = 'expert_media';
-        upsertData = {
-          expert_id: entityId,
-          filename: '',
-          url_storage: '',
-          type,
-          updated_at: new Date().toISOString(),
-        };
       } else if (roleName?.toLowerCase() === 'customer') {
         const { data, error } = await supabase
           .from('customers')
@@ -100,25 +92,17 @@ export default function ImageUploader({
         entityId = data.id;
         bucketName = 'customer-documents';
         tableName = 'customer_media';
-        upsertData = {
-          customer_id: entityId,
-          filename: '',
-          url_storage: '',
-          type,
-          updated_at: new Date().toISOString(),
-        };
       } else {
         throw new Error('Invalid role for image upload');
       }
 
-      // 3. Preparar nombre de archivo seguro (sin carpetas)
+      // 3. Preparar nombre de archivo seguro
       const timestamp = Date.now();
       const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
       const safeName = `${type}-${entityId}-${timestamp}.${fileExt}`;
-      const filePath = safeName; // IMPORTANTE: No usar carpetas en el path
+      const filePath = safeName;
 
       // 4. Subir a Supabase Storage
-      // 4. Subir a Supabase Storage (versión optimizada)
       const { error: uploadError } = await supabase.storage
         .from(bucketName)
         .upload(filePath, file, {
@@ -134,16 +118,32 @@ export default function ImageUploader({
         data: { publicUrl },
       } = supabase.storage.from(bucketName).getPublicUrl(filePath);
 
-      // 6. Actualizar la base de datos (versión corregida)
+      // 6. Insertar/actualizar registro en la base de datos
       if (tableName === 'expert_media') {
+        const record: ExpertMedia = {
+          expert_id: entityId,
+          filename: file.name,
+          url_storage: publicUrl,
+          type,
+          updated_at: new Date().toISOString(),
+        };
+
         const { error: upsertError } = await supabase
           .from('expert_media')
-          .upsert(upsertData as ExpertMedia);
+          .upsert(record, { onConflict: 'expert_id,type' });
         if (upsertError) throw upsertError;
       } else {
+        const record: CustomerMedia = {
+          customer_id: entityId,
+          filename: file.name,
+          url_storage: publicUrl,
+          type,
+          updated_at: new Date().toISOString(),
+        };
+
         const { error: upsertError } = await supabase
           .from('customer_media')
-          .upsert(upsertData as CustomerMedia);
+          .upsert(record, { onConflict: 'customer_id,type' });
         if (upsertError) throw upsertError;
       }
 
