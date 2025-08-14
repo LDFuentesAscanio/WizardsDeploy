@@ -10,7 +10,27 @@ type Props = {
   type: 'avatar' | 'company_logo';
   initialUrl?: string;
   onUpload?: (url: string) => void;
-  roleName: string | null; // lo obtenemos de useProfileFormData
+  roleName: string | null;
+};
+
+type ExpertMedia = {
+  expert_id: string;
+  filename: string;
+  url_storage: string;
+  type: 'avatar' | 'company_logo';
+  updated_at: string;
+  created_at?: string;
+  id?: string;
+};
+
+type CustomerMedia = {
+  customer_id: string;
+  filename: string;
+  url_storage: string;
+  type: 'avatar' | 'company_logo';
+  updated_at: string;
+  created_at?: string;
+  id?: string;
 };
 
 export default function ImageUploader({
@@ -27,6 +47,7 @@ export default function ImageUploader({
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Validaciones iniciales del archivo
     if (!file.type.startsWith('image/')) {
       showError('Invalid file', { description: 'Only images are allowed.' });
       return;
@@ -41,16 +62,17 @@ export default function ImageUploader({
     showInfo('Uploading image...');
 
     try {
-      // Obtener usuario actual
+      // 1. Autenticación del usuario
       const {
         data: { user },
         error: authError,
       } = await supabase.auth.getUser();
       if (authError || !user) throw new Error('User not authenticated');
 
-      // Obtener ID de expert o customer según rol
-      let targetId: string | null = null;
-      let bucketName: string = ''; // bucket correcto según rol
+      // 2. Determinar el rol y configuraciones
+      let bucketName: string;
+      let tableName: 'expert_media' | 'customer_media';
+      let upsertData: ExpertMedia | CustomerMedia;
 
       if (roleName?.toLowerCase() === 'expert') {
         const { data, error } = await supabase
@@ -59,8 +81,19 @@ export default function ImageUploader({
           .eq('user_id', user.id)
           .single();
         if (error || !data) throw error || new Error('Expert not found');
-        targetId = data.id;
+
         bucketName = 'expert-documents';
+        tableName = 'expert_media';
+        upsertData = {
+          expert_id: data.id,
+          filename: file.name
+            .replace(/\s+/g, '-')
+            .replace(/[^a-zA-Z0-9-.]/g, '')
+            .toLowerCase(),
+          url_storage: '',
+          type,
+          updated_at: new Date().toISOString(),
+        };
       } else if (roleName?.toLowerCase() === 'customer') {
         const { data, error } = await supabase
           .from('customers')
@@ -68,70 +101,64 @@ export default function ImageUploader({
           .eq('user_id', user.id)
           .single();
         if (error || !data) throw error || new Error('Customer not found');
-        targetId = data.id;
+
         bucketName = 'customer-documents';
+        tableName = 'customer_media';
+        upsertData = {
+          customer_id: data.id,
+          filename: file.name
+            .replace(/\s+/g, '-')
+            .replace(/[^a-zA-Z0-9-.]/g, '')
+            .toLowerCase(),
+          url_storage: '',
+          type,
+          updated_at: new Date().toISOString(),
+        };
       } else {
         throw new Error('Invalid role for image upload');
       }
 
-      // Construir nombre único dentro del bucket (solo path relativo)
+      // 3. Preparar nombre de archivo
       const timestamp = Date.now();
-      const safeFileName = file.name.replace(/\s+/g, '-');
-      const filePath = `profile-images/${timestamp}-${safeFileName}`; // ruta dentro del bucket
+      const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+      const filePath = `profile-images/${type}-${user.id}-${timestamp}.${fileExt}`;
 
-      // Subir a Supabase Storage
+      // 4. Subir a Supabase Storage
       const { error: uploadError } = await supabase.storage
         .from(bucketName)
-        .upload(filePath, file, { cacheControl: '3600', upsert: true });
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: true,
+          contentType: file.type,
+        });
+
       if (uploadError) throw uploadError;
 
-      // URL pública de la imagen
+      // 5. Obtener URL pública y completar datos
       const fullUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${bucketName}/${filePath}`;
+      upsertData.url_storage = fullUrl;
 
-      // Upsert en la tabla correspondiente
-      if (roleName?.toLowerCase() === 'expert') {
-        const { error: upsertError } = await supabase
-          .from('expert_media')
-          .upsert(
-            {
-              expert_id: targetId!,
-              filename: file.name,
-              url_storage: fullUrl,
-              type,
-              updated_at: new Date().toISOString(),
-              created_at: new Date().toISOString(),
-            },
-            { onConflict: 'expert_id,type' }
-          );
-        if (upsertError) throw upsertError;
-      } else if (roleName?.toLowerCase() === 'customer') {
-        const { error: upsertError } = await supabase
-          .from('customer_media')
-          .upsert(
-            {
-              customer_id: targetId!,
-              filename: file.name,
-              url_storage: fullUrl,
-              type,
-              updated_at: new Date().toISOString(),
-              created_at: new Date().toISOString(),
-            },
-            { onConflict: 'customer_id,type' }
-          );
-        if (upsertError) throw upsertError;
-      }
+      // 6. Actualizar la base de datos
+      const { error: upsertError } = await supabase
+        .from(tableName)
+        .upsert(upsertData, {
+          onConflict:
+            tableName === 'expert_media'
+              ? 'expert_id,type'
+              : 'customer_id,type',
+        });
 
+      if (upsertError) throw upsertError;
+
+      // 7. Actualizar estado y notificar
       setPreview(fullUrl);
       showSuccess(`${type === 'avatar' ? 'Profile' : 'Company'} image updated`);
       if (onUpload) onUpload(fullUrl);
     } catch (error: unknown) {
-      if (error instanceof Error) {
-        console.error('Known error:', error.message);
-        showError('Error uploading image', { description: error.message });
-      } else {
-        console.error('Unknown error:', error);
-        showError('Unknown error');
-      }
+      console.error('Upload error:', error);
+      const errorMessage =
+        error instanceof Error ? error.message : 'An unexpected error occurred';
+      showError('Upload failed', { description: errorMessage });
     } finally {
       setUploading(false);
     }
@@ -147,6 +174,7 @@ export default function ImageUploader({
             fill
             className="rounded-2xl object-cover border border-white"
             priority
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
           />
         </div>
       ) : (
