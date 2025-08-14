@@ -10,9 +10,10 @@ import { showError, showSuccess } from '@/utils/toastService';
 
 type Props = {
   solutions: Solution[];
+  roleName: string | null; // ahora recibimos el role
 };
 
-export default function CustomerSections({ solutions }: Props) {
+export default function CustomerSections({ solutions, roleName }: Props) {
   const [showModal, setShowModal] = useState(false);
   const [selectedSolutions, setSelectedSolutions] = useState<string[]>([]);
 
@@ -44,7 +45,8 @@ export default function CustomerSections({ solutions }: Props) {
 
   return (
     <>
-      <CustomerBasicInfo />
+      {/* Pasamos roleName al CustomerBasicInfo */}
+      <CustomerBasicInfo roleName={roleName} />
 
       <div className="space-y-4">
         <h3 className="text-lg font-semibold text-white">Solutions</h3>

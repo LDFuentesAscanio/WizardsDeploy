@@ -10,17 +10,21 @@ import type { ProfileFormValues } from '../types';
 type Props = {
   countries: Country[];
   roles: Role[];
+  roleName: string | null;
 };
 
-export function CommonSection({ countries, roles }: Props) {
+export function CommonSection({ countries, roles, roleName }: Props) {
   const { values } = useFormikContext<ProfileFormValues>();
+
   return (
     <>
       <ImageUploader
         label="Profile Photo"
         type="avatar"
         initialUrl={values.photo_url}
+        roleName={roleName}
       />
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <FormInput
           label="First Name"
@@ -45,7 +49,7 @@ export function CommonSection({ countries, roles }: Props) {
             name="role_id"
             label="Role"
             options={roles.map((r) => ({ value: r.id, label: r.name }))}
-            disabled={true}
+            disabled
           />
           <p className="text-xs text-gray-400 mt-1">
             To request a role change, please email us at{' '}
@@ -59,7 +63,6 @@ export function CommonSection({ countries, roles }: Props) {
         </div>
 
         <FormInput name="linkedin_profile" label="LinkedIn Profile" />
-
         <FormInput name="other_link" label="Website" />
       </div>
     </>

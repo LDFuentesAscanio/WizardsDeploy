@@ -1,6 +1,5 @@
 'use client';
 import { Formik, Form } from 'formik';
-import { useState, useEffect } from 'react';
 import { useProfileFormData } from './useProfileFormData';
 import { getProfileSchema } from '@/validations/profile-validations';
 import { useProfileSubmit } from '@/hooks/useProfileSubmit';
@@ -9,28 +8,28 @@ import CustomerSections from './formSections/CustomerSections';
 import { ExpertInfoSection } from './formSections/ExpertInfoSection';
 
 export default function ProfileForm() {
-  const { initialValues, countries, roles, loading, solutions, professions } =
-    useProfileFormData();
-  const [userRole, setUserRole] = useState<string | null>(null);
-  const { handleSubmit } = useProfileSubmit();
+  const {
+    initialValues,
+    countries,
+    roles,
+    loading,
+    solutions,
+    professions,
+    roleName, // ahora viene del hook
+  } = useProfileFormData();
 
-  useEffect(() => {
-    if (initialValues?.role_id) {
-      const role = roles.find((r) => r.id === initialValues.role_id);
-      setUserRole(role?.name || null);
-    }
-  }, [initialValues, roles]);
+  const { handleSubmit } = useProfileSubmit();
 
   if (loading) return <div>Loading...</div>;
   if (!initialValues) return <div>Error loading profile</div>;
 
-  const isCustomer = userRole?.toLowerCase() === 'customer';
-  const isExpert = userRole?.toLowerCase() === 'expert';
+  const isCustomer = roleName?.toLowerCase() === 'customer';
+  const isExpert = roleName?.toLowerCase() === 'expert';
 
   return (
     <Formik
       initialValues={initialValues}
-      validationSchema={getProfileSchema(userRole)}
+      validationSchema={getProfileSchema(roleName)}
       onSubmit={(values) =>
         handleSubmit(values, initialValues, isCustomer, isExpert)
       }
@@ -40,9 +39,19 @@ export default function ProfileForm() {
           <h1 className="text-2xl font-display font-bold text-center">
             Profile
           </h1>
-          <CommonSection countries={countries} roles={roles} />
-          {isCustomer && <CustomerSections solutions={solutions} />}
+
+          <CommonSection
+            countries={countries}
+            roles={roles}
+            roleName={roleName}
+          />
+
+          {isCustomer && (
+            <CustomerSections solutions={solutions} roleName={roleName} />
+          )}
+
           {isExpert && <ExpertInfoSection professions={professions} />}
+
           <button
             type="submit"
             disabled={isSubmitting || !isValid}

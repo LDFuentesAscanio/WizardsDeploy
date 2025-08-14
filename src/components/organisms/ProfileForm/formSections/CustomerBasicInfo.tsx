@@ -5,7 +5,11 @@ import ImageUploader from '@/components/molecules/ImageUpload';
 import { useFormikContext } from 'formik';
 import type { ProfileFormValues } from '../types';
 
-export function CustomerBasicInfo() {
+type Props = {
+  roleName: string | null;
+};
+
+export function CustomerBasicInfo({ roleName }: Props) {
   const { values } = useFormikContext<ProfileFormValues>();
 
   return (
@@ -14,7 +18,9 @@ export function CustomerBasicInfo() {
         label="Company Logo"
         type="company_logo"
         initialUrl={values.company_logo_url}
+        roleName={roleName}
       />
+
       <FormInput
         label="Your company's name?"
         name="company_name"

@@ -10,6 +10,7 @@ type Props = {
   type: 'avatar' | 'company_logo';
   initialUrl?: string;
   onUpload?: (url: string) => void;
+  roleName: string | null; // lo obtenemos de useProfileFormData
 };
 
 export default function ImageUploader({
@@ -17,6 +18,7 @@ export default function ImageUploader({
   type,
   initialUrl,
   onUpload,
+  roleName,
 }: Props) {
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState<string | null>(initialUrl || null);
@@ -28,16 +30,12 @@ export default function ImageUploader({
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      showError('Invalid file', {
-        description: 'Only images are allowed.',
-      });
+      showError('Invalid file', { description: 'Only images are allowed.' });
       return;
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      showError('File too large', {
-        description: 'Max 5MB allowed.',
-      });
+      showError('File too large', { description: 'Max 5MB allowed.' });
       return;
     }
 
@@ -52,9 +50,33 @@ export default function ImageUploader({
 
       if (authError || !user) throw new Error('User not authenticated');
 
+      // Obtenemos el ID de expert o customer
+      let targetId: string | null = null;
+
+      if (roleName?.toLowerCase() === 'expert') {
+        const { data, error } = await supabase
+          .from('experts')
+          .select('id')
+          .eq('user_id', user.id)
+          .single();
+        if (error || !data) throw error || new Error('Expert not found');
+        targetId = data.id;
+      } else if (roleName?.toLowerCase() === 'customer') {
+        const { data, error } = await supabase
+          .from('customers')
+          .select('id')
+          .eq('user_id', user.id)
+          .single();
+        if (error || !data) throw error || new Error('Customer not found');
+        targetId = data.id;
+      } else {
+        throw new Error('Invalid role for image upload');
+      }
+
       const filename = `${user.id}_${Date.now()}.${file.name.split('.').pop()}`;
       const filePath = `profile-images/${filename}`;
 
+      // Subimos a storage
       const { error: uploadError } = await supabase.storage
         .from('expert-documents')
         .upload(filePath, file, {
@@ -66,53 +88,46 @@ export default function ImageUploader({
 
       const fullUrl = `${storageBaseUrl}/${filePath}`;
 
-      // Verificamos si ya existe un registro para ese user_id + type
-      const { data: existing, error: fetchError } = await supabase
-        .from('expert_media')
-        .select('id')
-        .eq('expert_id', user.id)
-        .eq('type', type)
-        .maybeSingle();
-
-      if (fetchError) throw fetchError;
-
-      if (existing) {
-        // Si existe: actualizamos
-        const { error: updateError } = await supabase
+      // Upsert por tabla
+      if (roleName?.toLowerCase() === 'expert') {
+        const { error: upsertError } = await supabase
           .from('expert_media')
-          .update({
-            filename: file.name,
-            url_storage: fullUrl,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', existing.id);
-
-        if (updateError) throw updateError;
+          .upsert(
+            {
+              expert_id: targetId,
+              filename: file.name,
+              url_storage: fullUrl,
+              type,
+              updated_at: new Date().toISOString(),
+              created_at: new Date().toISOString(),
+            },
+            { onConflict: 'expert_id,type' }
+          );
+        if (upsertError) throw upsertError;
       } else {
-        // Si no existe: insertamos
-        const { error: insertError } = await supabase
-          .from('expert_media')
-          .insert({
-            expert_id: user.id,
-            filename: file.name,
-            url_storage: fullUrl,
-            type,
-            created_at: new Date().toISOString(),
-          });
-
-        if (insertError) throw insertError;
+        const { error: upsertError } = await supabase
+          .from('customer_media')
+          .upsert(
+            {
+              customer_id: targetId,
+              filename: file.name,
+              url_storage: fullUrl,
+              type,
+              updated_at: new Date().toISOString(),
+              created_at: new Date().toISOString(),
+            },
+            { onConflict: 'customer_id,type' }
+          );
+        if (upsertError) throw upsertError;
       }
 
       setPreview(fullUrl);
       showSuccess(`${type === 'avatar' ? 'Profile' : 'Company'} image updated`);
-
       if (onUpload) onUpload(fullUrl);
     } catch (error: unknown) {
       if (error instanceof Error) {
         console.error('Known error:', error.message);
-        showError('Error uploading image', {
-          description: error.message,
-        });
+        showError('Error uploading image', { description: error.message });
       } else {
         console.error('Unknown error:', error);
         showError('Unknown error');

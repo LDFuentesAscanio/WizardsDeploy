@@ -20,6 +20,7 @@ export function useProfileFormData() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [professions, setProfessions] = useState<ITProfession[]>([]);
+  const [roleName, setRoleName] = useState<string | null>(null);
 
   useEffect(() => {
     const loadProfileData = async () => {
@@ -31,11 +32,13 @@ export function useProfileFormData() {
         // Obtener el rol del usuario primero
         const { data: userData, error: userError } = await supabase
           .from('users')
-          .select('role_id')
+          .select('role_id, user_role:role_id(name)')
           .eq('id', auth.user.id)
           .single();
 
         if (userError) throw userError;
+
+        setRoleName(userData.user_role?.name ?? null);
 
         // Cargar datos según el rol
         const { initialValues, countries, roles, solutions, professions } =
@@ -73,5 +76,6 @@ export function useProfileFormData() {
     professions,
     loading,
     error,
+    roleName, // ahora el nombre del rol está en un estado
   };
 }
