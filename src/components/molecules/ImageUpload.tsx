@@ -23,8 +23,6 @@ export default function ImageUploader({
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState<string | null>(initialUrl || null);
 
-  const storageBaseUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/expert-documents`;
-
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -43,14 +41,14 @@ export default function ImageUploader({
     showInfo('Uploading image...');
 
     try {
+      // Obtener usuario actual
       const {
         data: { user },
         error: authError,
       } = await supabase.auth.getUser();
-
       if (authError || !user) throw new Error('User not authenticated');
 
-      // Obtenemos el ID de expert o customer
+      // Obtener ID de expert o customer según rol
       let targetId: string | null = null;
 
       if (roleName?.toLowerCase() === 'expert') {
@@ -73,28 +71,29 @@ export default function ImageUploader({
         throw new Error('Invalid role for image upload');
       }
 
-      const filename = `${user.id}_${Date.now()}.${file.name.split('.').pop()}`;
-      const filePath = `profile-images/${filename}`;
+      // Construir nombre único + subcarpeta
+      const timestamp = Date.now();
+      const safeFileName = file.name.replace(/\s+/g, '-');
+      const filePath = `${roleName?.toLowerCase()}/profile-images/${timestamp}-${safeFileName}`;
 
-      // Subimos a storage
+      // Subir a Supabase Storage
+      const bucketName = 'expert-documents'; // mismo bucket para ambos roles
       const { error: uploadError } = await supabase.storage
-        .from('expert-documents')
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: true,
-        });
-
+        .from(bucketName)
+        .upload(filePath, file, { cacheControl: '3600', upsert: true });
       if (uploadError) throw uploadError;
 
+      // URL pública de la imagen
+      const storageBaseUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${bucketName}`;
       const fullUrl = `${storageBaseUrl}/${filePath}`;
 
-      // Upsert por tabla
+      // Upsert en la tabla correspondiente
       if (roleName?.toLowerCase() === 'expert') {
         const { error: upsertError } = await supabase
           .from('expert_media')
           .upsert(
             {
-              expert_id: targetId,
+              expert_id: targetId!,
               filename: file.name,
               url_storage: fullUrl,
               type,
@@ -104,12 +103,12 @@ export default function ImageUploader({
             { onConflict: 'expert_id,type' }
           );
         if (upsertError) throw upsertError;
-      } else {
+      } else if (roleName?.toLowerCase() === 'customer') {
         const { error: upsertError } = await supabase
           .from('customer_media')
           .upsert(
             {
-              customer_id: targetId,
+              customer_id: targetId!,
               filename: file.name,
               url_storage: fullUrl,
               type,
