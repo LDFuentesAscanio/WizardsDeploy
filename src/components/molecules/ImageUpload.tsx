@@ -19,8 +19,6 @@ type ExpertMedia = {
   url_storage: string;
   type: 'avatar' | 'company_logo';
   updated_at: string;
-  created_at?: string;
-  id?: string;
 };
 
 type CustomerMedia = {
@@ -29,8 +27,6 @@ type CustomerMedia = {
   url_storage: string;
   type: 'avatar' | 'company_logo';
   updated_at: string;
-  created_at?: string;
-  id?: string;
 };
 
 export default function ImageUploader({
@@ -73,6 +69,7 @@ export default function ImageUploader({
       let bucketName: string;
       let tableName: 'expert_media' | 'customer_media';
       let upsertData: ExpertMedia | CustomerMedia;
+      let entityId: string;
 
       if (roleName?.toLowerCase() === 'expert') {
         const { data, error } = await supabase
@@ -82,14 +79,12 @@ export default function ImageUploader({
           .single();
         if (error || !data) throw error || new Error('Expert not found');
 
+        entityId = data.id;
         bucketName = 'expert-documents';
         tableName = 'expert_media';
         upsertData = {
-          expert_id: data.id,
-          filename: file.name
-            .replace(/\s+/g, '-')
-            .replace(/[^a-zA-Z0-9-.]/g, '')
-            .toLowerCase(),
+          expert_id: entityId,
+          filename: '',
           url_storage: '',
           type,
           updated_at: new Date().toISOString(),
@@ -102,14 +97,12 @@ export default function ImageUploader({
           .single();
         if (error || !data) throw error || new Error('Customer not found');
 
+        entityId = data.id;
         bucketName = 'customer-documents';
         tableName = 'customer_media';
         upsertData = {
-          customer_id: data.id,
-          filename: file.name
-            .replace(/\s+/g, '-')
-            .replace(/[^a-zA-Z0-9-.]/g, '')
-            .toLowerCase(),
+          customer_id: entityId,
+          filename: '',
           url_storage: '',
           type,
           updated_at: new Date().toISOString(),
@@ -118,12 +111,14 @@ export default function ImageUploader({
         throw new Error('Invalid role for image upload');
       }
 
-      // 3. Preparar nombre de archivo
+      // 3. Preparar nombre de archivo seguro (sin carpetas)
       const timestamp = Date.now();
       const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
-      const filePath = `profile-images/${type}-${user.id}-${timestamp}.${fileExt}`;
+      const safeName = `${type}-${entityId}-${timestamp}.${fileExt}`;
+      const filePath = safeName; // IMPORTANTE: No usar carpetas en el path
 
       // 4. Subir a Supabase Storage
+      // 4. Subir a Supabase Storage (versión optimizada)
       const { error: uploadError } = await supabase.storage
         .from(bucketName)
         .upload(filePath, file, {
@@ -134,11 +129,18 @@ export default function ImageUploader({
 
       if (uploadError) throw uploadError;
 
-      // 5. Obtener URL pública y completar datos
-      const fullUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${bucketName}/${filePath}`;
-      upsertData.url_storage = fullUrl;
+      // 5. Obtener URL pública
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from(bucketName).getPublicUrl(filePath);
 
-      // 6. Actualizar la base de datos
+      // 6. Completar datos y actualizar la base de datos
+      upsertData.filename = file.name
+        .replace(/\s+/g, '-')
+        .replace(/[^a-zA-Z0-9-.]/g, '')
+        .toLowerCase();
+      upsertData.url_storage = publicUrl;
+
       const { error: upsertError } = await supabase
         .from(tableName)
         .upsert(upsertData, {
@@ -151,9 +153,9 @@ export default function ImageUploader({
       if (upsertError) throw upsertError;
 
       // 7. Actualizar estado y notificar
-      setPreview(fullUrl);
+      setPreview(publicUrl);
       showSuccess(`${type === 'avatar' ? 'Profile' : 'Company'} image updated`);
-      if (onUpload) onUpload(fullUrl);
+      if (onUpload) onUpload(publicUrl);
     } catch (error: unknown) {
       console.error('Upload error:', error);
       const errorMessage =
