@@ -134,23 +134,18 @@ export default function ImageUploader({
         data: { publicUrl },
       } = supabase.storage.from(bucketName).getPublicUrl(filePath);
 
-      // 6. Completar datos y actualizar la base de datos
-      upsertData.filename = file.name
-        .replace(/\s+/g, '-')
-        .replace(/[^a-zA-Z0-9-.]/g, '')
-        .toLowerCase();
-      upsertData.url_storage = publicUrl;
-
-      const { error: upsertError } = await supabase
-        .from(tableName)
-        .upsert(upsertData, {
-          onConflict:
-            tableName === 'expert_media'
-              ? 'expert_id,type'
-              : 'customer_id,type',
-        });
-
-      if (upsertError) throw upsertError;
+      // 6. Actualizar la base de datos (versión corregida)
+      if (tableName === 'expert_media') {
+        const { error: upsertError } = await supabase
+          .from('expert_media')
+          .upsert(upsertData as ExpertMedia);
+        if (upsertError) throw upsertError;
+      } else {
+        const { error: upsertError } = await supabase
+          .from('customer_media')
+          .upsert(upsertData as CustomerMedia);
+        if (upsertError) throw upsertError;
+      }
 
       // 7. Actualizar estado y notificar
       setPreview(publicUrl);
