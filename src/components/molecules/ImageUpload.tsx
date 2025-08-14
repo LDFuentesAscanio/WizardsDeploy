@@ -50,6 +50,7 @@ export default function ImageUploader({
 
       // Obtener ID de expert o customer según rol
       let targetId: string | null = null;
+      let bucketName: string = ''; // bucket correcto según rol
 
       if (roleName?.toLowerCase() === 'expert') {
         const { data, error } = await supabase
@@ -59,6 +60,7 @@ export default function ImageUploader({
           .single();
         if (error || !data) throw error || new Error('Expert not found');
         targetId = data.id;
+        bucketName = 'expert-documents';
       } else if (roleName?.toLowerCase() === 'customer') {
         const { data, error } = await supabase
           .from('customers')
@@ -67,25 +69,24 @@ export default function ImageUploader({
           .single();
         if (error || !data) throw error || new Error('Customer not found');
         targetId = data.id;
+        bucketName = 'customer-documents';
       } else {
         throw new Error('Invalid role for image upload');
       }
 
-      // Construir nombre único + subcarpeta
+      // Construir nombre único dentro del bucket (solo path relativo)
       const timestamp = Date.now();
       const safeFileName = file.name.replace(/\s+/g, '-');
-      const filePath = `${roleName?.toLowerCase()}/profile-images/${timestamp}-${safeFileName}`;
+      const filePath = `profile-images/${timestamp}-${safeFileName}`; // ruta dentro del bucket
 
       // Subir a Supabase Storage
-      const bucketName = 'expert-documents'; // mismo bucket para ambos roles
       const { error: uploadError } = await supabase.storage
         .from(bucketName)
         .upload(filePath, file, { cacheControl: '3600', upsert: true });
       if (uploadError) throw uploadError;
 
       // URL pública de la imagen
-      const storageBaseUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${bucketName}`;
-      const fullUrl = `${storageBaseUrl}/${filePath}`;
+      const fullUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${bucketName}/${filePath}`;
 
       // Upsert en la tabla correspondiente
       if (roleName?.toLowerCase() === 'expert') {
