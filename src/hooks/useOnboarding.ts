@@ -74,6 +74,32 @@ export function useOnboarding() {
         }
       }
 
+      // Dentro de saveUserProfile, después del bloque de Expert
+      if (values.role.toLowerCase() === 'customer') {
+        const { data: existingCustomer, error: customerQueryError } =
+          await supabase
+            .from('customers')
+            .select('id')
+            .eq('user_id', user.id)
+            .maybeSingle();
+
+        if (customerQueryError) throw customerQueryError;
+
+        if (!existingCustomer) {
+          const { error: insertCustomerError } = await supabase
+            .from('customers')
+            .insert({
+              user_id: user.id,
+              company_name: '', // valores por defecto
+              job_title: '',
+              accepted_privacy_policy: false,
+              accepted_terms_conditions: false,
+            });
+
+          if (insertCustomerError) throw insertCustomerError;
+        }
+      }
+
       // 5. Marcar como nuevo usuario y redirigir
       localStorage.setItem('isNewUser', 'true');
       showSuccess('Onboarding completed successfully!');
