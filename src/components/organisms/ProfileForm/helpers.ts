@@ -15,20 +15,24 @@ import { supabase } from '@/utils/supabase/browserClient';
 
 export async function fetchProfileFormData(userId: string) {
   try {
-    // Helper para obtener URL pública
-    const getPublicUrl = (path?: string) => {
+    // Helper para obtener URL pública con bucket dinámico
+    const getPublicUrl = (path?: string, bucket?: string) => {
       if (!path) return '';
       // Si ya es URL completa, la devolvemos tal cual
       if (path.startsWith('http://') || path.startsWith('https://')) {
         return path;
       }
-      const publicUrl = supabase.storage
-        .from('expert-documents')
-        .getPublicUrl(path).data.publicUrl;
-      console.log('📦 getPublicUrl -> path:', path, ' | publicUrl:', publicUrl);
+      const bucketToUse = bucket || 'expert-documents';
+      const publicUrl = supabase.storage.from(bucketToUse).getPublicUrl(path)
+        .data.publicUrl;
+      console.log(
+        `📦 getPublicUrl -> bucket: ${bucketToUse} | path: ${path} | publicUrl: ${publicUrl}`
+      );
       return publicUrl;
     };
+
     console.log('🔍 Iniciando fetchProfileFormData para userId:', userId);
+
     // 1. Obtener expert_id
     const { data: expertRecord, error: expertRecordError } = await supabase
       .from('experts')
@@ -209,6 +213,10 @@ export async function fetchProfileFormData(userId: string) {
       throw new Error(errorMessage);
     }
 
+    const isExpert = !!expertId;
+    const photoBucket = isExpert ? 'expert-documents' : 'customer_media';
+    const logoBucket = isExpert ? 'expert-documents' : 'customer_media';
+
     const initialValues: ProfileFormValues = {
       first_name: userData?.first_name || '',
       last_name: userData?.last_name || '',
@@ -230,9 +238,9 @@ export async function fetchProfileFormData(userId: string) {
       skills:
         skillsData?.map((s: { skill_name: string }) => s.skill_name) ?? [],
       tools: toolsData?.map((t: { tool_name: string }) => t.tool_name) ?? [],
-      photo_url: getPublicUrl(avatarData?.url_storage),
-      company_logo_url: getPublicUrl(companyLogoData?.url_storage),
-      cv_url: getPublicUrl(documentData?.url_storage),
+      photo_url: getPublicUrl(avatarData?.url_storage, photoBucket),
+      company_logo_url: getPublicUrl(companyLogoData?.url_storage, logoBucket),
+      cv_url: getPublicUrl(documentData?.url_storage, 'expert-documents'),
       filename: documentData?.filename || '',
       company_name: customerData?.company_name || '',
       actual_role: customerData?.job_title || '',
