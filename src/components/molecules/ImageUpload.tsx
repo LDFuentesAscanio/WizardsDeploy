@@ -69,8 +69,10 @@ export default function ImageUploader({
       let bucketName: string;
       let tableName: 'expert_media' | 'customer_media';
       let entityId: string;
+      let filePath: string;
 
       if (roleName?.toLowerCase() === 'expert') {
+        // Mantenemos exactamente la misma lógica para expert
         const { data, error } = await supabase
           .from('experts')
           .select('id')
@@ -81,7 +83,13 @@ export default function ImageUploader({
         entityId = data.id;
         bucketName = 'expert-documents';
         tableName = 'expert_media';
+
+        const timestamp = Date.now();
+        const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+        const safeName = `${type}-${entityId}-${timestamp}.${fileExt}`;
+        filePath = safeName;
       } else if (roleName?.toLowerCase() === 'customer') {
+        // Nueva lógica específica para customer
         const { data, error } = await supabase
           .from('customers')
           .select('id')
@@ -90,17 +98,15 @@ export default function ImageUploader({
         if (error || !data) throw error || new Error('Customer not found');
 
         entityId = data.id;
-        bucketName = 'customer-documents';
+        bucketName = 'customer_media'; // Cambiado a nuevo bucket
         tableName = 'customer_media';
+
+        const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+        // Nueva estructura de paths para customer: user_id/tipo/nombre_archivo
+        filePath = `${user.id}/${type}/${Date.now()}.${fileExt}`;
       } else {
         throw new Error('Invalid role for image upload');
       }
-
-      // 3. Preparar nombre de archivo seguro
-      const timestamp = Date.now();
-      const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
-      const safeName = `${type}-${entityId}-${timestamp}.${fileExt}`;
-      const filePath = safeName;
 
       // 4. Subir a Supabase Storage
       const { error: uploadError } = await supabase.storage
@@ -120,6 +126,7 @@ export default function ImageUploader({
 
       // 6. Insertar/actualizar registro en la base de datos
       if (tableName === 'expert_media') {
+        // Mantenemos igual para expert
         const record: ExpertMedia = {
           expert_id: entityId,
           filename: file.name,
@@ -133,6 +140,7 @@ export default function ImageUploader({
           .upsert(record, { onConflict: 'expert_id,type' });
         if (upsertError) throw upsertError;
       } else {
+        // Registro para customer
         const record: CustomerMedia = {
           customer_id: entityId,
           filename: file.name,
