@@ -23,13 +23,8 @@ export async function fetchProfileFormData(userId: string) {
       const bucketToUse = bucket || 'expert-documents';
       const publicUrl = supabase.storage.from(bucketToUse).getPublicUrl(path)
         .data.publicUrl;
-      console.log(
-        `📦 getPublicUrl -> bucket: ${bucketToUse} | path: ${path} | publicUrl: ${publicUrl}`
-      );
       return publicUrl;
     };
-
-    console.log('🔍 Iniciando fetchProfileFormData para userId:', userId);
 
     // 1. Expert ID
     const { data: expertRecord, error: expertRecordError } = await supabase
@@ -38,7 +33,6 @@ export async function fetchProfileFormData(userId: string) {
       .eq('user_id', userId)
       .maybeSingle();
     const expertId = expertRecord?.id;
-    console.log('🧑‍💼 expertId:', expertId);
     if (expertRecordError && expertRecordError.code !== 'PGRST116')
       throw expertRecordError;
 
@@ -49,18 +43,15 @@ export async function fetchProfileFormData(userId: string) {
       .eq('user_id', userId)
       .maybeSingle();
     const customerId = customerRecord?.id;
-    console.log('🏢 customerId:', customerId);
     if (customerRecordError && customerRecordError.code !== 'PGRST116')
       throw customerRecordError;
 
-    // 🔍 DEBUG extra: ver todas las filas en customer_media para este customerId
     if (customerId) {
-      const { data: allCustomerMedia, error: allCustomerMediaError } =
-        await supabase
-          .from('customer_media')
-          .select('*')
-          .eq('customer_id', customerId);
-      console.log('🗂 Todas las filas en customer_media:', allCustomerMedia);
+      const { error: allCustomerMediaError } = await supabase
+        .from('customer_media')
+        .select('*')
+        .eq('customer_id', customerId);
+
       if (allCustomerMediaError) {
         console.error(
           '❌ Error obteniendo customer_media:',
@@ -179,10 +170,6 @@ export async function fetchProfileFormData(userId: string) {
     const companyLogoData = companyLogoQuery.data;
     const documentData = documentQuery.data;
 
-    console.log('🖼 avatarData:', avatarData);
-    console.log('🏷 companyLogoData:', companyLogoData);
-    console.log('📄 documentData:', documentData);
-
     let professionName = '';
     if (expertData?.profession_id) {
       const { data: professionData } = await supabase
@@ -255,8 +242,6 @@ export async function fetchProfileFormData(userId: string) {
       accepted_terms_conditions:
         customerData?.accepted_terms_conditions ?? false,
     };
-
-    console.log('✅ initialValues:', initialValues);
 
     return {
       initialValues,
