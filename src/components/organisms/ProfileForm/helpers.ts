@@ -22,10 +22,13 @@ export async function fetchProfileFormData(userId: string) {
       if (path.startsWith('http://') || path.startsWith('https://')) {
         return path;
       }
-      return supabase.storage.from('expert-documents').getPublicUrl(path).data
-        .publicUrl;
+      const publicUrl = supabase.storage
+        .from('expert-documents')
+        .getPublicUrl(path).data.publicUrl;
+      console.log('📦 getPublicUrl -> path:', path, ' | publicUrl:', publicUrl);
+      return publicUrl;
     };
-
+    console.log('🔍 Iniciando fetchProfileFormData para userId:', userId);
     // 1. Obtener expert_id
     const { data: expertRecord, error: expertRecordError } = await supabase
       .from('experts')
@@ -33,12 +36,13 @@ export async function fetchProfileFormData(userId: string) {
       .eq('user_id', userId)
       .maybeSingle();
 
+    const expertId = expertRecord?.id;
+    console.log('🧑‍💼 expertId:', expertId);
+
     if (expertRecordError && expertRecordError.code !== 'PGRST116') {
       console.error('Error fetching expert record:', expertRecordError);
       throw expertRecordError;
     }
-
-    const expertId = expertRecord?.id;
 
     // 1.1 Obtener customer_id
     const { data: customerRecord, error: customerRecordError } = await supabase
@@ -52,6 +56,7 @@ export async function fetchProfileFormData(userId: string) {
     }
 
     const customerId = customerRecord?.id;
+    console.log('🏢 customerId:', customerId);
 
     // 2. Consultas en paralelo
     const [
@@ -163,6 +168,10 @@ export async function fetchProfileFormData(userId: string) {
     const companyLogoData = companyLogoQuery.data;
     const documentData = documentQuery.data;
 
+    console.log('🖼 avatarData:', avatarData);
+    console.log('🏷 companyLogoData:', companyLogoData);
+    console.log('📄 documentData:', documentData);
+
     let professionName = '';
     if (expertData?.profession_id) {
       const { data: professionData } = await supabase
@@ -235,6 +244,8 @@ export async function fetchProfileFormData(userId: string) {
       accepted_terms_conditions:
         customerData?.accepted_terms_conditions ?? false,
     };
+
+    console.log('✅ initialValues:', initialValues);
 
     return {
       initialValues,
