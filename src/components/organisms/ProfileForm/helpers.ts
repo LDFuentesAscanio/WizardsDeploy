@@ -15,10 +15,8 @@ import { supabase } from '@/utils/supabase/browserClient';
 
 export async function fetchProfileFormData(userId: string) {
   try {
-    // Helper para obtener URL pública con bucket dinámico
     const getPublicUrl = (path?: string, bucket?: string) => {
       if (!path) return '';
-      // Si ya es URL completa, la devolvemos tal cual
       if (path.startsWith('http://') || path.startsWith('https://')) {
         return path;
       }
@@ -33,34 +31,43 @@ export async function fetchProfileFormData(userId: string) {
 
     console.log('🔍 Iniciando fetchProfileFormData para userId:', userId);
 
-    // 1. Obtener expert_id
+    // 1. Expert ID
     const { data: expertRecord, error: expertRecordError } = await supabase
       .from('experts')
       .select('id')
       .eq('user_id', userId)
       .maybeSingle();
-
     const expertId = expertRecord?.id;
     console.log('🧑‍💼 expertId:', expertId);
-
-    if (expertRecordError && expertRecordError.code !== 'PGRST116') {
-      console.error('Error fetching expert record:', expertRecordError);
+    if (expertRecordError && expertRecordError.code !== 'PGRST116')
       throw expertRecordError;
-    }
 
-    // 1.1 Obtener customer_id
+    // 1.1 Customer ID
     const { data: customerRecord, error: customerRecordError } = await supabase
       .from('customers')
       .select('id')
       .eq('user_id', userId)
       .maybeSingle();
-
-    if (customerRecordError && customerRecordError.code !== 'PGRST116') {
-      throw customerRecordError;
-    }
-
     const customerId = customerRecord?.id;
     console.log('🏢 customerId:', customerId);
+    if (customerRecordError && customerRecordError.code !== 'PGRST116')
+      throw customerRecordError;
+
+    // 🔍 DEBUG extra: ver todas las filas en customer_media para este customerId
+    if (customerId) {
+      const { data: allCustomerMedia, error: allCustomerMediaError } =
+        await supabase
+          .from('customer_media')
+          .select('*')
+          .eq('customer_id', customerId);
+      console.log('🗂 Todas las filas en customer_media:', allCustomerMedia);
+      if (allCustomerMediaError) {
+        console.error(
+          '❌ Error obteniendo customer_media:',
+          allCustomerMediaError
+        );
+      }
+    }
 
     // 2. Consultas en paralelo
     const [
@@ -203,14 +210,10 @@ export async function fetchProfileFormData(userId: string) {
     ].filter((item) => item.error);
 
     if (errors.length > 0) {
-      const errorMessage = `Failed to load: ${errors
-        .map((e) => e.name)
-        .join(', ')}`;
       console.error('Errors in Supabase queries:', errors);
-      showError('Profile loading error', {
-        description: 'Some data could not be loaded. Please try again.',
-      });
-      throw new Error(errorMessage);
+      throw new Error(
+        `Failed to load: ${errors.map((e) => e.name).join(', ')}`
+      );
     }
 
     const isExpert = !!expertId;
