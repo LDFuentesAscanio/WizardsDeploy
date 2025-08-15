@@ -89,7 +89,6 @@ export default function ImageUploader({
         const safeName = `${type}-${entityId}-${timestamp}.${fileExt}`;
         filePath = safeName;
       } else if (roleName?.toLowerCase() === 'customer') {
-        // Nueva lógica específica para customer
         const { data, error } = await supabase
           .from('customers')
           .select('id')
@@ -98,11 +97,10 @@ export default function ImageUploader({
         if (error || !data) throw error || new Error('Customer not found');
 
         entityId = data.id;
-        bucketName = 'customer_media'; // Cambiado a nuevo bucket
+        bucketName = 'customer_media';
         tableName = 'customer_media';
 
         const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
-        // Nueva estructura de paths para customer: user_id/tipo/nombre_archivo
         filePath = `${user.id}/${type}/${Date.now()}.${fileExt}`;
       } else {
         throw new Error('Invalid role for image upload');
@@ -149,9 +147,21 @@ export default function ImageUploader({
           updated_at: new Date().toISOString(),
         };
 
-        const { error: upsertError } = await supabase
+        const { data: existing } = await supabase
           .from('customer_media')
-          .upsert(record, { onConflict: 'customer_id,type' });
+          .select()
+          .eq('customer_id', entityId)
+          .eq('type', type)
+          .maybeSingle();
+
+        const { error: upsertError } = existing
+          ? await supabase
+              .from('customer_media')
+              .update(record)
+              .eq('customer_id', entityId)
+              .eq('type', type)
+          : await supabase.from('customer_media').insert(record);
+
         if (upsertError) throw upsertError;
       }
 
