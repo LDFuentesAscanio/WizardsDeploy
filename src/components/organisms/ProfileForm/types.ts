@@ -120,6 +120,16 @@ export interface ExpertMedia {
   updated_at?: string;
 }
 
+export interface CustomerMedia {
+  id?: string;
+  filename?: string;
+  url_storage: string;
+  customer_id?: string;
+  type?: 'avatar' | 'company_logo';
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface ExpertDocument {
   id?: string;
   filename: string;
