@@ -21,14 +21,18 @@ export function ExpertInfoSection({ professions }: ExpertInfoSectionProps) {
         </label>
         <Field
           as="select"
-          name="profession" // Cambiado de profession_id a profession
-          className="w-full px-4 py-3 rounded-xl bg-white/20 text-white"
+          name="profession"
+          className="w-full px-4 py-3 rounded-xl bg-white/20 text-white focus:outline-none focus:ring-2 focus:ring-[#67ff94]"
         >
-          <option value="">Select a profession</option>
+          <option value="" className="text-[#2c3d5a] bg-white">
+            Select a profession
+          </option>
           {professions.map((p) => (
-            <option key={p.id} value={p.profession_name}>
-              {' '}
-              {/* Enviamos el nombre */}
+            <option
+              key={p.id}
+              value={p.profession_name}
+              className="text-[#2c3d5a] bg-white hover:bg-[#67ff94]"
+            >
               {p.profession_name}
             </option>
           ))}
@@ -40,7 +44,7 @@ export function ExpertInfoSection({ professions }: ExpertInfoSectionProps) {
         name="bio"
         placeholder="Write a short bio"
         rows={5}
-        className="w-full px-4 py-3 rounded-xl bg-white/20 text-white resize-none"
+        className="w-full px-4 py-3 rounded-xl bg-white/20 text-white resize-none focus:outline-none focus:ring-2 focus:ring-[#67ff94]"
       />
 
       <ExpertiseSection />
