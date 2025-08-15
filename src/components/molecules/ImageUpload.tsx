@@ -72,7 +72,7 @@ export default function ImageUploader({
       let filePath: string;
 
       if (roleName?.toLowerCase() === 'expert') {
-        // Mantenemos exactamente la misma lógica para expert
+        // Lógica para expert (sin cambios)
         const { data, error } = await supabase
           .from('experts')
           .select('id')
@@ -89,14 +89,18 @@ export default function ImageUploader({
         const safeName = `${type}-${entityId}-${timestamp}.${fileExt}`;
         filePath = safeName;
       } else if (roleName?.toLowerCase() === 'customer') {
-        const { data, error } = await supabase
+        // Lógica específica para customer (modificada)
+        const { data: customerData, error: customerError } = await supabase
           .from('customers')
           .select('id')
           .eq('user_id', user.id)
           .single();
-        if (error || !data) throw error || new Error('Customer not found');
 
-        entityId = data.id;
+        if (customerError || !customerData) {
+          throw customerError || new Error('Customer not found');
+        }
+
+        entityId = customerData.id;
         bucketName = 'customer_media';
         tableName = 'customer_media';
 
@@ -106,7 +110,7 @@ export default function ImageUploader({
         throw new Error('Invalid role for image upload');
       }
 
-      // 4. Subir a Supabase Storage
+      // 3. Subir a Supabase Storage
       const { error: uploadError } = await supabase.storage
         .from(bucketName)
         .upload(filePath, file, {
@@ -117,14 +121,14 @@ export default function ImageUploader({
 
       if (uploadError) throw uploadError;
 
-      // 5. Obtener URL pública
+      // 4. Obtener URL pública
       const {
         data: { publicUrl },
       } = supabase.storage.from(bucketName).getPublicUrl(filePath);
 
-      // 6. Insertar/actualizar registro en la base de datos
+      // 5. Manejo de la base de datos según el rol
       if (tableName === 'expert_media') {
-        // Mantenemos igual para expert
+        // Lógica para expert (sin cambios)
         const record: ExpertMedia = {
           expert_id: entityId,
           filename: file.name,
@@ -136,9 +140,10 @@ export default function ImageUploader({
         const { error: upsertError } = await supabase
           .from('expert_media')
           .upsert(record, { onConflict: 'expert_id,type' });
+
         if (upsertError) throw upsertError;
       } else {
-        // Registro para customer
+        // Lógica mejorada para customer
         const record: CustomerMedia = {
           customer_id: entityId,
           filename: file.name,
@@ -147,25 +152,28 @@ export default function ImageUploader({
           updated_at: new Date().toISOString(),
         };
 
-        const { data: existing } = await supabase
+        // Primero verificamos si ya existe un registro para este customer y tipo
+        const { data: existingRecord, error: fetchError } = await supabase
           .from('customer_media')
-          .select()
+          .select('id')
           .eq('customer_id', entityId)
           .eq('type', type)
           .maybeSingle();
 
-        const { error: upsertError } = existing
+        if (fetchError) throw fetchError;
+
+        // Insertamos o actualizamos según corresponda
+        const { error: dbError } = existingRecord
           ? await supabase
               .from('customer_media')
               .update(record)
-              .eq('customer_id', entityId)
-              .eq('type', type)
+              .eq('id', existingRecord.id)
           : await supabase.from('customer_media').insert(record);
 
-        if (upsertError) throw upsertError;
+        if (dbError) throw dbError;
       }
 
-      // 7. Actualizar estado y notificar
+      // 6. Actualizar estado y notificar
       setPreview(publicUrl);
       showSuccess(`${type === 'avatar' ? 'Profile' : 'Company'} image updated`);
       if (onUpload) onUpload(publicUrl);
