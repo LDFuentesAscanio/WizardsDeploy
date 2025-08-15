@@ -15,7 +15,7 @@ export default function ProfileForm() {
     loading,
     solutions,
     professions,
-    roleName, // ahora viene del hook
+    roleName,
   } = useProfileFormData();
 
   const { handleSubmit } = useProfileSubmit();

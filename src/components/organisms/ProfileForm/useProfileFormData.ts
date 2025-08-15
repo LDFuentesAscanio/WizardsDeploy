@@ -44,12 +44,23 @@ export function useProfileFormData() {
         const { initialValues, countries, roles, solutions, professions } =
           await fetchProfileFormData(auth.user.id);
 
+        let professionName = '';
+        if (initialValues.profession_id) {
+          const { data: profession } = await supabase
+            .from('it_professions')
+            .select('profession_name')
+            .eq('id', initialValues.profession_id)
+            .single();
+          professionName = profession?.profession_name || '';
+        }
+
         // Filtrar roles y establecer valores iniciales
         const filteredRoles = roles.filter((role) => role.name !== 'admin');
 
         setInitialValues({
           ...initialValues,
-          role_id: userData.role_id, // Asegurar que el role_id esté actualizado
+          role_id: userData.role_id,
+          profession: professionName, // Asegurar que el role_id esté actualizado
         });
         setCountries(countries);
         setRoles(filteredRoles);
@@ -76,6 +87,6 @@ export function useProfileFormData() {
     professions,
     loading,
     error,
-    roleName, // ahora el nombre del rol está en un estado
+    roleName,
   };
 }

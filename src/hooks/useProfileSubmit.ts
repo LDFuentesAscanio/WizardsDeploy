@@ -65,15 +65,26 @@ export function useProfileSubmit() {
 
       // 3️⃣ Expert update
       if (isExpert) {
-        // Obtener profession_id
+        // Obtener profession_id basado en el nombre de la profesión
         let professionId = '';
         if (values.profession) {
-          const { data: profession } = await supabase
+          // Ahora usamos values.profession directamente
+          const { data: profession, error: profError } = await supabase
             .from('it_professions')
             .select('id')
             .eq('profession_name', values.profession)
             .single();
-          professionId = profession?.id || '';
+
+          if (profError) {
+            console.error('Error fetching profession:', profError);
+            throw profError;
+          }
+
+          if (!profession) {
+            throw new Error('Selected profession not found');
+          }
+
+          professionId = profession.id;
         }
 
         // Upsert expert y obtener su ID real

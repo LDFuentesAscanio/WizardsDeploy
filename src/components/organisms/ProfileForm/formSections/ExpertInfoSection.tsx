@@ -16,20 +16,19 @@ export function ExpertInfoSection({ professions }: ExpertInfoSectionProps) {
       <UploadDocumentField />
 
       <div>
-        <label
-          htmlFor="profession_id"
-          className="text-sm mb-1 block text-white"
-        >
+        <label htmlFor="profession" className="text-sm mb-1 block text-white">
           Profession
         </label>
         <Field
           as="select"
-          name="profession_id"
+          name="profession" // Cambiado de profession_id a profession
           className="w-full px-4 py-3 rounded-xl bg-white/20 text-white"
         >
           <option value="">Select a profession</option>
           {professions.map((p) => (
-            <option key={p.id} value={p.id}>
+            <option key={p.id} value={p.profession_name}>
+              {' '}
+              {/* Enviamos el nombre */}
               {p.profession_name}
             </option>
           ))}
