@@ -15,14 +15,24 @@ import { supabase } from '@/utils/supabase/browserClient';
 
 export async function fetchProfileFormData(userId: string) {
   try {
-    // 1. Primero obtenemos el expert_id correspondiente al user_id
+    // Helper para obtener URL pública
+    const getPublicUrl = (path?: string) => {
+      if (!path) return '';
+      // Si ya es URL completa, la devolvemos tal cual
+      if (path.startsWith('http://') || path.startsWith('https://')) {
+        return path;
+      }
+      return supabase.storage.from('expert-documents').getPublicUrl(path).data
+        .publicUrl;
+    };
+
+    // 1. Obtener expert_id
     const { data: expertRecord, error: expertRecordError } = await supabase
       .from('experts')
       .select('id')
       .eq('user_id', userId)
       .maybeSingle();
 
-    // No lanzar error si no hay registro de experto (podría ser un cliente)
     if (expertRecordError && expertRecordError.code !== 'PGRST116') {
       console.error('Error fetching expert record:', expertRecordError);
       throw expertRecordError;
@@ -30,7 +40,7 @@ export async function fetchProfileFormData(userId: string) {
 
     const expertId = expertRecord?.id;
 
-    // 1.1 Obtener customerId si existe (solo para imágenes de customer)
+    // 1.1 Obtener customer_id
     const { data: customerRecord, error: customerRecordError } = await supabase
       .from('customers')
       .select('id')
@@ -43,7 +53,7 @@ export async function fetchProfileFormData(userId: string) {
 
     const customerId = customerRecord?.id;
 
-    // 2. Ejecutamos todas las consultas en paralelo
+    // 2. Consultas en paralelo
     const [
       { data: userData, error: userError },
       { data: expertData, error: expertError },
@@ -59,7 +69,6 @@ export async function fetchProfileFormData(userId: string) {
       companyLogoQuery,
       documentQuery,
     ] = await Promise.all([
-      // Consulta de datos básicos del usuario
       supabase
         .from('users')
         .select(
@@ -68,7 +77,6 @@ export async function fetchProfileFormData(userId: string) {
         .eq('id', userId)
         .single(),
 
-      // Consulta de datos del experto (solo si existe expertId)
       expertId
         ? supabase
             .from('experts')
@@ -79,7 +87,6 @@ export async function fetchProfileFormData(userId: string) {
             .maybeSingle<ExpertResponse>()
         : Promise.resolve({ data: null, error: null }),
 
-      // Consulta de datos del cliente
       supabase
         .from('customers')
         .select(
@@ -88,13 +95,11 @@ export async function fetchProfileFormData(userId: string) {
         .eq('user_id', userId)
         .maybeSingle<CustomerResponse>(),
 
-      // Consultas de datos de referencia
       supabase.from('country').select('id, name'),
       supabase.from('user_role').select('id, name'),
       supabase.from('solutions').select('id, name'),
       supabase.from('it_professions').select('id, profession_name'),
 
-      // Consultas relacionadas con el experto (solo si existe expertId)
       expertId
         ? supabase.from('skills').select('skill_name').eq('expert_id', expertId)
         : Promise.resolve({ data: null, error: null }),
@@ -108,7 +113,6 @@ export async function fetchProfileFormData(userId: string) {
             .eq('expert_id', expertId)
         : Promise.resolve({ data: null, error: null }),
 
-      // Avatar
       expertId
         ? supabase
             .from('expert_media')
@@ -125,7 +129,6 @@ export async function fetchProfileFormData(userId: string) {
               .maybeSingle<CustomerMedia>()
           : Promise.resolve({ data: null, error: null }),
 
-      // Company logo
       expertId
         ? supabase
             .from('expert_media')
@@ -142,7 +145,6 @@ export async function fetchProfileFormData(userId: string) {
               .maybeSingle<CustomerMedia>()
           : Promise.resolve({ data: null, error: null }),
 
-      // Documentos (solo expert)
       expertId
         ? supabase
             .from('expert_documents')
@@ -154,7 +156,6 @@ export async function fetchProfileFormData(userId: string) {
         : Promise.resolve({ data: null, error: null }),
     ]);
 
-    // Extraer datos de las consultas condicionales
     const skillsData = skillsQuery.data;
     const toolsData = toolsQuery.data;
     const expertiseData = expertiseQuery.data;
@@ -162,7 +163,6 @@ export async function fetchProfileFormData(userId: string) {
     const companyLogoData = companyLogoQuery.data;
     const documentData = documentQuery.data;
 
-    // 3. Obtener nombre de la profesión
     let professionName = '';
     if (expertData?.profession_id) {
       const { data: professionData } = await supabase
@@ -173,7 +173,6 @@ export async function fetchProfileFormData(userId: string) {
       professionName = professionData?.profession_name || '';
     }
 
-    // 4. Manejo de errores
     const errors = [
       { name: 'userData', error: userError },
       { name: 'expertData', error: expertError },
@@ -201,7 +200,6 @@ export async function fetchProfileFormData(userId: string) {
       throw new Error(errorMessage);
     }
 
-    // 5. Construcción de los valores iniciales del formulario
     const initialValues: ProfileFormValues = {
       first_name: userData?.first_name || '',
       last_name: userData?.last_name || '',
@@ -223,9 +221,9 @@ export async function fetchProfileFormData(userId: string) {
       skills:
         skillsData?.map((s: { skill_name: string }) => s.skill_name) ?? [],
       tools: toolsData?.map((t: { tool_name: string }) => t.tool_name) ?? [],
-      photo_url: avatarData?.url_storage ?? '',
-      company_logo_url: companyLogoData?.url_storage ?? '',
-      cv_url: documentData?.url_storage || '',
+      photo_url: getPublicUrl(avatarData?.url_storage),
+      company_logo_url: getPublicUrl(companyLogoData?.url_storage),
+      cv_url: getPublicUrl(documentData?.url_storage),
       filename: documentData?.filename || '',
       company_name: customerData?.company_name || '',
       actual_role: customerData?.job_title || '',
