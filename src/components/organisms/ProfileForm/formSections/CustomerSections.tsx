@@ -7,6 +7,7 @@ import { CustomerBasicInfo } from './CustomerBasicInfo';
 import { saveCustomerSolutions } from '@/utils/saveSolutions';
 import { supabase } from '@/utils/supabase/browserClient';
 import { showError, showSuccess } from '@/utils/toastService';
+import FormCheckbox from '@/components/atoms/FormCheckbox';
 
 type Props = {
   solutions: Solution[];
@@ -47,6 +48,40 @@ export default function CustomerSections({ solutions, roleName }: Props) {
     <>
       {/* Pasamos roleName al CustomerBasicInfo */}
       <CustomerBasicInfo roleName={roleName} />
+      <div className="pt-4 space-y-3">
+        <FormCheckbox
+          name="accepted_terms_conditions"
+          label={
+            <>
+              I accept the{' '}
+              <a
+                href="/terms"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline"
+              >
+                terms and conditions
+              </a>
+            </>
+          }
+        />
+        <FormCheckbox
+          name="accepted_privacy_policy"
+          label={
+            <>
+              I agree to the{' '}
+              <a
+                href="/privacy"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline"
+              >
+                privacy policy
+              </a>
+            </>
+          }
+        />
+      </div>
 
       <div className="space-y-4">
         <h3 className="text-lg font-semibold text-white">Solutions</h3>
@@ -88,8 +123,6 @@ export default function CustomerSections({ solutions, roleName }: Props) {
           lookingForExpert: selectedSolutions.length > 0,
           selectedSolutions,
           description: '',
-          acceptedTerms: false,
-          acceptedPrivacy: false,
         }}
         onSubmit={handleSaveSolutions}
       />

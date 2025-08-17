@@ -31,14 +31,13 @@ export interface ExpertSpecific {
 // Tipos específicos para Customer
 export interface CustomerSpecific {
   company_name: string;
-  actual_role: string;
+  job_title: string;
   email: string;
   accepted_privacy_policy: boolean;
   accepted_terms_conditions: boolean;
   description?: string;
   company_url?: string;
   company_logo_url: string;
-  solution_description: string;
   selected_solutions: string[];
   looking_for_expert: boolean;
 }
@@ -203,7 +202,7 @@ export function isCustomerProfile(
   return (
     values.role_id === CUSTOMER_ROLE_ID &&
     !!values.company_name &&
-    !!values.actual_role
+    !!values.job_title
   );
 }
 

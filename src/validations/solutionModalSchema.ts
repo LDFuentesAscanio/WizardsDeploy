@@ -19,12 +19,4 @@ export const solutionModalSchema = Yup.object().shape({
         .required('Description is required'),
     otherwise: (schema) => schema.notRequired(),
   }),
-
-  acceptedTerms: Yup.boolean()
-    .oneOf([true], 'You must accept the terms')
-    .required('Required'),
-
-  acceptedPrivacy: Yup.boolean()
-    .oneOf([true], 'You must accept the privacy policy')
-    .required('Required'),
 });

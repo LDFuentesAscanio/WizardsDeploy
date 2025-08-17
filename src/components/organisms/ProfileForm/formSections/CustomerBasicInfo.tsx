@@ -41,7 +41,7 @@ export function CustomerBasicInfo({ roleName }: Props) {
       />
 
       <FormInput
-        name="bio"
+        name="description"
         label="Description of your company"
         as="textarea"
         placeholder="Briefly describe what your company does"

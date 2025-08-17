@@ -199,12 +199,7 @@ export default function CustomerSolutionModal({
                       </button>
                       <button
                         type="submit"
-                        disabled={
-                          !isValid ||
-                          isSubmitting ||
-                          (values.lookingForExpert &&
-                            (!values.acceptedTerms || !values.acceptedPrivacy))
-                        }
+                        disabled={!isValid || isSubmitting}
                         className="flex-1 py-2 bg-white text-[#2c3d5a] font-semibold rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {isSubmitting ? 'Saving...' : 'Save Solutions'}

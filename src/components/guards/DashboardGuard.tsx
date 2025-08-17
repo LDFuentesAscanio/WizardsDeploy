@@ -64,7 +64,6 @@ export default function DashboardGuard({
 
         if (error) throw error;
 
-        console.log('Perfil completo:', profileData);
 
         const basicComplete = Boolean(
           profileData?.first_name?.trim() &&
@@ -86,7 +85,6 @@ export default function DashboardGuard({
               profileData.experts?.profession_id
           );
 
-          console.log('Verificación experto:', expertComplete);
           if (!expertComplete) {
             router.replace('/force-profile/edit');
             return;
@@ -98,7 +96,6 @@ export default function DashboardGuard({
               profileData.customers?.company_name?.trim()
           );
 
-          console.log('Verificación cliente:', customerComplete);
           if (!customerComplete) {
             router.replace('/force-profile/edit');
             return;

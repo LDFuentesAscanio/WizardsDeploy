@@ -50,11 +50,11 @@ export function useProfileSubmit() {
         const customerData: CustomerInsert = {
           user_id: user.id,
           company_name: values.company_name || '',
-          job_title: values.actual_role || '',
+          job_title: values.job_title || '',
           email: values.email || '',
           accepted_privacy_policy: values.accepted_privacy_policy ?? false,
           accepted_terms_conditions: values.accepted_terms_conditions ?? false,
-          description: values.solution_description || '',
+          description: values.description || '',
         };
 
         const { error: customerError } = await supabase
