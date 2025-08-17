@@ -19,8 +19,6 @@ type FormValues = {
   lookingForExpert: boolean;
   selectedSolutions: string[];
   description: string;
-  acceptedTerms: boolean;
-  acceptedPrivacy: boolean;
 };
 
 type Props = {
@@ -64,8 +62,6 @@ export default function CustomerSolutionModal({
                   lookingForExpert: initialValues.lookingForExpert ?? false,
                   selectedSolutions: initialValues.selectedSolutions ?? [],
                   description: initialValues.description ?? '',
-                  acceptedTerms: initialValues.acceptedTerms ?? false,
-                  acceptedPrivacy: initialValues.acceptedPrivacy ?? false,
                 }}
                 validationSchema={solutionModalSchema}
                 onSubmit={async (values) => {
@@ -150,42 +146,6 @@ export default function CustomerSolutionModal({
                           as="textarea"
                           rows={4}
                         />
-
-                        <div className="pt-4 space-y-3 border-t border-white/20">
-                          <FormCheckbox
-                            name="acceptedTerms"
-                            label={
-                              <>
-                                I accept the{' '}
-                                <a
-                                  href="/terms"
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="underline hover:text-[#67ff94]"
-                                >
-                                  terms and conditions
-                                </a>
-                              </>
-                            }
-                          />
-
-                          <FormCheckbox
-                            name="acceptedPrivacy"
-                            label={
-                              <>
-                                I agree to the{' '}
-                                <a
-                                  href="/privacy"
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="underline hover:text-[#67ff94]"
-                                >
-                                  privacy policy
-                                </a>
-                              </>
-                            }
-                          />
-                        </div>
                       </>
                     )}
 
