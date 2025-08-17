@@ -180,9 +180,31 @@ export function useProfileSubmit() {
 
       const wasForced =
         localStorage.getItem('forcedToCompleteProfile') === 'true';
+
       if (wasForced) {
-        localStorage.removeItem('forcedToCompleteProfile');
-        router.replace('/dashboard');
+        let roleComplete = false;
+
+        if (isCustomer) {
+          roleComplete = Boolean(
+            values.company_name?.trim() &&
+              values.job_title?.trim() &&
+              values.description?.trim()
+          );
+        }
+
+        if (isExpert) {
+          roleComplete = Boolean(
+            values.bio?.trim() && values.profession // ojo: acá usamos el string profession, no el id
+          );
+        }
+
+        if (roleComplete) {
+          localStorage.removeItem('forcedToCompleteProfile');
+          router.replace('/dashboard');
+        } else {
+          // fallback defensivo: quedarse en edit
+          router.replace('/force-profile/edit');
+        }
       }
     } catch (error: unknown) {
       console.error('❌ Error submitting profile:', error);
