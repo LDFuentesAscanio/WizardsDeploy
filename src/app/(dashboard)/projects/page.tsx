@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/utils/supabase/browserClient';
 import Button from '@/components/atoms/Button';
 import ProjectForm from '@/components/organisms/projects/ProjectForm';
@@ -50,39 +50,39 @@ export default function ProjectsPage() {
   }, []);
 
   // 📦 Obtener proyectos según rol
-  useEffect(() => {
-    const fetchProjects = async () => {
-      if (!userId || !userRole) return;
+  const fetchProjects = useCallback(async () => {
+    if (!userId || !userRole) return;
 
-      let query = supabase.from('it_projects').select('*');
+    let query = supabase.from('it_projects').select('*');
 
-      if (userRole === 'customer') {
-        // buscar customer_id real desde tabla customers
-        const { data: customer } = await supabase
-          .from('customers')
-          .select('id')
-          .eq('user_id', userId)
-          .single();
+    if (userRole === 'customer') {
+      const { data: customer } = await supabase
+        .from('customers')
+        .select('id')
+        .eq('user_id', userId)
+        .single();
 
-        if (customer) {
-          query = query.eq('customer_id', customer.id);
-        }
+      if (customer) {
+        query = query.eq('customer_id', customer.id);
       }
+    }
 
-      if (userRole === 'expert') {
-        // TODO: join con contracted_solutions para filtrar solo asignados
-      }
+    if (userRole === 'expert') {
+      // TODO: join con contracted_solutions
+    }
 
-      const { data, error } = await query;
-      if (error) {
-        console.error('❌ Error fetching projects:', error);
-        return;
-      }
-      setProjects((data as Project[]) || []);
-    };
-
-    fetchProjects();
+    const { data, error } = await query;
+    if (error) {
+      console.error('❌ Error fetching projects:', error);
+      return;
+    }
+    setProjects((data as Project[]) || []);
   }, [userId, userRole]);
+
+  // Ejecutar fetchProjects cuando tengamos userId + userRole
+  useEffect(() => {
+    fetchProjects();
+  }, [fetchProjects]);
 
   return (
     <div className="p-6 min-h-screen bg-[#2c3d5a] text-[#e7e7e7]">
@@ -94,7 +94,12 @@ export default function ProjectsPage() {
       </div>
 
       {showForm ? (
-        <ProjectForm onClose={() => setShowForm(false)} />
+        <ProjectForm
+          onClose={() => {
+            setShowForm(false);
+            fetchProjects(); // 👈 refetch después de crear proyecto
+          }}
+        />
       ) : (
         <ProjectList projects={projects} />
       )}
