@@ -144,7 +144,7 @@ export default function DashboardNavbar() {
                       onClick={() => setOpen(false)}
                       className={`flex items-center gap-2 px-2 py-1 transition-colors duration-200 ${
                         isActive
-                          ? 'text-[#2c3d5a] font-semibold'
+                          ? 'text-[#2c3d5a] font-bold'
                           : 'hover:text-[#67ff94]'
                       }`}
                       aria-current={isActive ? 'page' : undefined}
