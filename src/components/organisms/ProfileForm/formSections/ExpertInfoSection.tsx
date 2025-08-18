@@ -1,4 +1,5 @@
 'use client';
+
 import { Field } from 'formik';
 import UploadDocumentField from '@/components/molecules/UploadDocumentField';
 import ExpertiseSection from '../formComponents/ExpertiseSection';
@@ -16,12 +17,15 @@ export function ExpertInfoSection({ professions }: ExpertInfoSectionProps) {
       <UploadDocumentField />
 
       <div>
-        <label htmlFor="profession" className="text-sm mb-1 block text-white">
+        <label
+          htmlFor="profession_id"
+          className="text-sm mb-1 block text-white"
+        >
           Profession
         </label>
         <Field
           as="select"
-          name="profession"
+          name="profession_id"
           className="w-full px-4 py-3 rounded-xl bg-white/20 text-white focus:outline-none focus:ring-2 focus:ring-[#67ff94]"
         >
           <option value="" className="text-[#2c3d5a] bg-white">
@@ -30,10 +34,10 @@ export function ExpertInfoSection({ professions }: ExpertInfoSectionProps) {
           {professions.map((p) => (
             <option
               key={p.id}
-              value={p.profession_name}
+              value={p.id} // 👈 se guarda el id
               className="text-[#2c3d5a] bg-white hover:bg-[#67ff94]"
             >
-              {p.profession_name}
+              {p.profession_name} {/* 👈 el usuario ve el nombre */}
             </option>
           ))}
         </Field>
