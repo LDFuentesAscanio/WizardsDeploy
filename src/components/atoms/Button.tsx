@@ -12,7 +12,7 @@ export default function Button({
 
   const variants = {
     primary:
-      'w-full bg-[#67ff94] text-[#2c3d5a] py-3 rounded-xl font-semibold hover:bg-[#8effd2] transition-colors disabled:opacity-50',
+      'bg-[#67ff94] text-[#2c3d5a] py-3 rounded-xl font-semibold hover:bg-[#8effd2] transition-colors disabled:opacity-50',
     secondary:
       'border-2 border-[#67ff94] text-[#67ff94] py-3 rounded-xl font-semibold hover:bg-[#67ff94]/10 transition-colors disabled:opacity-50',
     email:
