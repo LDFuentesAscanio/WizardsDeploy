@@ -2,7 +2,7 @@
 // External libraries
 import Image from 'next/image';
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import {
   Menu,
   X,
@@ -16,7 +16,13 @@ import { AnimatePresence, motion } from 'framer-motion';
 import Link from 'next/link';
 import { supabase } from '@/utils/supabase/browserClient';
 
-const navItems = [
+type NavItem = {
+  label: string;
+  href: string;
+  icon: React.ReactNode;
+};
+
+const navItems: NavItem[] = [
   {
     label: 'Dashboard',
     href: '/dashboard',
@@ -27,13 +33,18 @@ const navItems = [
     href: '/profile/edit',
     icon: <Settings size={16} />,
   },
-  { label: 'Manage Projects', href: '#', icon: <FolderCog size={16} /> },
+  {
+    label: 'Manage Projects',
+    href: '/projects', // ✅ corregido
+    icon: <FolderCog size={16} />,
+  },
   { label: 'Explore Profiles', href: '#', icon: <Search size={16} /> },
 ];
 
 export default function DashboardNavbar() {
   const [open, setOpen] = useState(false);
   const router = useRouter();
+  const pathname = usePathname();
 
   const toggleMenu = () => setOpen((prev) => !prev);
 
@@ -46,7 +57,7 @@ export default function DashboardNavbar() {
     <header className="w-full bg-[#e7e7e7] text-[#2c3d5a] px-6 py-4 rounded-b-2xl shadow-md z-50 relative">
       <nav className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
         {/* Logo */}
-        <div className="w-40 h-auto">
+        <Link href="/dashboard" className="w-40 h-auto block">
           <Image
             src="/icons/logonav.svg"
             alt="Wizards Logo"
@@ -54,7 +65,7 @@ export default function DashboardNavbar() {
             height={48}
             priority
           />
-        </div>
+        </Link>
 
         {/* Mobile Menu Button */}
         <button
@@ -78,17 +89,26 @@ export default function DashboardNavbar() {
         {/* Desktop Menu */}
         <div className="hidden md:flex bg-[#8effd2] rounded-xl px-6 py-3 shadow-md">
           <ul className="flex gap-6 text-sm font-display font-medium items-center">
-            {navItems.map(({ label, href, icon }) => (
-              <li key={label}>
-                <Link
-                  href={href}
-                  className="flex items-center gap-2 px-2 py-1 hover:text-[#67ff94] transition-colors duration-200"
-                >
-                  {icon}
-                  {label}
-                </Link>
-              </li>
-            ))}
+            {navItems.map(({ label, href, icon }) => {
+              const isActive = pathname === href;
+
+              return (
+                <li key={label}>
+                  <Link
+                    href={href}
+                    className={`flex items-center gap-2 px-2 py-1 transition-colors duration-200 ${
+                      isActive
+                        ? 'text-[#67ff94] font-semibold'
+                        : 'hover:text-[#67ff94]'
+                    }`}
+                    aria-current={isActive ? 'page' : undefined}
+                  >
+                    {icon}
+                    {label}
+                  </Link>
+                </li>
+              );
+            })}
             <li>
               <button
                 onClick={handleLogout}
@@ -114,18 +134,27 @@ export default function DashboardNavbar() {
             className="md:hidden bg-[#8effd2] mt-4 rounded-xl px-6 py-3 shadow-md"
           >
             <ul className="flex flex-col gap-4 text-sm font-display font-medium">
-              {navItems.map(({ label, href, icon }) => (
-                <li key={label}>
-                  <Link
-                    href={href}
-                    onClick={() => setOpen(false)}
-                    className="flex items-center gap-2 px-2 py-1 hover:text-[#67ff94] transition-colors duration-200"
-                  >
-                    {icon}
-                    {label}
-                  </Link>
-                </li>
-              ))}
+              {navItems.map(({ label, href, icon }) => {
+                const isActive = pathname === href;
+
+                return (
+                  <li key={label}>
+                    <Link
+                      href={href}
+                      onClick={() => setOpen(false)}
+                      className={`flex items-center gap-2 px-2 py-1 transition-colors duration-200 ${
+                        isActive
+                          ? 'text-[#67ff94] font-semibold'
+                          : 'hover:text-[#67ff94]'
+                      }`}
+                      aria-current={isActive ? 'page' : undefined}
+                    >
+                      {icon}
+                      {label}
+                    </Link>
+                  </li>
+                );
+              })}
               <li>
                 <button
                   onClick={() => {

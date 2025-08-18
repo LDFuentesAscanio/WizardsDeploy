@@ -395,8 +395,6 @@ export default function CustomerDashboardView() {
           lookingForExpert: false,
           selectedSolutions: [],
           description: '',
-          acceptedTerms: false,
-          acceptedPrivacy: false,
         }}
         onSubmit={handleModalSubmit}
       />

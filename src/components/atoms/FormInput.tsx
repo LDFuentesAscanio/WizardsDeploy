@@ -1,14 +1,20 @@
 'use client';
 import { useField } from 'formik';
 
+interface Option {
+  value: string;
+  label: string;
+}
+
 interface FormInputProps {
   name: string;
   label?: string;
   placeholder?: string;
   type?: string;
-  as?: 'input' | 'textarea';
+  as?: 'input' | 'textarea' | 'select';
   rows?: number;
   className?: string;
+  options?: Option[];
 }
 
 export default function FormInput({
@@ -19,6 +25,7 @@ export default function FormInput({
   as = 'input',
   rows = 4,
   className,
+  options = [],
 }: FormInputProps) {
   const [field, meta] = useField(name);
 
@@ -36,7 +43,7 @@ export default function FormInput({
             className={`form-checkbox h-4 w-4 text-blue-500 ${
               hasError ? 'border-red-400' : ''
             }`}
-            checked={field.value} // importante para checkboxes
+            checked={field.value}
           />
           <span className="text-sm text-white">{label}</span>
         </label>
@@ -57,6 +64,20 @@ export default function FormInput({
                 hasError ? 'border border-red-400' : ''
               }`}
             />
+          ) : as === 'select' ? (
+            <select
+              id={name}
+              {...field}
+              className={`w-full px-4 py-3 rounded-xl bg-white/20 text-white ${
+                hasError ? 'border border-red-400' : ''
+              }`}
+            >
+              {options.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
           ) : (
             <input
               id={name}

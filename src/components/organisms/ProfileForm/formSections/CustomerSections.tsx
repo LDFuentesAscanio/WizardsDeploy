@@ -18,11 +18,10 @@ export default function CustomerSections({ solutions, roleName }: Props) {
   const [showModal, setShowModal] = useState(false);
   const [selectedSolutions, setSelectedSolutions] = useState<string[]>([]);
 
-  const handleSaveSolutions = async (modalValues: {
+  const handleSaveSolutions = async (values: {
     selectedSolutions: string[];
     description: string;
-    acceptedTerms: boolean;
-    acceptedPrivacy: boolean;
+    lookingForExpert: boolean;
   }) => {
     try {
       const { data: authUser } = await supabase.auth.getUser();
@@ -31,11 +30,11 @@ export default function CustomerSections({ solutions, roleName }: Props) {
 
       await saveCustomerSolutions({
         user_id,
-        selectedSolutions: modalValues.selectedSolutions,
-        description: modalValues.description,
+        selectedSolutions: values.selectedSolutions,
+        description: values.description,
       });
 
-      setSelectedSolutions(modalValues.selectedSolutions);
+      setSelectedSolutions(values.selectedSolutions);
       setShowModal(false);
       showSuccess('Solutions saved!');
     } catch (error) {
