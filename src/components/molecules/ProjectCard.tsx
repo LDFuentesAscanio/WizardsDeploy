@@ -7,7 +7,7 @@ type Project = Tables<'it_projects'>;
 export default function ProjectCard({ project }: { project: Project }) {
   return (
     <div className="bg-white/10 backdrop-blur rounded-xl p-6 shadow">
-      <h3 className="text-lg font-bold text-[#2c3d5a]">
+      <h3 className="text-lg font-bold text-white/70">
         {project.project_name}
       </h3>
       <p className="text-sm text-white/70">{project.description}</p>
