@@ -89,7 +89,7 @@ export default function ProjectsPage() {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-white/70">Projects</h1>
         {userRole === 'customer' && (
-          <Button variant="small" onClick={() => setShowForm(true)}>
+          <Button variant="primary" onClick={() => setShowForm(true)}>
             New Project
           </Button>
         )}
