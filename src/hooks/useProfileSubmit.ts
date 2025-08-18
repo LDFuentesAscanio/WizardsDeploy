@@ -25,6 +25,7 @@ export function useProfileSubmit() {
       } = await supabase.auth.getUser();
       if (authError || !user) throw authError;
 
+      // ✅ Si no hay cambios, no hacemos nada
       if (JSON.stringify(values) === JSON.stringify(initialValues)) {
         showInfo('No changes detected');
         return;
@@ -68,26 +69,18 @@ export function useProfileSubmit() {
         // Obtener profession_id basado en el nombre de la profesión
         let professionId = '';
         if (values.profession) {
-          // Ahora usamos values.profession directamente
           const { data: profession, error: profError } = await supabase
             .from('it_professions')
             .select('id')
             .eq('profession_name', values.profession)
             .single();
 
-          if (profError) {
-            console.error('Error fetching profession:', profError);
-            throw profError;
-          }
-
-          if (!profession) {
-            throw new Error('Selected profession not found');
-          }
-
+          if (profError) throw profError;
+          if (!profession) throw new Error('Selected profession not found');
           professionId = profession.id;
         }
 
-        // Upsert expert y obtener su ID real
+        // Upsert expert y obtener su ID
         const { data: expertRecord, error: expertError } = await supabase
           .from('experts')
           .upsert(
@@ -176,8 +169,10 @@ export function useProfileSubmit() {
         }
       }
 
+      // ✅ Si todo fue bien
       showSuccess('Profile updated successfully');
 
+      // 🔑 Lógica de redirección solo si fue forzado
       const wasForced =
         localStorage.getItem('forcedToCompleteProfile') === 'true';
 
@@ -194,16 +189,15 @@ export function useProfileSubmit() {
 
         if (isExpert) {
           roleComplete = Boolean(
-            values.bio?.trim() && values.profession // ojo: acá usamos el string profession, no el id
+            values.bio?.trim() && values.profession?.trim()
           );
         }
 
         if (roleComplete) {
           localStorage.removeItem('forcedToCompleteProfile');
-          router.replace('/dashboard');
+          router.replace('/dashboard'); // 🚀 Primera vez → Dashboard
         } else {
-          // fallback defensivo: quedarse en edit
-          router.replace('/force-profile/edit');
+          router.replace('/force-profile/edit'); // fallback defensivo
         }
       }
     } catch (error: unknown) {
