@@ -40,7 +40,7 @@ export default function FormInput({
             id={name}
             {...field}
             type="checkbox"
-            className={`w-full px-4 py-3 rounded-xl bg-[#e7e7e7]/20 placeholder-[#e7e7e7]/60 text-[#e7e7e7] ${
+            className={`w-full px-4 py-3 rounded-xl bg-[#e7e7e7] text-[#2c3d5a] placeholder-[#2c3d5a]/50 ${
               hasError ? 'border border-red-400' : ''
             }`}
             checked={field.value}
@@ -50,7 +50,7 @@ export default function FormInput({
       ) : (
         <>
           {label && (
-            <label htmlFor={name} className="text-sm mb-1 block text-white">
+            <label htmlFor={name} className="text-sm mb-1 block text-[#e7e7e7]">
               {label}
             </label>
           )}
@@ -60,7 +60,7 @@ export default function FormInput({
               {...field}
               placeholder={placeholder}
               rows={rows}
-              className={`w-full px-4 py-3 rounded-xl bg-[#e7e7e7]/20 placeholder-[#e7e7e7]/60 text-[#e7e7e7] resize-none ${
+              className={`w-full px-4 py-3 rounded-xl bg-[#e7e7e7] text-[#2c3d5a] placeholder-[#2c3d5a]/50 resize-none ${
                 hasError ? 'border border-red-400' : ''
               }`}
             />
@@ -68,7 +68,7 @@ export default function FormInput({
             <select
               id={name}
               {...field}
-              className={`w-full px-4 py-3 rounded-xl bg-[#e7e7e7]/20 text-[#e7e7e7] ${
+              className={`w-full px-4 py-3 rounded-xl bg-[#e7e7e7] text-[#2c3d5a] ${
                 hasError ? 'border border-red-400' : ''
               }`}
             >

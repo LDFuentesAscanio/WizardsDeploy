@@ -80,7 +80,7 @@ export default function ProjectForm({ onClose }: Props) {
       }}
     >
       {({ isSubmitting }) => (
-        <Form className="space-y-4 bg-white p-6 rounded-xl shadow-md text-black">
+        <Form className="space-y-4 bg-[#2c3d5a] p-6 rounded-xl shadow-md text-[#e7e7e7]">
           <FormInput name="project_name" label="Project Name" />
           <FormInput
             name="description"
