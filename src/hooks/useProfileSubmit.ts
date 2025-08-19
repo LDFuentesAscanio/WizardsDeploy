@@ -1,6 +1,6 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { supabase } from '@/utils/supabase/browserClient';
 import { showError, showInfo, showSuccess } from '@/utils/toastService';
 import { CustomerInsert, ExpertInsert } from '@/supabase-types';
@@ -11,6 +11,7 @@ import {
 
 export function useProfileSubmit() {
   const router = useRouter();
+  const pathname = usePathname();
 
   const handleSubmit = async (
     values: ProfileFormValues,
@@ -25,9 +26,41 @@ export function useProfileSubmit() {
       } = await supabase.auth.getUser();
       if (authError || !user) throw authError;
 
-      // ✅ Si no hay cambios, no hacemos nada
+      // ✅ Si no hay cambios
       if (JSON.stringify(values) === JSON.stringify(initialValues)) {
-        showInfo('No changes detected');
+        // Verificamos si ya está completo (en caso de estar en force-profile)
+        const basicComplete = Boolean(
+          values.first_name?.trim() &&
+            values.last_name?.trim() &&
+            values.country_id &&
+            values.role_id
+        );
+
+        const roleComplete = isCustomer
+          ? Boolean(
+              values.company_name?.trim() &&
+                values.job_title?.trim() &&
+                values.description?.trim()
+            )
+          : isExpert
+            ? Boolean(
+                values.bio?.trim() &&
+                  (values.profession_id || values.profession?.trim())
+              )
+            : false;
+
+        if (
+          basicComplete &&
+          roleComplete &&
+          pathname === '/force-profile/edit'
+        ) {
+          if (localStorage.getItem('forcedToCompleteProfile')) {
+            localStorage.removeItem('forcedToCompleteProfile');
+          }
+          router.replace('/dashboard');
+        } else {
+          showInfo('No changes detected');
+        }
         return;
       }
 
@@ -66,9 +99,9 @@ export function useProfileSubmit() {
 
       // 3️⃣ Expert update
       if (isExpert) {
-        // Obtener profession_id basado en el nombre de la profesión
-        let professionId = '';
-        if (values.profession) {
+        // Obtener profession_id basado en el nombre
+        let professionId = values.profession_id || '';
+        if (!professionId && values.profession) {
           const { data: profession, error: profError } = await supabase
             .from('it_professions')
             .select('id')
@@ -172,33 +205,38 @@ export function useProfileSubmit() {
       // ✅ Si todo fue bien
       showSuccess('Profile updated successfully');
 
-      // 🔑 Lógica de redirección solo si fue forzado
-      const wasForced =
-        localStorage.getItem('forcedToCompleteProfile') === 'true';
+      // 🔑 Chequeo de perfil completo
+      const basicComplete = Boolean(
+        values.first_name?.trim() &&
+          values.last_name?.trim() &&
+          values.country_id &&
+          values.role_id
+      );
 
-      if (wasForced) {
-        let roleComplete = false;
-
-        if (isCustomer) {
-          roleComplete = Boolean(
+      const roleComplete = isCustomer
+        ? Boolean(
             values.company_name?.trim() &&
               values.job_title?.trim() &&
               values.description?.trim()
-          );
-        }
+          )
+        : isExpert
+          ? Boolean(
+              values.bio?.trim() &&
+                (values.profession_id || values.profession?.trim())
+            )
+          : false;
 
-        if (isExpert) {
-          roleComplete = Boolean(
-            values.bio?.trim() && values.profession?.trim()
-          );
-        }
+      const profileComplete = basicComplete && roleComplete;
 
-        if (roleComplete) {
-          localStorage.removeItem('forcedToCompleteProfile');
-          router.replace('/dashboard'); // 🚀 Primera vez → Dashboard
-        } else {
-          router.replace('/force-profile/edit'); // fallback defensivo
-        }
+      // Limpia flag si existe
+      if (localStorage.getItem('forcedToCompleteProfile')) {
+        localStorage.removeItem('forcedToCompleteProfile');
+      }
+
+      if (profileComplete) {
+        router.replace('/dashboard');
+      } else if (pathname !== '/force-profile/edit') {
+        router.replace('/force-profile/edit');
       }
     } catch (error: unknown) {
       console.error('❌ Error submitting profile:', error);

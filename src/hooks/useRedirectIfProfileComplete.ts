@@ -83,6 +83,10 @@ export function useRedirectIfProfileComplete() {
         }
 
         if (basicComplete && roleComplete) {
+          // ✅ Limpieza si venía forzado
+          if (localStorage.getItem('forcedToCompleteProfile')) {
+            localStorage.removeItem('forcedToCompleteProfile');
+          }
           router.replace('/dashboard');
         }
       } catch (err) {
