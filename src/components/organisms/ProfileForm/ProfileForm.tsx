@@ -34,7 +34,7 @@ export default function ProfileForm() {
         handleSubmit(values, initialValues, isCustomer, isExpert)
       }
     >
-      {({ isSubmitting, isValid }) => (
+      {({ isSubmitting }) => (
         <Form className="w-full max-w-xl bg-white/10 backdrop-blur p-8 rounded-2xl shadow-xl space-y-4">
           <h1 className="text-2xl font-display font-bold text-center">
             Profile
@@ -54,7 +54,7 @@ export default function ProfileForm() {
 
           <button
             type="submit"
-            disabled={isSubmitting || !isValid}
+            disabled={isSubmitting} // 👈 ahora solo depende del submit
             className="w-full bg-[#67ff94] text-[#2c3d5a] py-3 rounded-xl font-semibold hover:bg-[#8effd2] transition-colors disabled:opacity-50"
           >
             {isSubmitting ? 'Saving...' : 'Save Changes'}
