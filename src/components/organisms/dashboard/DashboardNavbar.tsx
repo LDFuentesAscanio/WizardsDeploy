@@ -1,7 +1,8 @@
 'use client';
+
 // External libraries
 import Image from 'next/image';
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import {
   Menu,
@@ -16,33 +17,18 @@ import { AnimatePresence, motion } from 'framer-motion';
 import Link from 'next/link';
 import { supabase } from '@/utils/supabase/browserClient';
 
+type RoleName = 'customer' | 'admin' | 'expert' | null;
+
 type NavItem = {
   label: string;
   href: string;
   icon: React.ReactNode;
 };
 
-const navItems: NavItem[] = [
-  {
-    label: 'Dashboard',
-    href: '/dashboard',
-    icon: <LayoutDashboard size={16} />,
-  },
-  {
-    label: 'Profile Settings',
-    href: '/profile/edit',
-    icon: <Settings size={16} />,
-  },
-  {
-    label: 'Manage Projects',
-    href: '/projects', // ✅ corregido
-    icon: <FolderCog size={16} />,
-  },
-  { label: 'Explore Profiles', href: '#', icon: <Search size={16} /> },
-];
-
 export default function DashboardNavbar() {
   const [open, setOpen] = useState(false);
+  const [role, setRole] = useState<RoleName>(null);
+
   const router = useRouter();
   const pathname = usePathname();
 
@@ -52,6 +38,78 @@ export default function DashboardNavbar() {
     await supabase.auth.signOut();
     router.push('/');
   };
+
+  // 🔐 Obtener rol del usuario actual (sin contexto)
+  useEffect(() => {
+    let isMounted = true;
+    (async () => {
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { data, error } = await supabase
+          .from('users')
+          .select('user_role:role_id (name)')
+          .eq('id', user.id)
+          .single();
+
+        if (!error && data?.user_role?.name && isMounted) {
+          setRole((data.user_role.name as string).toLowerCase() as RoleName);
+        }
+      } catch (e) {
+        // Silencioso: si falla, mostramos menú base
+        console.error('Navbar role fetch error:', e);
+      }
+    })();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // 🧠 Ítems dinámicos por rol
+  const navItems = useMemo<NavItem[]>(() => {
+    const base: NavItem[] = [
+      {
+        label: 'Dashboard',
+        href: '/dashboard',
+        icon: <LayoutDashboard size={16} />,
+      },
+      {
+        label: 'Profile Settings',
+        href: '/profile/edit',
+        icon: <Settings size={16} />,
+      },
+    ];
+
+    if (role === 'expert') {
+      return [
+        ...base,
+        // Mis proyectos (solo los asignados) – misma ruta /projects, solo cambia el label
+        {
+          label: 'My Projects',
+          href: '/projects',
+          icon: <FolderCog size={16} />,
+        },
+        // Explorar proyectos disponibles para postularse – placeholder hasta implementar
+        { label: 'Explore Projects', href: '#', icon: <Search size={16} /> },
+      ];
+    }
+
+    // Customer/Admin
+    return [
+      ...base,
+      // Gestionar proyectos (crear/editar/borrar) – misma ruta /projects
+      {
+        label: 'Manage Projects',
+        href: '/projects',
+        icon: <FolderCog size={16} />,
+      },
+      // Explorar perfiles – placeholder hasta implementar
+      { label: 'Explore Profiles', href: '#', icon: <Search size={16} /> },
+    ];
+  }, [role]);
 
   return (
     <header className="w-full bg-[#e7e7e7] text-[#2c3d5a] px-6 py-4 rounded-b-2xl shadow-md z-50 relative">
@@ -91,7 +149,6 @@ export default function DashboardNavbar() {
           <ul className="flex gap-6 text-sm font-display font-medium items-center">
             {navItems.map(({ label, href, icon }) => {
               const isActive = pathname === href;
-
               return (
                 <li key={label}>
                   <Link
@@ -136,7 +193,6 @@ export default function DashboardNavbar() {
             <ul className="flex flex-col gap-4 text-sm font-display font-medium">
               {navItems.map(({ label, href, icon }) => {
                 const isActive = pathname === href;
-
                 return (
                   <li key={label}>
                     <Link
@@ -159,7 +215,7 @@ export default function DashboardNavbar() {
                 <button
                   onClick={() => {
                     setOpen(false);
-                    handleLogout();
+                    void handleLogout();
                   }}
                   className="flex items-center gap-2 px-2 py-1 text-red-600 hover:text-red-400 transition-colors duration-200"
                 >
