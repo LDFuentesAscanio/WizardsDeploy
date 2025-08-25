@@ -38,7 +38,7 @@ export interface CustomerSpecific {
   description?: string;
   company_url?: string;
   company_logo_url: string;
-  selected_solutions: string[];
+  selected_categories: string[];
   looking_for_expert: boolean;
 }
 
@@ -65,7 +65,7 @@ export interface Role {
   name: string;
 }
 
-export interface Solution {
+export interface Category {
   id: string;
   name: string;
   description?: string;

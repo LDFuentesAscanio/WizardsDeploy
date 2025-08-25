@@ -1,25 +1,26 @@
 'use client';
 
 import { useState } from 'react';
-import { Solution } from '../types';
-import CustomerSolutionModal from '../../dashboard/CustomerSolutionsModal';
+import { Category } from '../types';
+
 import { CustomerBasicInfo } from './CustomerBasicInfo';
-import { saveCustomerSolutions } from '@/utils/saveSolutions';
 import { supabase } from '@/utils/supabase/browserClient';
 import { showError, showSuccess } from '@/utils/toastService';
 import FormCheckbox from '@/components/atoms/FormCheckbox';
+import { saveCustomerCategories } from '@/utils/saveCategories';
+import CustomerCategoryModal from '../../dashboard/CustomerCategoriesModal';
 
 type Props = {
-  solutions: Solution[];
-  roleName: string | null; // ahora recibimos el role
+  categories: Category[];
+  roleName: string | null;
 };
 
-export default function CustomerSections({ solutions, roleName }: Props) {
+export default function CustomerSections({ categories, roleName }: Props) {
   const [showModal, setShowModal] = useState(false);
-  const [selectedSolutions, setSelectedSolutions] = useState<string[]>([]);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
 
-  const handleSaveSolutions = async (values: {
-    selectedSolutions: string[];
+  const handleSaveCategories = async (values: {
+    selectedCategories: string[];
     description: string;
     lookingForExpert: boolean;
   }) => {
@@ -28,25 +29,25 @@ export default function CustomerSections({ solutions, roleName }: Props) {
       const user_id = authUser.user?.id;
       if (!user_id) throw new Error('No user authenticated');
 
-      await saveCustomerSolutions({
+      await saveCustomerCategories({
         user_id,
-        selectedSolutions: values.selectedSolutions,
+        selectedCategories: values.selectedCategories,
         description: values.description,
       });
 
-      setSelectedSolutions(values.selectedSolutions);
+      setSelectedCategories(values.selectedCategories);
       setShowModal(false);
-      showSuccess('Solutions saved!');
+      showSuccess('Categories saved successfully!');
     } catch (error) {
-      console.error('Error saving solutions:', error);
-      showError('Error saving solutions');
+      console.error('Error saving categories:', error);
+      showError('Error saving categories');
     }
   };
 
   return (
     <>
-      {/* Pasamos roleName al CustomerBasicInfo */}
       <CustomerBasicInfo roleName={roleName} />
+
       <div className="pt-4 space-y-3">
         <FormCheckbox
           name="accepted_terms_conditions"
@@ -83,28 +84,28 @@ export default function CustomerSections({ solutions, roleName }: Props) {
       </div>
 
       <div className="space-y-4">
-        <h3 className="text-lg font-semibold text-white">Solutions</h3>
+        <h3 className="text-lg font-semibold text-white">Categories</h3>
 
         <button
           type="button"
           onClick={() => setShowModal(true)}
           className="text-[#67ff94] hover:text-[#8effd2] underline text-sm"
         >
-          {selectedSolutions.length > 0
-            ? 'Edit your solutions selection'
+          {selectedCategories.length > 0
+            ? 'Edit your categories selection'
             : 'Are you looking for an expert? Click here'}
         </button>
 
-        {selectedSolutions.length > 0 && (
+        {selectedCategories.length > 0 && (
           <div className="bg-white/10 p-4 rounded-lg">
             <p className="text-white mb-2">You have selected:</p>
             <ul className="space-y-1">
-              {selectedSolutions.map((id) => {
-                const solution = solutions.find((s) => s.id === id);
+              {selectedCategories.map((id) => {
+                const category = categories.find((c) => c.id === id);
                 return (
-                  solution && (
+                  category && (
                     <li key={id} className="text-sm text-white">
-                      • {solution.name}
+                      • {category.name}
                     </li>
                   )
                 );
@@ -114,16 +115,16 @@ export default function CustomerSections({ solutions, roleName }: Props) {
         )}
       </div>
 
-      <CustomerSolutionModal
+      <CustomerCategoryModal
         isOpen={showModal}
         onClose={() => setShowModal(false)}
-        solutions={solutions}
+        categories={categories}
         initialValues={{
-          lookingForExpert: selectedSolutions.length > 0,
-          selectedSolutions,
+          lookingForExpert: selectedCategories.length > 0,
+          selectedCategories,
           description: '',
         }}
-        onSubmit={handleSaveSolutions}
+        onSubmit={handleSaveCategories}
       />
     </>
   );

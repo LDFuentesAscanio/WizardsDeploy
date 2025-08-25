@@ -102,19 +102,21 @@ export interface CustomerDashboardData {
   description: string;
   avatar?: string | null;
   company_logo?: string | null;
-  solutions: string[];
+  categories: string[];
 }
 
 // Tipos para soluciones contratadas
-export type FrontendContractedSolution = {
+export interface FrontendContractedCategory {
   id: string;
-  solution_id: string;
+  category_id: string;
   customer_id: string;
-  description_solution?: string | null;
+  description_solution: string | null;
   is_active: boolean;
-  contract_date?: string | null;
-  solutions: { name: string } | null;
-};
+  contract_date: string | null; // Cambiado de string a string | null
+  categories: {
+    name: string;
+  } | null;
+}
 
 // Tipos para profesiones
 export interface ProfessionRow {

@@ -5,34 +5,34 @@ import { Formik, Form, FieldArray } from 'formik';
 import { AnimatePresence, motion } from 'framer-motion'; // 🧠 agregado
 import FormInput from '@/components/atoms/FormInput';
 import FormCheckbox from '@/components/atoms/FormCheckbox';
-import { solutionModalSchema } from '@/validations/solutionModalSchema';
 import { showError, showSuccess } from '@/utils/toastService';
 import { supabase } from '@/utils/supabase/browserClient';
-import { saveCustomerSolutions } from '@/utils/saveSolutions';
+import { categoryModalSchema } from '@/validations/CategoryModalSchema';
+import { saveCustomerCategories } from '@/utils/saveCategories';
 
-type Solution = {
+type Category = {
   id: string;
   name: string;
 };
 
 type FormValues = {
   lookingForExpert: boolean;
-  selectedSolutions: string[];
+  selectedCategories: string[];
   description: string;
 };
 
 type Props = {
   isOpen: boolean;
   onClose: () => void;
-  solutions: Solution[];
+  categories: Category[];
   initialValues: Partial<FormValues>;
   onSubmit?: (values: FormValues) => void | Promise<void>;
 };
 
-export default function CustomerSolutionModal({
+export default function CustomerCategoryModal({
   isOpen,
   onClose,
-  solutions,
+  categories,
   initialValues,
   onSubmit,
 }: Props) {
@@ -60,19 +60,19 @@ export default function CustomerSolutionModal({
               <Formik
                 initialValues={{
                   lookingForExpert: initialValues.lookingForExpert ?? false,
-                  selectedSolutions: initialValues.selectedSolutions ?? [],
+                  selectedCategories: initialValues.selectedCategories ?? [],
                   description: initialValues.description ?? '',
                 }}
-                validationSchema={solutionModalSchema}
+                validationSchema={categoryModalSchema}
                 onSubmit={async (values) => {
                   try {
                     const { data: authUser } = await supabase.auth.getUser();
                     const user_id = authUser.user?.id;
                     if (!user_id) throw new Error('No user authenticated');
 
-                    await saveCustomerSolutions({
+                    await saveCustomerCategories({
                       user_id,
-                      selectedSolutions: values.selectedSolutions,
+                      selectedCategories: values.selectedCategories,
                       description: values.description,
                     });
 
@@ -116,20 +116,20 @@ export default function CustomerSolutionModal({
                             <FieldArray name="selectedSolutions">
                               {() => (
                                 <>
-                                  {solutions.map((solution) => (
+                                  {categories.map((category) => (
                                     <FormCheckbox
-                                      key={solution.id}
-                                      name="selectedSolutions"
-                                      label={solution.name}
+                                      key={category.id}
+                                      name="selectedCategories"
+                                      label={category.name}
                                       onChange={(e) => {
                                         const checked = e.target.checked;
                                         setFieldValue(
-                                          'selectedSolutions',
-                                          checked ? [solution.id] : []
+                                          'selectedCategories',
+                                          checked ? [category.id] : []
                                         );
                                       }}
-                                      checked={values.selectedSolutions.includes(
-                                        solution.id
+                                      checked={values.selectedCategories.includes(
+                                        category.id
                                       )}
                                     />
                                   ))}

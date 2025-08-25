@@ -8,22 +8,25 @@ import { showError, showSuccess } from '@/utils/toastService';
 import UserCard from '../organisms/dashboard/UserCard';
 import {
   CustomerDashboardData,
-  FrontendContractedSolution,
+  FrontendContractedCategory,
 } from '../organisms/dashboard/types';
-import CustomerSolutionModal from '../organisms/dashboard/CustomerSolutionsModal';
-import { saveCustomerSolutions } from '@/utils/saveSolutions';
-import { Solution } from '../organisms/ProfileForm/types';
+
+import { saveCustomerCategories } from '@/utils/saveCategories';
+import { Category } from '../organisms/ProfileForm/types';
 import { ConfirmDialog } from '../organisms/dashboard/ConfirmDialog';
+import CustomerCategoryModal from '../organisms/dashboard/CustomerCategoriesModal';
 
 export default function CustomerDashboardView() {
   const [data, setData] = useState<CustomerDashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [solutionToDelete, setSolutionToDelete] = useState<string | null>(null);
-  const [availableSolutions, setAvailableSolutions] = useState<Solution[]>([]);
-  const [contractedSolutions, setContractedSolutions] = useState<
-    FrontendContractedSolution[]
+  const [categoryToDelete, setCategoryToDelete] = useState<string | null>(null);
+  const [availableCategories, setAvailableCategories] = useState<Category[]>(
+    []
+  );
+  const [contractedCategories, setContractedCategories] = useState<
+    FrontendContractedCategory[]
   >([]);
 
   useEffect(() => {
@@ -50,7 +53,7 @@ export default function CustomerDashboardView() {
           { data: user },
           { data: avatarMedia },
           { data: companyLogoMedia },
-          { data: allSolutions },
+          { data: allCategories },
           { data: contractedRaw },
         ] = await Promise.all([
           supabase
@@ -73,43 +76,43 @@ export default function CustomerDashboardView() {
             .eq('type', 'company_logo')
             .maybeSingle(),
 
-          supabase.from('solutions').select('id, name'),
+          supabase.from('categories').select('id, name'), // Cambiado de solutions a categories
 
           supabase
             .from('contracted_solutions')
             .select(
               `
               id, 
-              solution_id, 
+              category_id, 
               customer_id,
               description_solution,
               is_active,
               contract_date,
-              solutions:solution_id (name)
+              categories:category_id (name)
             `
             )
             .eq('customer_id', customer_id)
             .eq('is_active', true),
         ]);
 
-        setAvailableSolutions(allSolutions || []);
+        setAvailableCategories(allCategories || []);
 
         // Mapear los datos para que coincidan con nuestro tipo
-        const formattedSolutions: FrontendContractedSolution[] =
+        const formattedCategories: FrontendContractedCategory[] =
           contractedRaw?.map((item) => ({
             id: item.id,
-            solution_id: item.solution_id,
+            category_id: item.category_id,
             customer_id: item.customer_id,
             description_solution: item.description_solution,
             is_active: item.is_active ?? false,
             contract_date: item.contract_date,
-            solutions: item.solutions,
+            categories: item.categories,
           })) || [];
 
-        setContractedSolutions(formattedSolutions);
+        setContractedCategories(formattedCategories);
 
-        const solutionNames = formattedSolutions
-          .map((item) => item.solutions?.name)
+        const categoryNames = formattedCategories
+          .map((item) => item.categories?.name)
           .filter((name): name is string => !!name);
 
         setData({
@@ -122,7 +125,7 @@ export default function CustomerDashboardView() {
           description: customerData.description || '',
           avatar: avatarMedia?.url_storage || null,
           company_logo: companyLogoMedia?.url_storage || null,
-          solutions: solutionNames,
+          categories: categoryNames, // Cambiado de solutions a categories
         });
       } catch (error) {
         console.error('Error loading data:', error);
@@ -137,13 +140,13 @@ export default function CustomerDashboardView() {
     fetchAllData();
   }, []);
 
-  const confirmDelete = (solutionId: string) => {
-    setSolutionToDelete(solutionId);
+  const confirmDelete = (categoryId: string) => {
+    setCategoryToDelete(categoryId);
     setConfirmOpen(true);
   };
 
   const handleDeleteConfirmed = async () => {
-    if (!solutionToDelete) return;
+    if (!categoryToDelete) return;
 
     try {
       const { data: authUser } = await supabase.auth.getUser();
@@ -161,61 +164,61 @@ export default function CustomerDashboardView() {
       const { error: deleteError } = await supabase
         .from('contracted_solutions')
         .update({ is_active: false, updated_at: new Date().toISOString() })
-        .eq('id', solutionToDelete)
+        .eq('id', categoryToDelete)
         .select();
 
       if (deleteError) throw deleteError;
 
-      const { data: refreshedSolutions } = await supabase
+      const { data: refreshedCategories } = await supabase
         .from('contracted_solutions')
         .select(
           `
           id, 
-          solution_id, 
+          category_id, 
           customer_id,
           description_solution,
           is_active,
           contract_date,
-          solutions:solution_id (name)
+          categories:category_id (name)
         `
         )
         .eq('customer_id', customerData.id)
         .eq('is_active', true);
 
-      const formattedSolutions: FrontendContractedSolution[] =
-        refreshedSolutions?.map((item) => ({
+      const formattedCategories: FrontendContractedCategory[] =
+        refreshedCategories?.map((item) => ({
           id: item.id,
-          solution_id: item.solution_id,
+          category_id: item.category_id,
           customer_id: item.customer_id,
           description_solution: item.description_solution,
           is_active: item.is_active ?? false,
           contract_date: item.contract_date,
-          solutions: item.solutions,
+          categories: item.categories,
         })) || [];
 
-      setContractedSolutions(formattedSolutions);
+      setContractedCategories(formattedCategories);
 
-      const solutionNames = formattedSolutions
-        .map((item) => item.solutions?.name)
+      const categoryNames = formattedCategories
+        .map((item) => item.categories?.name)
         .filter((name): name is string => !!name);
 
       setData((prev) => ({
         ...prev!,
-        solutions: solutionNames,
+        categories: categoryNames, // Cambiado de solutions a categories
       }));
 
-      showSuccess('Solution removed successfully');
+      showSuccess('Category removed successfully');
     } catch (error) {
-      console.error('Error deleting solution:', error);
-      showError('Failed to remove solution');
+      console.error('Error deleting category:', error);
+      showError('Failed to remove category');
     } finally {
       setConfirmOpen(false);
-      setSolutionToDelete(null);
+      setCategoryToDelete(null);
     }
   };
 
   const handleModalSubmit = async (values: {
-    selectedSolutions: string[];
+    selectedCategories: string[];
     description: string;
   }) => {
     try {
@@ -223,55 +226,55 @@ export default function CustomerDashboardView() {
       const user_id = authUser.user?.id;
       if (!user_id) throw new Error('User not authenticated');
 
-      const customer_id = await saveCustomerSolutions({
+      const customer_id = await saveCustomerCategories({
         user_id,
-        selectedSolutions: values.selectedSolutions,
+        selectedCategories: values.selectedCategories,
         description: values.description,
       });
 
-      const { data: refreshedSolutions } = await supabase
+      const { data: refreshedCategories } = await supabase
         .from('contracted_solutions')
         .select(
           `
           id, 
-          solution_id, 
+          category_id, 
           customer_id,
           description_solution,
           is_active,
           contract_date,
-          solutions:solution_id (name)
+          categories:category_id (name)
         `
         )
         .eq('customer_id', customer_id)
         .eq('is_active', true);
 
-      const formattedSolutions: FrontendContractedSolution[] =
-        refreshedSolutions?.map((item) => ({
+      const formattedCategories: FrontendContractedCategory[] =
+        refreshedCategories?.map((item) => ({
           id: item.id,
-          solution_id: item.solution_id,
+          category_id: item.category_id,
           customer_id: item.customer_id,
           description_solution: item.description_solution,
           is_active: item.is_active ?? false,
           contract_date: item.contract_date,
-          solutions: item.solutions,
+          categories: item.categories,
         })) || [];
 
-      setContractedSolutions(formattedSolutions);
+      setContractedCategories(formattedCategories);
 
-      const solutionNames = formattedSolutions
-        .map((item) => item.solutions?.name)
+      const categoryNames = formattedCategories
+        .map((item) => item.categories?.name)
         .filter((name): name is string => !!name);
 
       setData((prev) => ({
         ...prev!,
-        solutions: solutionNames,
+        categories: categoryNames, // Cambiado de solutions a categories
       }));
 
       setShowModal(false);
-      showSuccess('Solutions updated successfully');
+      showSuccess('Categories updated successfully');
     } catch (error) {
-      console.error('Error updating solutions:', error);
-      showError('Failed to update solutions');
+      console.error('Error updating categories:', error);
+      showError('Failed to update categories');
     }
   };
 
@@ -322,21 +325,21 @@ export default function CustomerDashboardView() {
             </div>
           </div>
 
-          {/* Sección soluciones */}
+          {/* Sección categorías */}
           <div className="bg-white/10 backdrop-blur rounded-xl p-6 shadow">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold">Solutions Needed</h2>
+              <h2 className="text-xl font-semibold">Categories Needed</h2>
               <button
                 onClick={() => setShowModal(true)}
                 className="text-sm text-[#67ff94] hover:underline"
               >
-                Add Solutions
+                Add Categories
               </button>
             </div>
 
-            {data.solutions.length > 0 ? (
+            {data.categories.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {contractedSolutions.map((item) => (
+                {contractedCategories.map((item) => (
                   <motion.div
                     key={item.id}
                     initial={{ opacity: 0, y: 10 }}
@@ -347,7 +350,7 @@ export default function CustomerDashboardView() {
                     <div className="flex justify-between items-start">
                       <div>
                         <h3 className="font-semibold text-md">
-                          {item.solutions?.name || 'Unnamed Solution'}
+                          {item.categories?.name || 'Unnamed Category'}
                         </h3>
                         {item.description_solution && (
                           <p className="text-sm text-[#1d2c45] mt-1">
@@ -358,7 +361,7 @@ export default function CustomerDashboardView() {
                       <button
                         onClick={() => confirmDelete(item.id)}
                         className="text-[#2c3d5a] hover:text-red-500"
-                        aria-label="Remove solution"
+                        aria-label="Remove category"
                       >
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
@@ -380,20 +383,20 @@ export default function CustomerDashboardView() {
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-white/70">No solutions selected.</p>
+              <p className="text-sm text-white/70">No categories selected.</p>
             )}
           </div>
         </div>
       </motion.div>
 
       {/* Modales */}
-      <CustomerSolutionModal
+      <CustomerCategoryModal
         isOpen={showModal}
         onClose={() => setShowModal(false)}
-        solutions={availableSolutions}
+        categories={availableCategories}
         initialValues={{
           lookingForExpert: false,
-          selectedSolutions: [],
+          selectedCategories: [],
           description: '',
         }}
         onSubmit={handleModalSubmit}
@@ -401,8 +404,8 @@ export default function CustomerDashboardView() {
 
       <ConfirmDialog
         isOpen={confirmOpen}
-        title="Remove Solution"
-        description="Are you sure you want to remove this solution?"
+        title="Remove Category"
+        description="Are you sure you want to remove this category?"
         onConfirm={handleDeleteConfirmed}
         onCancel={() => setConfirmOpen(false)}
       />

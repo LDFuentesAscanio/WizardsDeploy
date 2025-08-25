@@ -1,9 +1,9 @@
 import { supabase } from '@/utils/supabase/browserClient';
 import type { PostgrestError } from '@supabase/supabase-js';
 
-type ExistingSolution = {
+type ExistingCategory = {
   id: string;
-  solution_id: string;
+  category_id: string;
   is_active: boolean;
   description_solution: string;
 };
@@ -12,17 +12,17 @@ type SupabaseResponse = {
   error: PostgrestError | null;
 };
 
-type SaveCustomerSolutionsParams = {
+type SaveCustomerCategoriesParams = {
   user_id: string;
-  selectedSolutions: string[]; // ✅ selección única permitida
+  selectedCategories: string[];
   description: string;
 };
 
-export async function saveCustomerSolutions({
+export async function saveCustomerCategories({
   user_id,
-  selectedSolutions,
+  selectedCategories,
   description,
-}: SaveCustomerSolutionsParams): Promise<string> {
+}: SaveCustomerCategoriesParams): Promise<string> {
   const { data: customerRow, error: customerError } = await supabase
     .from('customers')
     .select('id')
@@ -35,42 +35,41 @@ export async function saveCustomerSolutions({
 
   const customer_id = customerRow.id;
 
-  const { data: allCustomerSolutionsRaw, error: solutionError } = await supabase
-    .from('contracted_solutions')
-    .select('id, solution_id, is_active, description_solution')
-    .eq('customer_id', customer_id);
+  const { data: allCustomerCategoriesRaw, error: categoryError } =
+    await supabase
+      .from('contracted_solutions')
+      .select('id, category_id, is_active, description_solution')
+      .eq('customer_id', customer_id);
 
-  if (solutionError) {
-    throw new Error('Error fetching existing solutions');
+  if (categoryError) {
+    throw new Error('Error fetching existing categories');
   }
 
-  const allCustomerSolutions: ExistingSolution[] =
-    allCustomerSolutionsRaw?.map((s) => ({
+  const allCustomerCategories: ExistingCategory[] =
+    allCustomerCategoriesRaw?.map((s) => ({
       id: s.id,
-      solution_id: s.solution_id,
+      category_id: s.category_id,
       is_active: s.is_active ?? false,
       description_solution: s.description_solution ?? '',
     })) ?? [];
 
-  // Agrupar por solution_id
-  const existingSolutionsMap = new Map<string, ExistingSolution[]>();
-  for (const sol of allCustomerSolutions) {
-    const list = existingSolutionsMap.get(sol.solution_id) ?? [];
-    list.push(sol);
-    existingSolutionsMap.set(sol.solution_id, list);
+  const existingCategoriesMap = new Map<string, ExistingCategory[]>();
+  for (const cat of allCustomerCategories) {
+    const list = existingCategoriesMap.get(cat.category_id) ?? [];
+    list.push(cat);
+    existingCategoriesMap.set(cat.category_id, list);
   }
 
-  const [solution_id] = selectedSolutions;
-  const existingSolutions = existingSolutionsMap.get(solution_id) || [];
+  const [category_id] = selectedCategories;
+  const existingCategories = existingCategoriesMap.get(category_id) || [];
 
   const operations: Promise<SupabaseResponse>[] = [];
 
-  const existingWithSameDesc = existingSolutions.find(
+  const existingWithSameDesc = existingCategories.find(
     (s) => s.description_solution === description
   );
 
   if (existingWithSameDesc) {
-    // ✅ Reactivar si ya existe
     operations.push(
       supabase
         .from('contracted_solutions')
@@ -82,13 +81,12 @@ export async function saveCustomerSolutions({
         .then(({ error }) => ({ error })) as Promise<SupabaseResponse>
     );
   } else {
-    // ✅ Crear nueva entrada activa con descripción distinta
     operations.push(
       supabase
         .from('contracted_solutions')
         .insert({
           customer_id,
-          solution_id,
+          category_id,
           description_solution: description,
           is_active: true,
           contract_date: new Date().toISOString(),
@@ -104,8 +102,8 @@ export async function saveCustomerSolutions({
 
   if (hasErrors) {
     const errors = results.filter((r) => r.error).map((r) => r.error);
-    console.error('Errors in saveCustomerSolutions:', errors);
-    throw new Error('Failed to save some solutions');
+    console.error('Errors in saveCustomerCategories:', errors);
+    throw new Error('Failed to save some categories');
   }
 
   return customer_id;

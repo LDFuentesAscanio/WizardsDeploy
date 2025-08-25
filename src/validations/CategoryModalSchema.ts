@@ -1,13 +1,13 @@
 import * as Yup from 'yup';
 
-export const solutionModalSchema = Yup.object().shape({
+export const categoryModalSchema = Yup.object().shape({
   lookingForExpert: Yup.boolean(),
 
-  selectedSolutions: Yup.array()
+  selectedCategories: Yup.array()
     .of(Yup.string())
     .when('lookingForExpert', {
       is: true,
-      then: (schema) => schema.min(1, 'Select at least one solution'),
+      then: (schema) => schema.min(1, 'Select at least one category'),
       otherwise: (schema) => schema.notRequired(),
     }),
 

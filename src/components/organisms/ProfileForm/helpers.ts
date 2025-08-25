@@ -7,7 +7,7 @@ import {
   CustomerMedia,
   Country,
   Role,
-  Solution,
+  Category,
   ExpertDocument,
   ITProfession,
 } from './types';
@@ -67,7 +67,7 @@ export async function fetchProfileFormData(userId: string) {
       { data: customerData, error: customerError },
       { data: countriesData, error: countriesError },
       { data: rolesData, error: rolesError },
-      { data: solutionsData, error: solutionsError },
+      { data: categoriesData, error: categoriesError },
       { data: professionsData, error: professionsError },
       skillsQuery,
       toolsQuery,
@@ -104,7 +104,7 @@ export async function fetchProfileFormData(userId: string) {
 
       supabase.from('country').select('id, name'),
       supabase.from('user_role').select('id, name'),
-      supabase.from('solutions').select('id, name'),
+      supabase.from('categories').select('id, name'), // Cambiado de solutions a categories
       supabase.from('it_professions').select('id, profession_name'),
 
       expertId
@@ -186,7 +186,7 @@ export async function fetchProfileFormData(userId: string) {
       { name: 'customerData', error: customerError },
       { name: 'countriesData', error: countriesError },
       { name: 'rolesData', error: rolesError },
-      { name: 'solutionsData', error: solutionsError },
+      { name: 'categoriesData', error: categoriesError }, // Cambiado de solutionsData a categoriesData
       { name: 'professionsData', error: professionsError },
       { name: 'skillsData', error: skillsQuery.error },
       { name: 'toolsData', error: toolsQuery.error },
@@ -236,7 +236,7 @@ export async function fetchProfileFormData(userId: string) {
       job_title: customerData?.job_title || '',
       email: customerData?.email || '',
       description: customerData?.description || '',
-      selected_solutions: [],
+      selected_categories: [], // Cambiado de selected_solutions a selected_categories
       looking_for_expert: false,
       accepted_privacy_policy: customerData?.accepted_privacy_policy ?? false,
       accepted_terms_conditions:
@@ -247,7 +247,7 @@ export async function fetchProfileFormData(userId: string) {
       initialValues,
       countries: (countriesData as Country[]) ?? [],
       roles: (rolesData as Role[]) ?? [],
-      solutions: (solutionsData as Solution[]) ?? [],
+      categories: (categoriesData as Category[]) ?? [], // Cambiado de solutions a categories
       professions: (professionsData as ITProfession[]) ?? [],
     };
   } catch (error) {

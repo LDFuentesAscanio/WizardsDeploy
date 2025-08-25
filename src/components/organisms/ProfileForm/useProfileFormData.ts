@@ -4,7 +4,7 @@ import {
   ProfileFormValues,
   Country,
   Role,
-  Solution,
+  Category,
   ITProfession,
 } from './types';
 import { supabase } from '@/utils/supabase/browserClient';
@@ -16,7 +16,7 @@ export function useProfileFormData() {
   );
   const [countries, setCountries] = useState<Country[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
-  const [solutions, setSolutions] = useState<Solution[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]); // Cambiado de solutions a categories
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [professions, setProfessions] = useState<ITProfession[]>([]);
@@ -41,7 +41,13 @@ export function useProfileFormData() {
         setRoleName(userData.user_role?.name ?? null);
 
         // Cargar datos según el rol
-        const { initialValues, countries, roles, solutions, professions } =
+        const {
+          initialValues,
+          countries,
+          roles,
+          categories,
+          professions,
+        } = // Cambiado de solutions a categories
           await fetchProfileFormData(auth.user.id);
 
         let professionName = '';
@@ -60,11 +66,11 @@ export function useProfileFormData() {
         setInitialValues({
           ...initialValues,
           role_id: userData.role_id,
-          profession: professionName, // Asegurar que el role_id esté actualizado
+          profession: professionName,
         });
         setCountries(countries);
         setRoles(filteredRoles);
-        setSolutions(solutions);
+        setCategories(categories); // Cambiado de setSolutions a setCategories
         setProfessions(professions);
       } catch (err) {
         console.error('Profile data loading error:', err);
@@ -83,7 +89,7 @@ export function useProfileFormData() {
     initialValues,
     countries,
     roles,
-    solutions,
+    categories, // Cambiado de solutions a categories
     professions,
     loading,
     error,
