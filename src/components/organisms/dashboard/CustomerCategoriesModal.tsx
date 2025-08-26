@@ -115,6 +115,7 @@ export default function CustomerCategoryModal({
     <AnimatePresence>
       {isOpen && (
         <Dialog open={isOpen} onClose={onClose} className="relative z-50">
+          {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -123,13 +124,15 @@ export default function CustomerCategoryModal({
             className="fixed inset-0 bg-black/60"
             aria-hidden="true"
           />
+
+          {/* Modal center */}
           <div className="fixed inset-0 flex items-center justify-center p-4">
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 30 }}
               transition={{ duration: 0.3 }}
-              className="bg-[#2c3d5a] text-white rounded-xl w-full max-w-lg max-h-[85vh] overflow-hidden flex flex-col"
+              className="bg-[#2c3d5a] text-white rounded-xl w-full max-w-lg h-[85vh] flex flex-col"
             >
               <Formik<FormValues>
                 initialValues={{
@@ -167,9 +170,12 @@ export default function CustomerCategoryModal({
                 enableReinitialize
               >
                 {({ values, setFieldValue, isValid, isSubmitting }) => (
-                  <Form className="flex flex-col h-full">
-                    {/* scroll area */}
-                    <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                  <Form className="flex flex-col flex-1">
+                    {/* Scrollable content */}
+                    <div
+                      className="flex-1 overflow-y-auto overscroll-contain p-6 space-y-6"
+                      style={{ WebkitOverflowScrolling: 'touch' }}
+                    >
                       <h2 id="modal-title" className="text-xl font-bold">
                         Looking for experts?
                       </h2>
@@ -285,7 +291,7 @@ export default function CustomerCategoryModal({
                       )}
                     </div>
 
-                    {/* footer fijo */}
+                    {/* Footer fijo dentro del modal */}
                     <div className="p-6 border-t border-white/10">
                       <div className="flex gap-3">
                         <button
