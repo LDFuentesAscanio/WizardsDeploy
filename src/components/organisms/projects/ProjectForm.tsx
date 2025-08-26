@@ -1,26 +1,13 @@
 'use client';
 
 import { Formik, Form } from 'formik';
-import * as Yup from 'yup';
 import FormInput from '@/components/atoms/FormInput';
 import Button from '@/components/atoms/Button';
 import { supabase } from '@/utils/supabase/browserClient';
 import { showError, showSuccess } from '@/utils/toastService';
 import { Database } from '@/types/supabase';
-
+import { projectCreateSchema as projectSchema } from '@/validations/projectSchemas';
 type ProjectInsert = Database['public']['Tables']['it_projects']['Insert'];
-
-const projectSchema = Yup.object().shape({
-  project_name: Yup.string().required('Project name is required'),
-  description: Yup.string().required('Description is required'),
-  start_date: Yup.date().required('Start date is required'),
-  end_date: Yup.date().nullable(),
-  status: Yup.string()
-    .oneOf(['Planning', 'In Progress', 'On Hold', 'Completed', 'Cancelled'])
-    .required('Status is required'),
-  budget: Yup.number().nullable(),
-  responsible: Yup.string().nullable(),
-});
 
 type Props = {
   onClose: () => void;

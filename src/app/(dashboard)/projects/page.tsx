@@ -1,85 +1,53 @@
+// app/projects/page.tsx
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { supabase } from '@/utils/supabase/browserClient';
 import Button from '@/components/atoms/Button';
 import ProjectForm from '@/components/organisms/projects/ProjectForm';
 import ProjectList from '@/components/organisms/projects/ProjectList';
 import { showError } from '@/utils/toastService';
-import { Database } from '@/types/supabase';
 
-type Project = Database['public']['Tables']['it_projects']['Row'];
+import {
+  getUserAndRole,
+  fetchProjectsByRole,
+  Project,
+} from '@/utils/projectsService';
+
+import ProjectEditModal from '@/components/organisms/projects/ProjectEditModal';
 
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Project | null>(null);
 
-  // 🔐 Obtener user y rol desde Supabase
+  // user + role
   useEffect(() => {
-    const fetchUserAndRole = async () => {
+    (async () => {
       try {
-        const {
-          data: { user },
-          error: authError,
-        } = await supabase.auth.getUser();
-        if (authError || !user) {
-          showError('Not authenticated');
-          return;
-        }
-
-        setUserId(user.id);
-
-        const { data: profile, error: profileError } = await supabase
-          .from('users')
-          .select('role_id, user_role:role_id(name)')
-          .eq('id', user.id)
-          .single();
-
-        if (profileError) throw profileError;
-
-        setUserRole(profile?.user_role?.name?.toLowerCase() ?? null);
+        const { userId, role } = await getUserAndRole();
+        setUserId(userId);
+        setUserRole(role);
       } catch (err) {
         console.error('❌ Error fetching user role:', err);
         showError('Error fetching user role');
       }
-    };
-
-    fetchUserAndRole();
+    })();
   }, []);
 
-  // 📦 Obtener proyectos según rol
+  // proyectos por rol
   const fetchProjects = useCallback(async () => {
-    if (!userId || !userRole) return;
-
-    let query = supabase.from('it_projects').select('*');
-
-    if (userRole === 'customer') {
-      const { data: customer } = await supabase
-        .from('customers')
-        .select('id')
-        .eq('user_id', userId)
-        .single();
-
-      if (customer) {
-        query = query.eq('customer_id', customer.id);
-      }
+    if (!userId) return;
+    try {
+      const data = await fetchProjectsByRole(userId, userRole);
+      setProjects(data);
+    } catch (e) {
+      console.error('❌ Error fetching projects:', e);
+      showError('Error fetching projects');
     }
-
-    if (userRole === 'expert') {
-      // TODO: join con contracted_solutions
-    }
-
-    const { data, error } = await query;
-    if (error) {
-      console.error('❌ Error fetching projects:', error);
-      return;
-    }
-    setProjects((data as Project[]) || []);
   }, [userId, userRole]);
 
-  // Ejecutar fetchProjects cuando tengamos userId + userRole
   useEffect(() => {
     fetchProjects();
   }, [fetchProjects]);
@@ -99,11 +67,20 @@ export default function ProjectsPage() {
         <ProjectForm
           onClose={() => {
             setShowForm(false);
-            fetchProjects(); // 👈 refetch después de crear proyecto
+            fetchProjects();
           }}
         />
       ) : (
-        <ProjectList projects={projects} />
+        <ProjectList projects={projects} onSelect={(p) => setSelected(p)} />
+      )}
+
+      {selected && (
+        <ProjectEditModal
+          open={!!selected}
+          onClose={() => setSelected(null)}
+          project={selected}
+          onSaved={fetchProjects}
+        />
       )}
     </div>
   );
