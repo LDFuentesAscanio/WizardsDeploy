@@ -1,8 +1,9 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { Dialog } from '@headlessui/react';
 import { Formik, Form, FieldArray } from 'formik';
-import { AnimatePresence, motion } from 'framer-motion'; // 🧠 agregado
+import { AnimatePresence, motion } from 'framer-motion';
 import FormInput from '@/components/atoms/FormInput';
 import FormCheckbox from '@/components/atoms/FormCheckbox';
 import { showError, showSuccess } from '@/utils/toastService';
@@ -15,9 +16,22 @@ type Category = {
   name: string;
 };
 
+type Subcategory = {
+  id: string;
+  name: string;
+  category_id: string | null;
+};
+
+type ProjectLite = {
+  id: string;
+  project_name: string;
+};
+
 type FormValues = {
   lookingForExpert: boolean;
-  selectedCategories: string[];
+  categoryId: string; // <- nueva: categoría elegida (filtra subcategorías)
+  selectedCategories: string[]; // <- aquí guardamos UN subcategory_id (arreglo por compatibilidad)
+  projectId: string; // <- nueva: proyecto donde colgar la oferta
   description: string;
 };
 
@@ -36,6 +50,79 @@ export default function CustomerCategoryModal({
   initialValues,
   onSubmit,
 }: Props) {
+  const [projects, setProjects] = useState<ProjectLite[]>([]);
+  const [subcategories, setSubcategories] = useState<Subcategory[]>([]);
+  const [loadingLists, setLoadingLists] = useState(false);
+
+  // 🔎 Carga proyectos del customer autenticado
+  useEffect(() => {
+    if (!isOpen) return;
+
+    (async () => {
+      try {
+        setLoadingLists(true);
+        const {
+          data: { user },
+          error: authErr,
+        } = await supabase.auth.getUser();
+        if (authErr || !user) return;
+
+        // Obtener customer_id
+        const { data: customerRow, error: custErr } = await supabase
+          .from('customers')
+          .select('id')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (custErr) throw custErr;
+        if (!customerRow?.id) return;
+
+        // Proyectos del customer
+        const { data: projectRows, error: projErr } = await supabase
+          .from('it_projects')
+          .select('id, project_name')
+          .eq('customer_id', customerRow.id);
+
+        if (projErr) throw projErr;
+
+        setProjects(
+          (projectRows ?? []).map((p) => ({
+            id: p.id,
+            project_name: p.project_name,
+          }))
+        );
+      } catch (e) {
+        console.error('❌ Error loading projects:', e);
+        showError('Error loading projects list');
+      } finally {
+        setLoadingLists(false);
+      }
+    })();
+  }, [isOpen]);
+
+  // 🔎 Carga subcategorías según categoría seleccionada
+  const fetchSubcategories = async (categoryId: string) => {
+    try {
+      if (!categoryId) {
+        setSubcategories([]);
+        return;
+      }
+      setLoadingLists(true);
+      const { data, error } = await supabase
+        .from('subcategories')
+        .select('id, name, category_id')
+        .eq('category_id', categoryId);
+
+      if (error) throw error;
+      setSubcategories((data as Subcategory[]) ?? []);
+    } catch (e) {
+      console.error('❌ Error loading subcategories:', e);
+      showError('Error loading subcategories');
+    } finally {
+      setLoadingLists(false);
+    }
+  };
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -57,14 +144,16 @@ export default function CustomerCategoryModal({
               transition={{ duration: 0.3 }}
               className="bg-[#2c3d5a] text-white p-6 rounded-xl w-full max-w-lg"
             >
-              <Formik
+              <Formik<FormValues>
                 initialValues={{
                   lookingForExpert: initialValues.lookingForExpert ?? false,
+                  categoryId: initialValues.categoryId ?? '',
                   selectedCategories: initialValues.selectedCategories ?? [],
+                  projectId: initialValues.projectId ?? '',
                   description: initialValues.description ?? '',
                 }}
                 validationSchema={categoryModalSchema}
-                onSubmit={async (values) => {
+                onSubmit={async (values, { setSubmitting }) => {
                   try {
                     const { data: authUser } = await supabase.auth.getUser();
                     const user_id = authUser.user?.id;
@@ -72,7 +161,8 @@ export default function CustomerCategoryModal({
 
                     await saveCustomerCategories({
                       user_id,
-                      selectedCategories: values.selectedCategories,
+                      projectId: values.projectId,
+                      selectedCategories: values.selectedCategories, // [subcategory_id]
                       description: values.description,
                     });
 
@@ -80,11 +170,13 @@ export default function CustomerCategoryModal({
                       await onSubmit(values);
                     }
 
-                    showSuccess('Solutions updated successfully!');
+                    showSuccess('Offer saved successfully!');
                     onClose();
                   } catch (error) {
-                    showError('Error saving solutions');
+                    showError('Error saving offer');
                     console.error('Modal save error:', error);
+                  } finally {
+                    setSubmitting(false);
                   }
                 }}
                 enableReinitialize
@@ -100,49 +192,106 @@ export default function CustomerCategoryModal({
                       label="Yes, I'm looking for an expert"
                       onChange={(e) => {
                         if (!e.target.checked) {
-                          setFieldValue('selectedSolutions', []);
+                          setFieldValue('categoryId', '');
+                          setFieldValue('selectedCategories', []);
+                          setFieldValue('projectId', '');
                           setFieldValue('description', '');
                         }
                       }}
+                      checked={values.lookingForExpert}
                     />
 
                     {values.lookingForExpert && (
                       <>
-                        <div>
-                          <p className="text-sm font-semibold mb-2">
-                            Solutions
-                          </p>
-                          <div className="space-y-2">
-                            <FieldArray name="selectedSolutions">
-                              {() => (
-                                <>
-                                  {categories.map((category) => (
-                                    <FormCheckbox
-                                      key={category.id}
-                                      name="selectedCategories"
-                                      label={category.name}
-                                      onChange={(e) => {
-                                        const checked = e.target.checked;
-                                        setFieldValue(
-                                          'selectedCategories',
-                                          checked ? [category.id] : []
-                                        );
-                                      }}
-                                      checked={values.selectedCategories.includes(
-                                        category.id
-                                      )}
-                                    />
-                                  ))}
-                                </>
-                              )}
-                            </FieldArray>
-                          </div>
+                        {/* Project */}
+                        <div className="grid gap-2">
+                          <label className="text-sm">Project</label>
+                          <select
+                            name="projectId"
+                            value={values.projectId}
+                            onChange={(e) =>
+                              setFieldValue('projectId', e.target.value)
+                            }
+                            disabled={loadingLists}
+                            className="w-full px-4 py-3 rounded-xl bg-[#e7e7e7] text-[#2c3d5a]"
+                          >
+                            <option value="">Select a project</option>
+                            {projects.map((p) => (
+                              <option key={p.id} value={p.id}>
+                                {p.project_name}
+                              </option>
+                            ))}
+                          </select>
                         </div>
+
+                        {/* Category */}
+                        <div className="grid gap-2">
+                          <label className="text-sm">Category</label>
+                          <select
+                            name="categoryId"
+                            value={values.categoryId}
+                            onChange={async (e) => {
+                              const newCat = e.target.value;
+                              setFieldValue('categoryId', newCat);
+                              // al cambiar categoría, vaciamos subcategory seleccionada
+                              setFieldValue('selectedCategories', []);
+                              await fetchSubcategories(newCat);
+                            }}
+                            disabled={loadingLists}
+                            className="w-full px-4 py-3 rounded-xl bg-[#e7e7e7] text-[#2c3d5a]"
+                          >
+                            <option value="">Select a category</option>
+                            {categories.map((c) => (
+                              <option key={c.id} value={c.id}>
+                                {c.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        {/* Subcategories (single-select) */}
+                        {values.categoryId && (
+                          <div>
+                            <p className="text-sm font-semibold mb-2">
+                              Subcategories
+                            </p>
+                            <div className="space-y-2">
+                              <FieldArray name="selectedCategories">
+                                {() => (
+                                  <>
+                                    {subcategories.map((sub) => {
+                                      const isChecked =
+                                        values.selectedCategories.includes(
+                                          sub.id
+                                        );
+                                      return (
+                                        <FormCheckbox
+                                          key={sub.id}
+                                          name="selectedCategories"
+                                          label={sub.name}
+                                          onChange={(e) => {
+                                            const checked = e.target.checked;
+                                            // forzamos única selección
+                                            setFieldValue(
+                                              'selectedCategories',
+                                              checked ? [sub.id] : []
+                                            );
+                                          }}
+                                          checked={isChecked}
+                                        />
+                                      );
+                                    })}
+                                  </>
+                                )}
+                              </FieldArray>
+                            </div>
+                          </div>
+                        )}
 
                         <FormInput
                           name="description"
                           label="Describe your challenge"
-                          placeholder="e.g. I need help setting up Jira workflows..."
+                          placeholder="e.g. We need a Salesforce expert to set up flows..."
                           as="textarea"
                           rows={4}
                         />
@@ -162,7 +311,7 @@ export default function CustomerCategoryModal({
                         disabled={!isValid || isSubmitting}
                         className="flex-1 py-2 bg-white text-[#2c3d5a] font-semibold rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        {isSubmitting ? 'Saving...' : 'Save Solutions'}
+                        {isSubmitting ? 'Saving...' : 'Save Offer'}
                       </button>
                     </div>
                   </Form>

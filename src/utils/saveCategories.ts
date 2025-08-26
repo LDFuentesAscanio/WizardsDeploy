@@ -1,110 +1,62 @@
 import { supabase } from '@/utils/supabase/browserClient';
-import type { PostgrestError } from '@supabase/supabase-js';
-
-type ExistingCategory = {
-  id: string;
-  category_id: string;
-  is_active: boolean;
-  description_solution: string;
-};
-
-type SupabaseResponse = {
-  error: PostgrestError | null;
-};
 
 type SaveCustomerCategoriesParams = {
-  user_id: string;
-  selectedCategories: string[];
+  user_id: string; // se mantiene por firma, no se usa en el insert
+  projectId: string; // 🔴 requerido: it_projects_id
+  selectedCategories: string[]; // aquí viene UN subcategory_id (tomamos el primero)
   description: string;
 };
 
 export async function saveCustomerCategories({
-  user_id,
+  user_id, // eslint-disable-line @typescript-eslint/no-unused-vars
+  projectId,
   selectedCategories,
   description,
 }: SaveCustomerCategoriesParams): Promise<string> {
-  const { data: customerRow, error: customerError } = await supabase
-    .from('customers')
-    .select('id')
-    .eq('user_id', user_id)
-    .single();
+  if (!projectId) throw new Error('Project is required');
+  const [subcategory_id] = selectedCategories;
+  if (!subcategory_id) throw new Error('Subcategory is required');
 
-  if (customerError || !customerRow) {
-    throw new Error('Customer not found');
+  // Buscar si ya existe una oferta con mismo proyecto + subcategoría
+  const { data: existingRows, error: selErr } = await supabase
+    .from('contracted_solutions')
+    .select('id, subcategory_id, is_active, description_solution')
+    .eq('it_projects_id', projectId)
+    .eq('subcategory_id', subcategory_id);
+
+  if (selErr) {
+    throw new Error('Error fetching existing offers');
   }
 
-  const customer_id = customerRow.id;
-
-  const { data: allCustomerCategoriesRaw, error: categoryError } =
-    await supabase
-      .from('contracted_solutions')
-      .select('id, category_id, is_active, description_solution')
-      .eq('customer_id', customer_id);
-
-  if (categoryError) {
-    throw new Error('Error fetching existing categories');
-  }
-
-  const allCustomerCategories: ExistingCategory[] =
-    allCustomerCategoriesRaw?.map((s) => ({
-      id: s.id,
-      category_id: s.category_id,
-      is_active: s.is_active ?? false,
-      description_solution: s.description_solution ?? '',
-    })) ?? [];
-
-  const existingCategoriesMap = new Map<string, ExistingCategory[]>();
-  for (const cat of allCustomerCategories) {
-    const list = existingCategoriesMap.get(cat.category_id) ?? [];
-    list.push(cat);
-    existingCategoriesMap.set(cat.category_id, list);
-  }
-
-  const [category_id] = selectedCategories;
-  const existingCategories = existingCategoriesMap.get(category_id) || [];
-
-  const operations: Promise<SupabaseResponse>[] = [];
-
-  const existingWithSameDesc = existingCategories.find(
-    (s) => s.description_solution === description
+  // ¿Existe una con la misma descripción? => reactivar
+  const existingWithSameDesc = (existingRows ?? []).find(
+    (r) => (r.description_solution ?? '') === (description ?? '')
   );
 
   if (existingWithSameDesc) {
-    operations.push(
-      supabase
-        .from('contracted_solutions')
-        .update({
-          is_active: true,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', existingWithSameDesc.id)
-        .then(({ error }) => ({ error })) as Promise<SupabaseResponse>
-    );
-  } else {
-    operations.push(
-      supabase
-        .from('contracted_solutions')
-        .insert({
-          customer_id,
-          category_id,
-          description_solution: description,
-          is_active: true,
-          contract_date: new Date().toISOString(),
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .then(({ error }) => ({ error })) as Promise<SupabaseResponse>
-    );
+    const { error } = await supabase
+      .from('contracted_solutions')
+      .update({
+        is_active: true,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', existingWithSameDesc.id);
+    if (error) throw error;
+    return projectId;
   }
 
-  const results = await Promise.all(operations);
-  const hasErrors = results.some((r) => r.error);
+  // Insertar nueva
+  const { error: insErr } = await supabase.from('contracted_solutions').insert({
+    it_projects_id: projectId,
+    subcategory_id,
+    description_solution: description,
+    is_active: true,
+    contract_date: new Date().toISOString(),
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  });
 
-  if (hasErrors) {
-    const errors = results.filter((r) => r.error).map((r) => r.error);
-    console.error('Errors in saveCustomerCategories:', errors);
-    throw new Error('Failed to save some categories');
-  }
+  if (insErr) throw insErr;
 
-  return customer_id;
+  return projectId;
 }

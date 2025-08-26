@@ -37,48 +37,48 @@ export type Database = {
       }
       contracted_solutions: {
         Row: {
-          category_id: string
           contract_date: string | null
           created_at: string | null
-          customer_id: string
           description_solution: string | null
           id: string
           is_active: boolean | null
+          it_projects_id: string | null
+          subcategory_id: string | null
           updated_at: string | null
         }
         Insert: {
-          category_id: string
           contract_date?: string | null
           created_at?: string | null
-          customer_id: string
           description_solution?: string | null
           id?: string
           is_active?: boolean | null
+          it_projects_id?: string | null
+          subcategory_id?: string | null
           updated_at?: string | null
         }
         Update: {
-          category_id?: string
           contract_date?: string | null
           created_at?: string | null
-          customer_id?: string
           description_solution?: string | null
           id?: string
           is_active?: boolean | null
+          it_projects_id?: string | null
+          subcategory_id?: string | null
           updated_at?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "fk_contracted_solutions_category"
-            columns: ["category_id"]
+            foreignKeyName: "fk_it_projects"
+            columns: ["it_projects_id"]
             isOneToOne: false
-            referencedRelation: "categories"
+            referencedRelation: "it_projects"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "fk_contracted_solutions_customers"
-            columns: ["customer_id"]
+            foreignKeyName: "fk_subcategory"
+            columns: ["subcategory_id"]
             isOneToOne: false
-            referencedRelation: "customers"
+            referencedRelation: "subcategories"
             referencedColumns: ["id"]
           },
         ]
