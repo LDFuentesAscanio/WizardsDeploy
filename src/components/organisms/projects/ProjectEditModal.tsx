@@ -5,32 +5,19 @@ import { Dialog } from '@headlessui/react';
 import { Formik, Form } from 'formik';
 import { AnimatePresence, motion } from 'framer-motion';
 import * as Yup from 'yup';
-
+import type { Tables } from '@/types/supabase';
 import Button from '@/components/atoms/Button';
 import FormInput from '@/components/atoms/FormInput';
+import { updateProject } from '@/utils/projectsService';
 
-// Si ya tienes estos tipos/servicios, usa esos imports.
-// Aquí están tipados mínimos para no romper:
-type Project = {
-  id: string;
-  project_name: string;
-  description: string | null;
-  start_date: string | null;
-  end_date: string | null;
-  status: 'Planning' | 'In Progress' | 'On Hold' | 'Completed' | 'Cancelled';
-  budget: number | null;
-  responsible: string | null;
-  customer_id: string;
-  created_at?: string;
-  updated_at?: string;
-};
+type Project = Tables<'it_projects'>;
 
 type Props = {
   isOpen: boolean;
   onClose: () => void;
   project: Project;
-  onSave?: (p: Partial<Project>) => Promise<void> | void; // tu handler de actualización
-  onDelete?: () => Promise<void> | void; // tu handler de borrado
+  onSaved?: () => void | Promise<void>;
+  onDelete?: () => Promise<void> | void;
 };
 
 const editSchema = Yup.object().shape({
@@ -49,15 +36,14 @@ export default function ProjectEditModal({
   isOpen,
   onClose,
   project,
-  onSave,
+  onSaved,
   onDelete,
 }: Props) {
-  // si necesitas side-effects (p.ej. cargar ofertas) puedes hacerlo aquí
   const [submitting, setSubmitting] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
-    // ejemplo: fetch de ofertas del proyecto si quieres mostrarlas
+    // aquí podrías cargar ofertas del proyecto si quieres mostrarlas dentro del modal
   }, [isOpen, project?.id]);
 
   return (
@@ -74,7 +60,7 @@ export default function ProjectEditModal({
             aria-hidden="true"
           />
 
-          {/* Wrapper que permite scroll general cuando el contenido es muy alto */}
+          {/* Wrapper con scroll general */}
           <div className="fixed inset-0 z-[100] overflow-y-auto">
             <div className="flex min-h-full items-center justify-center p-4">
               <motion.div
@@ -87,20 +73,33 @@ export default function ProjectEditModal({
                 <Formik
                   enableReinitialize
                   initialValues={{
-                    project_name: project?.project_name ?? '',
-                    description: project?.description ?? '',
-                    start_date: project?.start_date ?? '',
-                    end_date: project?.end_date ?? '',
-                    status: project?.status ?? 'Planning',
-                    budget:
-                      typeof project?.budget === 'number' ? project.budget : '',
-                    responsible: project?.responsible ?? '',
+                    project_name: project.project_name ?? '',
+                    description: project.description ?? '',
+                    start_date: project.start_date ?? '',
+                    end_date: project.end_date ?? '',
+                    status:
+                      project.status &&
+                      [
+                        'Planning',
+                        'In Progress',
+                        'On Hold',
+                        'Completed',
+                        'Cancelled',
+                      ].includes(project.status as string)
+                        ? (project.status as
+                            | 'Planning'
+                            | 'In Progress'
+                            | 'On Hold'
+                            | 'Completed'
+                            | 'Cancelled')
+                        : 'Planning',
+                    budget: project.budget ?? '',
+                    responsible: project.responsible ?? '',
                   }}
                   validationSchema={editSchema}
                   onSubmit={async (values) => {
                     try {
                       setSubmitting(true);
-                      // Convierte budget '' -> null (si mantienes number | null)
                       const payload: Partial<Project> = {
                         project_name: values.project_name,
                         description: values.description,
@@ -113,7 +112,9 @@ export default function ProjectEditModal({
                             : Number(values.budget),
                         responsible: values.responsible || null,
                       };
-                      if (onSave) await onSave(payload);
+
+                      await updateProject(project.id, payload);
+                      if (onSaved) await onSaved();
                       onClose();
                     } finally {
                       setSubmitting(false);
@@ -144,6 +145,7 @@ export default function ProjectEditModal({
                           as="textarea"
                           rows={4}
                         />
+
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <FormInput
                             name="start_date"
@@ -182,11 +184,7 @@ export default function ProjectEditModal({
                           />
                         </div>
 
-                        {/* 
-                          Si quieres listar ofertas asociadas aquí, 
-                          colócalas dentro de este área scrollable 
-                          (no en header/footer) para que no se “corten”.
-                        */}
+                        {/* Aquí podrías renderizar ofertas del proyecto si lo deseas */}
                       </div>
 
                       {/* Footer fijo */}

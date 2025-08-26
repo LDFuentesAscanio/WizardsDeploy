@@ -76,7 +76,7 @@ export default function ProjectsPage() {
 
       {selected && (
         <ProjectEditModal
-          open={!!selected}
+          isOpen={!!selected}
           onClose={() => setSelected(null)}
           project={selected}
           onSaved={fetchProjects}
