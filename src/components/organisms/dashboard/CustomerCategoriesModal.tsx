@@ -126,194 +126,197 @@ export default function CustomerCategoryModal({
           />
 
           {/* Modal center */}
-          <div className="fixed inset-0 flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 30 }}
-              transition={{ duration: 0.3 }}
-              className="bg-[#2c3d5a] text-white rounded-xl w-full max-w-lg max-h-[90vh] flex flex-col" // Cambiado a max-h
-            >
-              <Formik<FormValues>
-                initialValues={{
-                  lookingForExpert: initialValues.lookingForExpert ?? false,
-                  categoryId: initialValues.categoryId ?? '',
-                  selectedCategories: initialValues.selectedCategories ?? [],
-                  projectId: initialValues.projectId ?? '',
-                  description: initialValues.description ?? '',
-                }}
-                validationSchema={categoryModalSchema}
-                onSubmit={async (values, { setSubmitting }) => {
-                  try {
-                    const { data: authUser } = await supabase.auth.getUser();
-                    const user_id = authUser.user?.id;
-                    if (!user_id) throw new Error('No user authenticated');
-
-                    await saveCustomerCategories({
-                      user_id,
-                      projectId: values.projectId,
-                      selectedCategories: values.selectedCategories,
-                      description: values.description,
-                    });
-
-                    if (onSubmit) await onSubmit(values);
-
-                    showSuccess('Offer created successfully!');
-                    onClose();
-                  } catch (error) {
-                    console.error('Modal save error:', error);
-                    showError('Error saving offer');
-                  } finally {
-                    setSubmitting(false);
-                  }
-                }}
-                enableReinitialize
+          <div className="fixed inset-0 z-50 overflow-y-auto">
+            <div className="flex min-h-full items-center justify-center p-4">
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 30 }}
+                transition={{ duration: 0.3 }}
+                className="bg-[#2c3d5a] text-white rounded-xl w-full max-w-lg h-[85vh] overflow-hidden flex flex-col"
               >
-                {({ values, setFieldValue, isValid, isSubmitting }) => (
-                  <Form className="flex flex-col h-full">
-                    {' '}
-                    {/* Cambiado a h-full */}
-                    {/* Header fijo */}
-                    <div className="p-6 border-b border-white/10 flex-shrink-0">
-                      <h2 id="modal-title" className="text-xl font-bold">
-                        Looking for experts?
-                      </h2>
-                    </div>
-                    {/* Scrollable content */}
-                    <div className="flex-1 overflow-y-auto overscroll-contain px-6 py-4 space-y-6">
-                      <FormCheckbox
-                        name="lookingForExpert"
-                        label="Yes, I'm looking for experts"
-                        onChange={(e) => {
-                          if (!e.target.checked) {
-                            setFieldValue('categoryId', '');
-                            setFieldValue('selectedCategories', []);
-                            setFieldValue('projectId', '');
-                            setFieldValue('description', '');
-                            setSubcategories([]);
-                          }
-                        }}
-                        checked={values.lookingForExpert}
-                      />
+                <Formik<FormValues>
+                  initialValues={{
+                    lookingForExpert: initialValues.lookingForExpert ?? false,
+                    categoryId: initialValues.categoryId ?? '',
+                    selectedCategories: initialValues.selectedCategories ?? [],
+                    projectId: initialValues.projectId ?? '',
+                    description: initialValues.description ?? '',
+                  }}
+                  validationSchema={categoryModalSchema}
+                  onSubmit={async (values, { setSubmitting }) => {
+                    try {
+                      const { data: authUser } = await supabase.auth.getUser();
+                      const user_id = authUser.user?.id;
+                      if (!user_id) throw new Error('No user authenticated');
 
-                      {values.lookingForExpert && (
-                        <>
-                          {/* Project */}
-                          <div className="grid gap-2">
-                            <label className="text-sm">Project</label>
-                            <select
-                              name="projectId"
-                              value={values.projectId}
-                              onChange={(e) =>
-                                setFieldValue('projectId', e.target.value)
-                              }
-                              disabled={loadingLists}
-                              className="w-full px-4 py-3 rounded-xl bg-[#e7e7e7] text-[#2c3d5a]"
-                            >
-                              <option value="">Select a project</option>
-                              {projects.map((p) => (
-                                <option key={p.id} value={p.id}>
-                                  {p.project_name}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
+                      await saveCustomerCategories({
+                        user_id,
+                        projectId: values.projectId,
+                        selectedCategories: values.selectedCategories,
+                        description: values.description,
+                      });
 
-                          {/* Category */}
-                          <div className="grid gap-2">
-                            <label className="text-sm">Category</label>
-                            <select
-                              name="categoryId"
-                              value={values.categoryId}
-                              onChange={async (e) => {
-                                const newCat = e.target.value;
-                                setFieldValue('categoryId', newCat);
-                                setFieldValue('selectedCategories', []);
-                                await fetchSubcategories(newCat);
-                              }}
-                              disabled={loadingLists}
-                              className="w-full px-4 py-3 rounded-xl bg-[#e7e7e7] text-[#2c3d5a]"
-                            >
-                              <option value="">Select a category</option>
-                              {categories.map((c) => (
-                                <option key={c.id} value={c.id}>
-                                  {c.name}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
+                      if (onSubmit) await onSubmit(values);
 
-                          {/* Subcategories */}
-                          {values.categoryId && (
-                            <div>
-                              <p className="text-sm font-semibold mb-2">
-                                Subcategories
-                              </p>
-                              <div className="space-y-2">
-                                <FieldArray name="selectedCategories">
-                                  {() => (
-                                    <>
-                                      {subcategories.map((sub) => {
-                                        const isChecked =
-                                          values.selectedCategories.includes(
-                                            sub.id
-                                          );
-                                        return (
-                                          <FormCheckbox
-                                            key={sub.id}
-                                            name="selectedCategories"
-                                            label={sub.name}
-                                            onChange={(e) => {
-                                              const checked = e.target.checked;
-                                              setFieldValue(
-                                                'selectedCategories',
-                                                checked ? [sub.id] : []
-                                              );
-                                            }}
-                                            checked={isChecked}
-                                          />
-                                        );
-                                      })}
-                                    </>
-                                  )}
-                                </FieldArray>
-                              </div>
-                            </div>
-                          )}
-
-                          <FormInput
-                            name="description"
-                            label="Describe your need"
-                            placeholder="e.g. We need a Salesforce expert to set up flows..."
-                            as="textarea"
-                            rows={4}
-                          />
-                        </>
-                      )}
-                    </div>
-                    {/* Footer fijo */}
-                    <div className="p-6 border-t border-white/10 flex-shrink-0">
-                      <div className="flex gap-3">
-                        <button
-                          type="button"
-                          className="flex-1 py-2 border border-white text-white font-semibold rounded-lg hover:bg-white/10 transition-colors"
-                          onClick={onClose}
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          type="submit"
-                          disabled={!isValid || isSubmitting}
-                          className="flex-1 py-2 bg-white text-[#2c3d5a] font-semibold rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {isSubmitting ? 'Saving...' : 'Create Offer'}
-                        </button>
+                      showSuccess('Offer created successfully!');
+                      onClose();
+                    } catch (error) {
+                      console.error('Modal save error:', error);
+                      showError('Error saving offer');
+                    } finally {
+                      setSubmitting(false);
+                    }
+                  }}
+                  enableReinitialize
+                >
+                  {({ values, setFieldValue, isValid, isSubmitting }) => (
+                    <Form className="flex flex-col h-full min-h-0">
+                      {' '}
+                      {/* Cambiado a h-full */}
+                      {/* Header fijo */}
+                      <div className="p-6 border-b border-white/10 flex-shrink-0">
+                        <h2 id="modal-title" className="text-xl font-bold">
+                          Looking for experts?
+                        </h2>
                       </div>
-                    </div>
-                  </Form>
-                )}
-              </Formik>
-            </motion.div>
+                      {/* Scrollable content */}
+                      <div className="flex-1 min-h-0 overflow-y-auto p-6 space-y-6">
+                        <FormCheckbox
+                          name="lookingForExpert"
+                          label="Yes, I'm looking for experts"
+                          onChange={(e) => {
+                            if (!e.target.checked) {
+                              setFieldValue('categoryId', '');
+                              setFieldValue('selectedCategories', []);
+                              setFieldValue('projectId', '');
+                              setFieldValue('description', '');
+                              setSubcategories([]);
+                            }
+                          }}
+                          checked={values.lookingForExpert}
+                        />
+
+                        {values.lookingForExpert && (
+                          <>
+                            {/* Project */}
+                            <div className="grid gap-2">
+                              <label className="text-sm">Project</label>
+                              <select
+                                name="projectId"
+                                value={values.projectId}
+                                onChange={(e) =>
+                                  setFieldValue('projectId', e.target.value)
+                                }
+                                disabled={loadingLists}
+                                className="w-full px-4 py-3 rounded-xl bg-[#e7e7e7] text-[#2c3d5a]"
+                              >
+                                <option value="">Select a project</option>
+                                {projects.map((p) => (
+                                  <option key={p.id} value={p.id}>
+                                    {p.project_name}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+
+                            {/* Category */}
+                            <div className="grid gap-2">
+                              <label className="text-sm">Category</label>
+                              <select
+                                name="categoryId"
+                                value={values.categoryId}
+                                onChange={async (e) => {
+                                  const newCat = e.target.value;
+                                  setFieldValue('categoryId', newCat);
+                                  setFieldValue('selectedCategories', []);
+                                  await fetchSubcategories(newCat);
+                                }}
+                                disabled={loadingLists}
+                                className="w-full px-4 py-3 rounded-xl bg-[#e7e7e7] text-[#2c3d5a]"
+                              >
+                                <option value="">Select a category</option>
+                                {categories.map((c) => (
+                                  <option key={c.id} value={c.id}>
+                                    {c.name}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+
+                            {/* Subcategories */}
+                            {values.categoryId && (
+                              <div>
+                                <p className="text-sm font-semibold mb-2">
+                                  Subcategories
+                                </p>
+                                <div className="space-y-2">
+                                  <FieldArray name="selectedCategories">
+                                    {() => (
+                                      <>
+                                        {subcategories.map((sub) => {
+                                          const isChecked =
+                                            values.selectedCategories.includes(
+                                              sub.id
+                                            );
+                                          return (
+                                            <FormCheckbox
+                                              key={sub.id}
+                                              name="selectedCategories"
+                                              label={sub.name}
+                                              onChange={(e) => {
+                                                const checked =
+                                                  e.target.checked;
+                                                setFieldValue(
+                                                  'selectedCategories',
+                                                  checked ? [sub.id] : []
+                                                );
+                                              }}
+                                              checked={isChecked}
+                                            />
+                                          );
+                                        })}
+                                      </>
+                                    )}
+                                  </FieldArray>
+                                </div>
+                              </div>
+                            )}
+
+                            <FormInput
+                              name="description"
+                              label="Describe your need"
+                              placeholder="e.g. We need a Salesforce expert to set up flows..."
+                              as="textarea"
+                              rows={4}
+                            />
+                          </>
+                        )}
+                      </div>
+                      {/* Footer fijo */}
+                      <div className="p-6 border-t border-white/10 flex-shrink-0">
+                        <div className="flex gap-3">
+                          <button
+                            type="button"
+                            className="flex-1 py-2 border border-white text-white font-semibold rounded-lg hover:bg-white/10 transition-colors"
+                            onClick={onClose}
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="submit"
+                            disabled={!isValid || isSubmitting}
+                            className="flex-1 py-2 bg-white text-[#2c3d5a] font-semibold rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {isSubmitting ? 'Saving...' : 'Create Offer'}
+                          </button>
+                        </div>
+                      </div>
+                    </Form>
+                  )}
+                </Formik>
+              </motion.div>
+            </div>
           </div>
         </Dialog>
       )}
