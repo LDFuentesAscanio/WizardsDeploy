@@ -8,7 +8,7 @@ import { showError, showSuccess } from '@/utils/toastService';
 import UserCard from '../organisms/dashboard/UserCard';
 import {
   CustomerDashboardData,
-  FrontendContractedCategory, // mantenemos tu tipo actual
+  FrontendContractedCategory,
 } from '../organisms/dashboard/types';
 
 import { saveCustomerCategories } from '@/utils/saveCategories';
@@ -16,7 +16,6 @@ import { Category } from '../organisms/ProfileForm/types';
 import { ConfirmDialog } from '../organisms/dashboard/ConfirmDialog';
 import CustomerCategoryModal from '../organisms/dashboard/CustomerCategoriesModal';
 
-// ---- Tipos locales para el SELECT nuevo (evitamos romper tus types globales)
 type ProjectIdRow = { id: string };
 
 type ContractedRow = {
@@ -56,7 +55,6 @@ export default function CustomerDashboardView() {
         const user_id = authUser.user?.id;
         if (!user_id) throw new Error('No user authenticated');
 
-        // 1) Obtener customer (para datos y para sacar sus projects)
         const { data: customerData, error: customerError } = await supabase
           .from('customers')
           .select('id, company_name, job_title, description')
@@ -66,18 +64,15 @@ export default function CustomerDashboardView() {
         if (customerError || !customerData) throw customerError;
         const customer_id = customerData.id;
 
-        // 2) Obtener projects del customer → lista de ids
         const { data: projects, error: projectsErr } = await supabase
           .from('it_projects')
           .select('id')
           .eq('customer_id', customer_id);
-
         if (projectsErr) throw projectsErr;
 
         const projectIds =
           (projects as ProjectIdRow[] | null)?.map((p) => p.id) ?? [];
 
-        // 3) Paralelizar el resto (si no hay projects, contracted = [])
         const [
           { data: user },
           { data: avatarMedia },
@@ -90,24 +85,19 @@ export default function CustomerDashboardView() {
             .select('first_name, last_name, linkedin_profile, other_link')
             .eq('id', user_id)
             .single(),
-
           supabase
             .from('customer_media')
             .select('url_storage')
             .eq('customer_id', customer_id)
             .eq('type', 'avatar')
             .maybeSingle(),
-
           supabase
             .from('customer_media')
             .select('url_storage')
             .eq('customer_id', customer_id)
             .eq('type', 'company_logo')
             .maybeSingle(),
-
-          // catálogo para mostrar nombres en la UI
           supabase.from('categories').select('id, name'),
-
           projectIds.length
             ? supabase
                 .from('contracted_solutions')
@@ -140,7 +130,6 @@ export default function CustomerDashboardView() {
           }
         ).data;
 
-        // 4) Normalizar a tu tipo FrontendContractedCategory (sin romper)
         const formattedCategories: FrontendContractedCategory[] = (
           contractedRaw ?? []
         ).map((row) => ({
@@ -206,14 +195,12 @@ export default function CustomerDashboardView() {
         .single();
       if (!customerData) throw new Error('Customer not found');
 
-      // Desactivar
       const { error: deleteError } = await supabase
         .from('contracted_solutions')
         .update({ is_active: false, updated_at: new Date().toISOString() })
         .eq('id', categoryToDelete);
       if (deleteError) throw deleteError;
 
-      // Refetch: obtener projects y luego contracted por it_projects_id
       const { data: projects } = await supabase
         .from('it_projects')
         .select('id')
@@ -269,10 +256,10 @@ export default function CustomerDashboardView() {
         categories: categoryNames,
       }));
 
-      showSuccess('Category removed successfully');
+      showSuccess('Offer removed successfully');
     } catch (error) {
       console.error('Error deleting category:', error);
-      showError('Failed to remove category');
+      showError('Failed to remove offer');
     } finally {
       setConfirmOpen(false);
       setCategoryToDelete(null);
@@ -296,7 +283,6 @@ export default function CustomerDashboardView() {
         description: values.description,
       });
 
-      // Refetch tras guardar
       const { data: projects } = await supabase
         .from('it_projects')
         .select('id')
@@ -353,10 +339,10 @@ export default function CustomerDashboardView() {
       }));
 
       setShowModal(false);
-      showSuccess('Categories updated successfully');
+      showSuccess('Offer created successfully');
     } catch (error) {
       console.error('Error updating categories:', error);
-      showError('Failed to update categories');
+      showError('Failed to create offer');
     }
   };
 
@@ -371,7 +357,6 @@ export default function CustomerDashboardView() {
         transition={{ duration: 0.4 }}
         className="w-full px-6 py-8 max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8"
       >
-        {/* Columna izquierda */}
         <div className="space-y-6">
           <UserCard
             firstName={data.first_name}
@@ -383,9 +368,7 @@ export default function CustomerDashboardView() {
           />
         </div>
 
-        {/* Columna derecha */}
         <div className="col-span-2 space-y-6">
-          {/* Sección empresa */}
           <div className="bg-white/10 backdrop-blur rounded-xl p-6 shadow">
             <h2 className="text-xl font-semibold mb-4">About the Company</h2>
             <div className="flex gap-4 items-start">
@@ -407,15 +390,15 @@ export default function CustomerDashboardView() {
             </div>
           </div>
 
-          {/* Sección categorías */}
+          {/* Sección expertos/ofertas */}
           <div className="bg-white/10 backdrop-blur rounded-xl p-6 shadow">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold">Categories Needed</h2>
+              <h2 className="text-xl font-semibold">Experts Required</h2>
               <button
                 onClick={() => setShowModal(true)}
                 className="text-sm text-[#67ff94] hover:underline"
               >
-                Add Categories
+                Create Offer
               </button>
             </div>
 
@@ -443,7 +426,7 @@ export default function CustomerDashboardView() {
                       <button
                         onClick={() => confirmDelete(item.id)}
                         className="text-[#2c3d5a] hover:text-red-500"
-                        aria-label="Remove category"
+                        aria-label="Remove offer"
                       >
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
@@ -465,13 +448,12 @@ export default function CustomerDashboardView() {
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-white/70">No categories selected.</p>
+              <p className="text-sm text-white/70">No experts requested yet.</p>
             )}
           </div>
         </div>
       </motion.div>
 
-      {/* Modales */}
       <CustomerCategoryModal
         isOpen={showModal}
         onClose={() => setShowModal(false)}
@@ -488,8 +470,8 @@ export default function CustomerDashboardView() {
 
       <ConfirmDialog
         isOpen={confirmOpen}
-        title="Remove Category"
-        description="Are you sure you want to remove this category?"
+        title="Remove Offer"
+        description="Are you sure you want to remove this offer?"
         onConfirm={handleDeleteConfirmed}
         onCancel={() => setConfirmOpen(false)}
       />
