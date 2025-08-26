@@ -24,7 +24,7 @@ type ProjectLite = { id: string; project_name: string };
 type FormValues = {
   lookingForExpert: boolean;
   categoryId: string;
-  selectedCategories: string[]; // 1 subcategory_id
+  selectedCategories: string[];
   projectId: string;
   description: string;
 };
@@ -132,7 +132,7 @@ export default function CustomerCategoryModal({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 30 }}
               transition={{ duration: 0.3 }}
-              className="bg-[#2c3d5a] text-white rounded-xl w-full max-w-lg h-[85vh] flex flex-col"
+              className="bg-[#2c3d5a] text-white rounded-xl w-full max-w-lg max-h-[90vh] flex flex-col" // Cambiado a max-h
             >
               <Formik<FormValues>
                 initialValues={{
@@ -152,7 +152,7 @@ export default function CustomerCategoryModal({
                     await saveCustomerCategories({
                       user_id,
                       projectId: values.projectId,
-                      selectedCategories: values.selectedCategories, // [subcategory_id]
+                      selectedCategories: values.selectedCategories,
                       description: values.description,
                     });
 
@@ -170,16 +170,17 @@ export default function CustomerCategoryModal({
                 enableReinitialize
               >
                 {({ values, setFieldValue, isValid, isSubmitting }) => (
-                  <Form className="flex flex-col flex-1">
-                    {/* Scrollable content */}
-                    <div
-                      className="flex-1 overflow-y-auto overscroll-contain p-6 space-y-6"
-                      style={{ WebkitOverflowScrolling: 'touch' }}
-                    >
+                  <Form className="flex flex-col h-full">
+                    {' '}
+                    {/* Cambiado a h-full */}
+                    {/* Header fijo */}
+                    <div className="p-6 border-b border-white/10 flex-shrink-0">
                       <h2 id="modal-title" className="text-xl font-bold">
                         Looking for experts?
                       </h2>
-
+                    </div>
+                    {/* Scrollable content */}
+                    <div className="flex-1 overflow-y-auto overscroll-contain px-6 py-4 space-y-6">
                       <FormCheckbox
                         name="lookingForExpert"
                         label="Yes, I'm looking for experts"
@@ -242,7 +243,7 @@ export default function CustomerCategoryModal({
                             </select>
                           </div>
 
-                          {/* Subcategories (single-select) */}
+                          {/* Subcategories */}
                           {values.categoryId && (
                             <div>
                               <p className="text-sm font-semibold mb-2">
@@ -290,9 +291,8 @@ export default function CustomerCategoryModal({
                         </>
                       )}
                     </div>
-
-                    {/* Footer fijo dentro del modal */}
-                    <div className="p-6 border-t border-white/10">
+                    {/* Footer fijo */}
+                    <div className="p-6 border-t border-white/10 flex-shrink-0">
                       <div className="flex gap-3">
                         <button
                           type="button"
