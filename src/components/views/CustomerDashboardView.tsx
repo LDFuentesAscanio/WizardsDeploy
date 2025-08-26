@@ -8,13 +8,30 @@ import { showError, showSuccess } from '@/utils/toastService';
 import UserCard from '../organisms/dashboard/UserCard';
 import {
   CustomerDashboardData,
-  FrontendContractedCategory,
+  FrontendContractedCategory, // mantenemos tu tipo actual
 } from '../organisms/dashboard/types';
 
 import { saveCustomerCategories } from '@/utils/saveCategories';
 import { Category } from '../organisms/ProfileForm/types';
 import { ConfirmDialog } from '../organisms/dashboard/ConfirmDialog';
 import CustomerCategoryModal from '../organisms/dashboard/CustomerCategoriesModal';
+
+// ---- Tipos locales para el SELECT nuevo (evitamos romper tus types globales)
+type ProjectIdRow = { id: string };
+
+type ContractedRow = {
+  id: string;
+  subcategory_id: string | null;
+  it_projects_id: string | null;
+  description_solution: string | null;
+  is_active: boolean | null;
+  contract_date: string | null;
+  subcategories: {
+    name: string | null;
+    category_id: string | null;
+    categories: { name: string | null } | null;
+  } | null;
+};
 
 export default function CustomerDashboardView() {
   const [data, setData] = useState<CustomerDashboardData | null>(null);
@@ -39,7 +56,7 @@ export default function CustomerDashboardView() {
         const user_id = authUser.user?.id;
         if (!user_id) throw new Error('No user authenticated');
 
-        // Obtener datos del customer
+        // 1) Obtener customer (para datos y para sacar sus projects)
         const { data: customerData, error: customerError } = await supabase
           .from('customers')
           .select('id, company_name, job_title, description')
@@ -49,12 +66,24 @@ export default function CustomerDashboardView() {
         if (customerError || !customerData) throw customerError;
         const customer_id = customerData.id;
 
+        // 2) Obtener projects del customer → lista de ids
+        const { data: projects, error: projectsErr } = await supabase
+          .from('it_projects')
+          .select('id')
+          .eq('customer_id', customer_id);
+
+        if (projectsErr) throw projectsErr;
+
+        const projectIds =
+          (projects as ProjectIdRow[] | null)?.map((p) => p.id) ?? [];
+
+        // 3) Paralelizar el resto (si no hay projects, contracted = [])
         const [
           { data: user },
           { data: avatarMedia },
           { data: companyLogoMedia },
           { data: allCategories },
-          { data: contractedRaw },
+          contractedPromiseResult,
         ] = await Promise.all([
           supabase
             .from('users')
@@ -76,38 +105,55 @@ export default function CustomerDashboardView() {
             .eq('type', 'company_logo')
             .maybeSingle(),
 
-          supabase.from('categories').select('id, name'), // Cambiado de solutions a categories
+          // catálogo para mostrar nombres en la UI
+          supabase.from('categories').select('id, name'),
 
-          supabase
-            .from('contracted_solutions')
-            .select(
-              `
-              id, 
-              category_id, 
-              customer_id,
-              description_solution,
-              is_active,
-              contract_date,
-              categories:category_id (name)
-            `
-            )
-            .eq('customer_id', customer_id)
-            .eq('is_active', true),
+          projectIds.length
+            ? supabase
+                .from('contracted_solutions')
+                .select(
+                  `
+                  id,
+                  subcategory_id,
+                  it_projects_id,
+                  description_solution,
+                  is_active,
+                  contract_date,
+                  subcategories:subcategory_id (
+                    name,
+                    category_id,
+                    categories:category_id (name)
+                  )
+                `
+                )
+                .in('it_projects_id', projectIds)
+                .eq('is_active', true)
+            : Promise.resolve({ data: [], error: null }),
         ]);
 
-        setAvailableCategories(allCategories || []);
+        setAvailableCategories((allCategories as Category[]) || []);
 
-        // Mapear los datos para que coincidan con nuestro tipo
-        const formattedCategories: FrontendContractedCategory[] =
-          contractedRaw?.map((item) => ({
-            id: item.id,
-            category_id: item.category_id,
-            customer_id: item.customer_id,
-            description_solution: item.description_solution,
-            is_active: item.is_active ?? false,
-            contract_date: item.contract_date,
-            categories: item.categories,
-          })) || [];
+        const contractedRaw = (
+          contractedPromiseResult as {
+            data: ContractedRow[] | null;
+            error: unknown;
+          }
+        ).data;
+
+        // 4) Normalizar a tu tipo FrontendContractedCategory (sin romper)
+        const formattedCategories: FrontendContractedCategory[] = (
+          contractedRaw ?? []
+        ).map((row) => ({
+          id: row.id,
+          subcategory_id: row.subcategory_id ?? '',
+          it_projects_id: row.it_projects_id ?? null,
+          description_solution: row.description_solution,
+          is_active: row.is_active ?? false,
+          contract_date: row.contract_date,
+          categories: row.subcategories?.categories
+            ? { name: row.subcategories.categories.name ?? '' }
+            : null,
+        }));
 
         setContractedCategories(formattedCategories);
 
@@ -125,7 +171,7 @@ export default function CustomerDashboardView() {
           description: customerData.description || '',
           avatar: avatarMedia?.url_storage || null,
           company_logo: companyLogoMedia?.url_storage || null,
-          categories: categoryNames, // Cambiado de solutions a categories
+          categories: categoryNames,
         });
       } catch (error) {
         console.error('Error loading data:', error);
@@ -158,43 +204,59 @@ export default function CustomerDashboardView() {
         .select('id')
         .eq('user_id', user_id)
         .single();
-
       if (!customerData) throw new Error('Customer not found');
 
+      // Desactivar
       const { error: deleteError } = await supabase
         .from('contracted_solutions')
         .update({ is_active: false, updated_at: new Date().toISOString() })
-        .eq('id', categoryToDelete)
-        .select();
-
+        .eq('id', categoryToDelete);
       if (deleteError) throw deleteError;
 
-      const { data: refreshedCategories } = await supabase
-        .from('contracted_solutions')
-        .select(
-          `
-          id, 
-          category_id, 
-          customer_id,
-          description_solution,
-          is_active,
-          contract_date,
-          categories:category_id (name)
-        `
-        )
-        .eq('customer_id', customerData.id)
-        .eq('is_active', true);
+      // Refetch: obtener projects y luego contracted por it_projects_id
+      const { data: projects } = await supabase
+        .from('it_projects')
+        .select('id')
+        .eq('customer_id', customerData.id);
 
-      const formattedCategories: FrontendContractedCategory[] =
-        refreshedCategories?.map((item) => ({
-          id: item.id,
-          category_id: item.category_id,
-          customer_id: item.customer_id,
-          description_solution: item.description_solution,
-          is_active: item.is_active ?? false,
-          contract_date: item.contract_date,
-          categories: item.categories,
-        })) || [];
+      const projectIds =
+        (projects as ProjectIdRow[] | null)?.map((p) => p.id) ?? [];
+
+      const { data: refreshed } = projectIds.length
+        ? await supabase
+            .from('contracted_solutions')
+            .select(
+              `
+              id,
+              subcategory_id,
+              it_projects_id,
+              description_solution,
+              is_active,
+              contract_date,
+              subcategories:subcategory_id (
+                name,
+                category_id,
+                categories:category_id (name)
+              )
+            `
+            )
+            .in('it_projects_id', projectIds)
+            .eq('is_active', true)
+        : { data: [] as ContractedRow[] };
+
+      const formattedCategories: FrontendContractedCategory[] = (
+        refreshed as ContractedRow[]
+      ).map((row) => ({
+        id: row.id,
+        subcategory_id: row.subcategory_id ?? '',
+        it_projects_id: row.it_projects_id ?? null,
+        description_solution: row.description_solution,
+        is_active: row.is_active ?? false,
+        contract_date: row.contract_date,
+        categories: row.subcategories?.categories
+          ? { name: row.subcategories.categories.name ?? '' }
+          : null,
+      }));
 
       setContractedCategories(formattedCategories);
 
@@ -204,7 +266,7 @@ export default function CustomerDashboardView() {
 
       setData((prev) => ({
         ...prev!,
-        categories: categoryNames, // Cambiado de solutions a categories
+        categories: categoryNames,
       }));
 
       showSuccess('Category removed successfully');
@@ -220,6 +282,7 @@ export default function CustomerDashboardView() {
   const handleModalSubmit = async (values: {
     selectedCategories: string[];
     description: string;
+    projectId: string;
   }) => {
     try {
       const { data: authUser } = await supabase.auth.getUser();
@@ -228,36 +291,55 @@ export default function CustomerDashboardView() {
 
       const customer_id = await saveCustomerCategories({
         user_id,
+        projectId: values.projectId,
         selectedCategories: values.selectedCategories,
         description: values.description,
       });
 
-      const { data: refreshedCategories } = await supabase
-        .from('contracted_solutions')
-        .select(
-          `
-          id, 
-          category_id, 
-          customer_id,
-          description_solution,
-          is_active,
-          contract_date,
-          categories:category_id (name)
-        `
-        )
-        .eq('customer_id', customer_id)
-        .eq('is_active', true);
+      // Refetch tras guardar
+      const { data: projects } = await supabase
+        .from('it_projects')
+        .select('id')
+        .eq('customer_id', customer_id);
 
-      const formattedCategories: FrontendContractedCategory[] =
-        refreshedCategories?.map((item) => ({
-          id: item.id,
-          category_id: item.category_id,
-          customer_id: item.customer_id,
-          description_solution: item.description_solution,
-          is_active: item.is_active ?? false,
-          contract_date: item.contract_date,
-          categories: item.categories,
-        })) || [];
+      const projectIds =
+        (projects as ProjectIdRow[] | null)?.map((p) => p.id) ?? [];
+
+      const { data: refreshed } = projectIds.length
+        ? await supabase
+            .from('contracted_solutions')
+            .select(
+              `
+              id,
+              subcategory_id,
+              it_projects_id,
+              description_solution,
+              is_active,
+              contract_date,
+              subcategories:subcategory_id (
+                name,
+                category_id,
+                categories:category_id (name)
+              )
+            `
+            )
+            .in('it_projects_id', projectIds)
+            .eq('is_active', true)
+        : { data: [] as ContractedRow[] };
+
+      const formattedCategories: FrontendContractedCategory[] = (
+        refreshed as ContractedRow[]
+      ).map((row) => ({
+        id: row.id,
+        subcategory_id: row.subcategory_id ?? '',
+        it_projects_id: row.it_projects_id ?? null,
+        description_solution: row.description_solution,
+        is_active: row.is_active ?? false,
+        contract_date: row.contract_date,
+        categories: row.subcategories?.categories
+          ? { name: row.subcategories.categories.name ?? '' }
+          : null,
+      }));
 
       setContractedCategories(formattedCategories);
 
@@ -267,7 +349,7 @@ export default function CustomerDashboardView() {
 
       setData((prev) => ({
         ...prev!,
-        categories: categoryNames, // Cambiado de solutions a categories
+        categories: categoryNames,
       }));
 
       setShowModal(false);
@@ -396,7 +478,9 @@ export default function CustomerDashboardView() {
         categories={availableCategories}
         initialValues={{
           lookingForExpert: false,
+          categoryId: '',
           selectedCategories: [],
+          projectId: '',
           description: '',
         }}
         onSubmit={handleModalSubmit}

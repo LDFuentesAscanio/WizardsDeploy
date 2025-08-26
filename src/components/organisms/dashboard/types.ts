@@ -108,14 +108,12 @@ export interface CustomerDashboardData {
 // Tipos para soluciones contratadas
 export interface FrontendContractedCategory {
   id: string;
-  category_id: string;
-  customer_id: string;
+  subcategory_id: string; // ← antes: category_id
+  it_projects_id: string | null; // ← antes no existía
   description_solution: string | null;
   is_active: boolean;
-  contract_date: string | null; // Cambiado de string a string | null
-  categories: {
-    name: string;
-  } | null;
+  contract_date: string | null;
+  categories: { name: string } | null;
 }
 
 // Tipos para profesiones
@@ -158,3 +156,14 @@ export interface ExpertiseRow {
   rating: number | null;
   experience_time: string | null;
 }
+
+export type ContractedRawRow = {
+  id: string;
+  subcategory_id: string;
+  it_projects_id: string | null;
+  description_solution: string | null;
+  is_active: boolean | null;
+  contract_date: string | null;
+  // Alias en el SELECT: categories:subcategory_id (name)
+  categories: { name: string | null } | null;
+};

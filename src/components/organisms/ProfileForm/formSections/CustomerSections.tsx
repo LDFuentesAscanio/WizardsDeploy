@@ -4,10 +4,7 @@ import { useState } from 'react';
 import { Category } from '../types';
 
 import { CustomerBasicInfo } from './CustomerBasicInfo';
-import { supabase } from '@/utils/supabase/browserClient';
-import { showError, showSuccess } from '@/utils/toastService';
 import FormCheckbox from '@/components/atoms/FormCheckbox';
-import { saveCustomerCategories } from '@/utils/saveCategories';
 import CustomerCategoryModal from '../../dashboard/CustomerCategoriesModal';
 
 type Props = {
@@ -17,31 +14,19 @@ type Props = {
 
 export default function CustomerSections({ categories, roleName }: Props) {
   const [showModal, setShowModal] = useState(false);
+  // Nota: ahora guarda subcategory_id(s)
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
 
-  const handleSaveCategories = async (values: {
-    selectedCategories: string[];
-    description: string;
+  // El modal ya hace el save en Supabase. Este callback solo sincroniza estado local.
+  const handleAfterSave = async (values: {
     lookingForExpert: boolean;
+    categoryId: string; // categoría elegida
+    selectedCategories: string[]; // subcategory_id (single select)
+    projectId: string; // proyecto al que cuelga la oferta
+    description: string;
   }) => {
-    try {
-      const { data: authUser } = await supabase.auth.getUser();
-      const user_id = authUser.user?.id;
-      if (!user_id) throw new Error('No user authenticated');
-
-      await saveCustomerCategories({
-        user_id,
-        selectedCategories: values.selectedCategories,
-        description: values.description,
-      });
-
-      setSelectedCategories(values.selectedCategories);
-      setShowModal(false);
-      showSuccess('Categories saved successfully!');
-    } catch (error) {
-      console.error('Error saving categories:', error);
-      showError('Error saving categories');
-    }
+    setSelectedCategories(values.selectedCategories);
+    setShowModal(false);
   };
 
   return (
@@ -98,19 +83,14 @@ export default function CustomerSections({ categories, roleName }: Props) {
 
         {selectedCategories.length > 0 && (
           <div className="bg-white/10 p-4 rounded-lg">
-            <p className="text-white mb-2">You have selected:</p>
-            <ul className="space-y-1">
-              {selectedCategories.map((id) => {
-                const category = categories.find((c) => c.id === id);
-                return (
-                  category && (
-                    <li key={id} className="text-sm text-white">
-                      • {category.name}
-                    </li>
-                  )
-                );
-              })}
-            </ul>
+            <p className="text-white mb-1">
+              {selectedCategories.length === 1
+                ? '1 subcategory selected'
+                : `${selectedCategories.length} subcategories selected`}
+            </p>
+            <p className="text-xs text-white/70">
+              (Selection stored as subcategory IDs)
+            </p>
           </div>
         )}
       </div>
@@ -121,10 +101,12 @@ export default function CustomerSections({ categories, roleName }: Props) {
         categories={categories}
         initialValues={{
           lookingForExpert: selectedCategories.length > 0,
-          selectedCategories,
+          categoryId: '', // inicial: sin categoría seleccionada
+          projectId: '', // inicial: sin proyecto seleccionado
+          selectedCategories, // mantiene lo ya elegido
           description: '',
         }}
-        onSubmit={handleSaveCategories}
+        onSubmit={handleAfterSave}
       />
     </>
   );

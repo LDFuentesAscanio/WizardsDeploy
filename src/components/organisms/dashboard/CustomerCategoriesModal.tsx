@@ -11,10 +11,7 @@ import { supabase } from '@/utils/supabase/browserClient';
 import { categoryModalSchema } from '@/validations/CategoryModalSchema';
 import { saveCustomerCategories } from '@/utils/saveCategories';
 
-type Category = {
-  id: string;
-  name: string;
-};
+type Category = { id: string; name: string };
 
 type Subcategory = {
   id: string;
@@ -22,16 +19,13 @@ type Subcategory = {
   category_id: string | null;
 };
 
-type ProjectLite = {
-  id: string;
-  project_name: string;
-};
+type ProjectLite = { id: string; project_name: string };
 
 type FormValues = {
   lookingForExpert: boolean;
-  categoryId: string; // <- nueva: categoría elegida (filtra subcategorías)
-  selectedCategories: string[]; // <- aquí guardamos UN subcategory_id (arreglo por compatibilidad)
-  projectId: string; // <- nueva: proyecto donde colgar la oferta
+  categoryId: string;
+  selectedCategories: string[]; // contiene 1 subcategory_id
+  projectId: string;
   description: string;
 };
 
@@ -40,7 +34,7 @@ type Props = {
   onClose: () => void;
   categories: Category[];
   initialValues: Partial<FormValues>;
-  onSubmit?: (values: FormValues) => void | Promise<void>;
+  onSubmit?: (values: FormValues) => void | Promise<void>; // ← sigue opcional; se usa solo para refrescar desde el padre
 };
 
 export default function CustomerCategoryModal({
@@ -54,7 +48,7 @@ export default function CustomerCategoryModal({
   const [subcategories, setSubcategories] = useState<Subcategory[]>([]);
   const [loadingLists, setLoadingLists] = useState(false);
 
-  // 🔎 Carga proyectos del customer autenticado
+  // Cargar proyectos del customer autenticado
   useEffect(() => {
     if (!isOpen) return;
 
@@ -65,24 +59,21 @@ export default function CustomerCategoryModal({
           data: { user },
           error: authErr,
         } = await supabase.auth.getUser();
-        if (authErr || !user) return;
+        if (authErr) throw authErr;
+        if (!user) return;
 
-        // Obtener customer_id
         const { data: customerRow, error: custErr } = await supabase
           .from('customers')
           .select('id')
           .eq('user_id', user.id)
           .maybeSingle();
-
         if (custErr) throw custErr;
         if (!customerRow?.id) return;
 
-        // Proyectos del customer
         const { data: projectRows, error: projErr } = await supabase
           .from('it_projects')
           .select('id, project_name')
           .eq('customer_id', customerRow.id);
-
         if (projErr) throw projErr;
 
         setProjects(
@@ -100,7 +91,7 @@ export default function CustomerCategoryModal({
     })();
   }, [isOpen]);
 
-  // 🔎 Carga subcategorías según categoría seleccionada
+  // Cargar subcategorías al elegir categoría
   const fetchSubcategories = async (categoryId: string) => {
     try {
       if (!categoryId) {
@@ -166,6 +157,7 @@ export default function CustomerCategoryModal({
                       description: values.description,
                     });
 
+                    // Avisar al padre solo para refrescar listados si lo desea
                     if (onSubmit) {
                       await onSubmit(values);
                     }
@@ -173,8 +165,8 @@ export default function CustomerCategoryModal({
                     showSuccess('Offer saved successfully!');
                     onClose();
                   } catch (error) {
-                    showError('Error saving offer');
                     console.error('Modal save error:', error);
+                    showError('Error saving offer');
                   } finally {
                     setSubmitting(false);
                   }
@@ -196,6 +188,7 @@ export default function CustomerCategoryModal({
                           setFieldValue('selectedCategories', []);
                           setFieldValue('projectId', '');
                           setFieldValue('description', '');
+                          setSubcategories([]);
                         }
                       }}
                       checked={values.lookingForExpert}
@@ -233,7 +226,7 @@ export default function CustomerCategoryModal({
                             onChange={async (e) => {
                               const newCat = e.target.value;
                               setFieldValue('categoryId', newCat);
-                              // al cambiar categoría, vaciamos subcategory seleccionada
+                              // al cambiar categoría, vaciar subcategoría
                               setFieldValue('selectedCategories', []);
                               await fetchSubcategories(newCat);
                             }}
@@ -249,7 +242,7 @@ export default function CustomerCategoryModal({
                           </select>
                         </div>
 
-                        {/* Subcategories (single-select) */}
+                        {/* Subcategories (selección única) */}
                         {values.categoryId && (
                           <div>
                             <p className="text-sm font-semibold mb-2">
@@ -271,7 +264,7 @@ export default function CustomerCategoryModal({
                                           label={sub.name}
                                           onChange={(e) => {
                                             const checked = e.target.checked;
-                                            // forzamos única selección
+                                            // forzar única selección
                                             setFieldValue(
                                               'selectedCategories',
                                               checked ? [sub.id] : []

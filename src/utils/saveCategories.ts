@@ -1,62 +1,99 @@
 import { supabase } from '@/utils/supabase/browserClient';
+import type { PostgrestError } from '@supabase/supabase-js';
 
-type SaveCustomerCategoriesParams = {
-  user_id: string; // se mantiene por firma, no se usa en el insert
-  projectId: string; // 🔴 requerido: it_projects_id
-  selectedCategories: string[]; // aquí viene UN subcategory_id (tomamos el primero)
+export type SaveCustomerCategoriesParams = {
+  user_id: string;
+  projectId: string; // ← obligatorio ahora
+  selectedCategories: string[]; // ← contiene 1 subcategory_id
   description: string;
 };
 
+type SupabaseResponse = { error: PostgrestError | null };
+
+/**
+ * Inserta/activa una oferta (contracted_solutions) asociada a:
+ *   it_projects_id + subcategory_id + description_solution
+ * Devuelve el customer_id del dueño del project para compatibilidad con llamadas previas.
+ */
 export async function saveCustomerCategories({
-  user_id, // eslint-disable-line @typescript-eslint/no-unused-vars
+  user_id,
   projectId,
   selectedCategories,
   description,
 }: SaveCustomerCategoriesParams): Promise<string> {
   if (!projectId) throw new Error('Project is required');
-  const [subcategory_id] = selectedCategories;
-  if (!subcategory_id) throw new Error('Subcategory is required');
+  if (!selectedCategories?.length) throw new Error('Subcategory is required');
+  const subcategory_id = selectedCategories[0];
 
-  // Buscar si ya existe una oferta con mismo proyecto + subcategoría
-  const { data: existingRows, error: selErr } = await supabase
-    .from('contracted_solutions')
-    .select('id, subcategory_id, is_active, description_solution')
-    .eq('it_projects_id', projectId)
-    .eq('subcategory_id', subcategory_id);
+  // 1) Obtener customer_id del usuario
+  const { data: customerRow, error: customerError } = await supabase
+    .from('customers')
+    .select('id')
+    .eq('user_id', user_id)
+    .maybeSingle();
 
-  if (selErr) {
-    throw new Error('Error fetching existing offers');
+  if (customerError || !customerRow?.id) {
+    throw new Error('Customer not found for this user');
+  }
+  const customer_id = customerRow.id;
+
+  // 2) Validar que el proyecto pertenezca a este customer
+  const { data: projectRow, error: projErr } = await supabase
+    .from('it_projects')
+    .select('id, customer_id')
+    .eq('id', projectId)
+    .maybeSingle();
+
+  if (projErr) throw projErr;
+  if (!projectRow?.id || projectRow.customer_id !== customer_id) {
+    throw new Error('Project does not belong to current customer');
   }
 
-  // ¿Existe una con la misma descripción? => reactivar
-  const existingWithSameDesc = (existingRows ?? []).find(
-    (r) => (r.description_solution ?? '') === (description ?? '')
-  );
+  // 3) ¿Existe una fila con misma combinación y misma descripción?
+  const { data: existingRow, error: existErr } = await supabase
+    .from('contracted_solutions')
+    .select('id, is_active')
+    .eq('it_projects_id', projectId)
+    .eq('subcategory_id', subcategory_id)
+    .eq('description_solution', description)
+    .maybeSingle();
 
-  if (existingWithSameDesc) {
-    const { error } = await supabase
+  if (existErr && existErr.code !== 'PGRST116') throw existErr;
+
+  let op: PromiseLike<SupabaseResponse>;
+
+  if (existingRow?.id) {
+    // Reactivar si estaba inactiva
+    op = supabase
       .from('contracted_solutions')
       .update({
         is_active: true,
         updated_at: new Date().toISOString(),
       })
-      .eq('id', existingWithSameDesc.id);
-    if (error) throw error;
-    return projectId;
+      .eq('id', existingRow.id)
+      .then(({ error }): SupabaseResponse => ({ error }));
+  } else {
+    // Crear nueva
+    op = supabase
+      .from('contracted_solutions')
+      .insert({
+        it_projects_id: projectId,
+        subcategory_id,
+        description_solution: description,
+        is_active: true,
+        contract_date: new Date().toISOString(),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .then(({ error }): SupabaseResponse => ({ error }));
   }
 
-  // Insertar nueva
-  const { error: insErr } = await supabase.from('contracted_solutions').insert({
-    it_projects_id: projectId,
-    subcategory_id,
-    description_solution: description,
-    is_active: true,
-    contract_date: new Date().toISOString(),
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  });
+  const { error } = await op;
+  if (error) {
+    console.error('Error in saveCustomerCategories:', error);
+    throw new Error('Failed to save the offer');
+  }
 
-  if (insErr) throw insErr;
-
-  return projectId;
+  // ⚠️ Compatibilidad: algunos llamados antiguos esperaban customer_id
+  return customer_id;
 }
