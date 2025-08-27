@@ -114,7 +114,7 @@ export default function CustomerCategoryModal({
   return (
     <AnimatePresence>
       {isOpen && (
-        <Dialog open={isOpen} onClose={onClose} className="relative z-50">
+        <Dialog open={isOpen} onClose={onClose} className="relative z-[120]">
           {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -126,7 +126,7 @@ export default function CustomerCategoryModal({
           />
 
           {/* Modal center */}
-          <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="fixed inset-0 z-[120] overflow-y-auto">
             <div className="flex min-h-full items-center justify-center p-4">
               <motion.div
                 initial={{ opacity: 0, y: 30 }}

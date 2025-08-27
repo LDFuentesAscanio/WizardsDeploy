@@ -6,6 +6,7 @@ import { Formik, Form } from 'formik';
 import { AnimatePresence, motion } from 'framer-motion';
 import * as Yup from 'yup';
 import type { Tables } from '@/types/supabase';
+
 import Button from '@/components/atoms/Button';
 import FormInput from '@/components/atoms/FormInput';
 import { fetchProjectOffers, deactivateOffer } from '@/utils/projectsService';
@@ -13,8 +14,11 @@ import type { ContractedRow } from '@/utils/projectsService';
 import { updateProject } from '@/utils/projectsService';
 import { showError, showSuccess } from '@/utils/toastService';
 import OfferEditModal from './OfferEditModal';
+import CustomerCategoryModal from '@/components/organisms/dashboard/CustomerCategoriesModal';
+import { supabase } from '@/utils/supabase/browserClient';
 
 type Project = Tables<'it_projects'>;
+type Category = { id: string; name: string };
 
 type Props = {
   isOpen: boolean;
@@ -51,6 +55,12 @@ export default function ProjectEditModal({
   const [loadingOffers, setLoadingOffers] = useState(false);
   const [editingOffer, setEditingOffer] = useState<ContractedRow | null>(null);
 
+  // Crear oferta (sub-modal)
+  const [showCreateOffer, setShowCreateOffer] = useState(false);
+  const [availableCategories, setAvailableCategories] = useState<Category[]>(
+    []
+  );
+
   const loadOffers = async () => {
     if (!project?.id) return;
     try {
@@ -65,8 +75,24 @@ export default function ProjectEditModal({
     }
   };
 
+  const loadCategories = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('categories')
+        .select('id, name');
+      if (error) throw error;
+      setAvailableCategories((data as Category[]) ?? []);
+    } catch (e) {
+      console.error('❌ Error loading categories:', e);
+      showError('Error loading categories');
+    }
+  };
+
   useEffect(() => {
-    if (isOpen && project?.id) loadOffers();
+    if (isOpen && project?.id) {
+      loadOffers();
+      loadCategories();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, project?.id]);
 
@@ -173,6 +199,7 @@ export default function ProjectEditModal({
                           as="textarea"
                           rows={4}
                         />
+
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <FormInput
                             name="start_date"
@@ -185,6 +212,7 @@ export default function ProjectEditModal({
                             label="End Date"
                           />
                         </div>
+
                         <FormInput
                           name="status"
                           label="Status"
@@ -197,6 +225,7 @@ export default function ProjectEditModal({
                             { value: 'Cancelled', label: 'Cancelled' },
                           ]}
                         />
+
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <FormInput
                             name="budget"
@@ -211,9 +240,19 @@ export default function ProjectEditModal({
 
                         {/* Ofertas del proyecto */}
                         <div className="pt-4">
-                          <h3 className="text-lg font-semibold">
-                            Offers for this project
-                          </h3>
+                          <div className="flex items-center justify-between">
+                            <h3 className="text-lg font-semibold">
+                              Offers for this project
+                            </h3>
+                            <Button
+                              type="button"
+                              variant="primary"
+                              onClick={() => setShowCreateOffer(true)}
+                              className="px-4 py-2"
+                            >
+                              Create Offer
+                            </Button>
+                          </div>
 
                           {loadingOffers ? (
                             <p className="text-sm text-white/70 mt-2">
@@ -248,6 +287,7 @@ export default function ProjectEditModal({
                                         : ''}
                                     </p>
                                   </div>
+
                                   <div className="flex gap-2">
                                     <Button
                                       type="button"
@@ -338,7 +378,7 @@ export default function ProjectEditModal({
             </div>
           </div>
 
-          {/* Submodal para editar oferta */}
+          {/* Submodal: editar oferta existente */}
           {editingOffer && (
             <OfferEditModal
               isOpen={!!editingOffer}
@@ -351,6 +391,25 @@ export default function ProjectEditModal({
               }}
             />
           )}
+
+          {/* Submodal: crear oferta (usa CustomerCategoryModal) */}
+          <CustomerCategoryModal
+            isOpen={showCreateOffer}
+            onClose={() => setShowCreateOffer(false)}
+            categories={availableCategories}
+            initialValues={{
+              lookingForExpert: true,
+              categoryId: '',
+              selectedCategories: [],
+              projectId: project.id, // ← se fija al proyecto actual
+              description: '',
+            }}
+            onSubmit={async () => {
+              setShowCreateOffer(false);
+              await loadOffers();
+              if (onSaved) await onSaved();
+            }}
+          />
         </Dialog>
       )}
     </AnimatePresence>
