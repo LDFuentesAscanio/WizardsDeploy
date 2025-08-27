@@ -14,7 +14,7 @@ export default function Button({
     primary:
       'bg-[#67ff94] text-[#2c3d5a] px-6 py-3 rounded-xl font-semibold hover:bg-[#8effd2] transition-colors disabled:opacity-50',
     secondary:
-      'border-2 border-[#67ff94] text-[#2c3d5a] px-6 py-3 rounded-xl font-semibold hover:bg-[#67ff94]/10 transition-colors disabled:opacity-50',
+      'border-2 border-[#67ff94] text-[#2c3d5a] px-6 py-3 bg-[#e7e7e7] rounded-xl font-semibold hover:bg-[#67ff94]/10 transition-colors disabled:opacity-50',
     email:
       'bg-[#2a2f45] text-white px-6 py-3 hover:bg-[#3b425e] shadow-[0_4px_24px_rgba(0,0,0,0.3)] w-fit',
     google:
