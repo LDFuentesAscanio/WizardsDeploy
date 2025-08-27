@@ -429,7 +429,7 @@ export default function CustomerDashboardView() {
                           {item.categories?.name || 'Unnamed Category'}
                         </h3>
                         {item.project_name && (
-                          <p className="text-xs text-[#1d2c45] mt-0.5">
+                          <p className="inline-block w-fit rounded-full bg-[#e7e7e7] text-[#1d2c45] font-semibold text-xs px-3 py-1 mt-1 shadow-sm">
                             Project: {item.project_name}
                           </p>
                         )}
