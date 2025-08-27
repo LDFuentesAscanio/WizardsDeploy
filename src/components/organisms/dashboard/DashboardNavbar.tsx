@@ -153,10 +153,10 @@ export default function DashboardNavbar() {
                 <li key={label}>
                   <Link
                     href={href}
-                    className={`flex items-center gap-2 px-2 py-1 transition-all duration-200 ${
+                    className={`flex items-center gap-2 px-2 py-1 transition-transform duration-200 ${
                       isActive
                         ? 'text-[#2c3d5a] font-semibold'
-                        : 'hover:text-base'
+                        : 'hover:scale-105'
                     }`}
                     aria-current={isActive ? 'page' : undefined}
                   >
@@ -198,10 +198,10 @@ export default function DashboardNavbar() {
                     <Link
                       href={href}
                       onClick={() => setOpen(false)}
-                      className={`flex items-center gap-2 px-2 py-1 transition-all duration-200 ${
+                      className={`flex items-center gap-2 px-2 py-1 transition-transform duration-200 ${
                         isActive
                           ? 'text-[#2c3d5a] font-bold'
-                          : 'hover:text-base'
+                          : 'hover:scale-105'
                       }`}
                       aria-current={isActive ? 'page' : undefined}
                     >
