@@ -30,6 +30,11 @@ type ContractedRow = {
     category_id: string | null;
     categories: { name: string | null } | null;
   } | null;
+  it_projects: { project_name: string | null } | null; // ⬅️ NUEVO
+};
+
+type FrontendContractedCategoryWithProject = FrontendContractedCategory & {
+  project_name?: string | null;
 };
 
 export default function CustomerDashboardView() {
@@ -42,7 +47,7 @@ export default function CustomerDashboardView() {
     []
   );
   const [contractedCategories, setContractedCategories] = useState<
-    FrontendContractedCategory[]
+    FrontendContractedCategoryWithProject[]
   >([]);
 
   useEffect(() => {
@@ -113,7 +118,8 @@ export default function CustomerDashboardView() {
                     name,
                     category_id,
                     categories:category_id (name)
-                  )
+                  ), 
+                  it_projects:it_projects_id ( project_name )
                 `
                 )
                 .in('it_projects_id', projectIds)
@@ -142,6 +148,7 @@ export default function CustomerDashboardView() {
           categories: row.subcategories?.categories
             ? { name: row.subcategories.categories.name ?? '' }
             : null,
+          project_name: row.it_projects?.project_name ?? null,
         }));
 
         setContractedCategories(formattedCategories);
@@ -224,7 +231,8 @@ export default function CustomerDashboardView() {
                 name,
                 category_id,
                 categories:category_id (name)
-              )
+              ), 
+              it_projects:it_projects_id ( project_name )
             `
             )
             .in('it_projects_id', projectIds)
@@ -243,6 +251,7 @@ export default function CustomerDashboardView() {
         categories: row.subcategories?.categories
           ? { name: row.subcategories.categories.name ?? '' }
           : null,
+        project_name: row.it_projects?.project_name ?? null,
       }));
 
       setContractedCategories(formattedCategories);
@@ -306,7 +315,8 @@ export default function CustomerDashboardView() {
                 name,
                 category_id,
                 categories:category_id (name)
-              )
+              ), 
+              it_projects:it_projects_id ( project_name )
             `
             )
             .in('it_projects_id', projectIds)
@@ -325,6 +335,7 @@ export default function CustomerDashboardView() {
         categories: row.subcategories?.categories
           ? { name: row.subcategories.categories.name ?? '' }
           : null,
+        project_name: row.it_projects?.project_name ?? null,
       }));
 
       setContractedCategories(formattedCategories);
@@ -410,13 +421,18 @@ export default function CustomerDashboardView() {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.3 }}
-                    className="bg-[#67ff94] text-[#2c3d5a] p-4 rounded-xl shadow flex flex-col gap-2"
+                    className="bg-[#67ff94] text-[#1d2c45] p-4 rounded-xl shadow flex flex-col gap-2"
                   >
                     <div className="flex justify-between items-start">
                       <div>
                         <h3 className="font-semibold text-md">
                           {item.categories?.name || 'Unnamed Category'}
                         </h3>
+                        {item.project_name && (
+                          <p className="text-xs text-[#1d2c45] mt-0.5">
+                            Project: {item.project_name}
+                          </p>
+                        )}
                         {item.description_solution && (
                           <p className="text-sm text-[#1d2c45] mt-1">
                             {item.description_solution}
