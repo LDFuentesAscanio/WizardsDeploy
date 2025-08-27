@@ -1,7 +1,6 @@
-// components/organisms/projects/ProjectEditModal.tsx
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { Dialog } from '@headlessui/react';
 import { Formik, Form } from 'formik';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -9,17 +8,13 @@ import * as Yup from 'yup';
 import type { Tables } from '@/types/supabase';
 import Button from '@/components/atoms/Button';
 import FormInput from '@/components/atoms/FormInput';
-import {
-  fetchProjectOffers,
-  type ContractedRow,
-  updateProject,
-} from '@/utils/projectsService';
-import { supabase } from '@/utils/supabase/browserClient';
-import CustomerCategoryModal from '@/components/organisms/dashboard/CustomerCategoriesModal';
+import { fetchProjectOffers, deactivateOffer } from '@/utils/projectsService';
+import type { ContractedRow } from '@/utils/projectsService';
+import { updateProject } from '@/utils/projectsService';
 import { showError, showSuccess } from '@/utils/toastService';
+import OfferEditModal from './OfferEditModal';
 
 type Project = Tables<'it_projects'>;
-type Category = { id: string; name: string };
 
 type Props = {
   isOpen: boolean;
@@ -53,40 +48,27 @@ export default function ProjectEditModal({
 
   // Ofertas del proyecto
   const [offers, setOffers] = useState<ContractedRow[]>([]);
-  // Catálogo de categorías (para el CustomerCategoryModal)
-  const [categories, setCategories] = useState<Category[]>([]);
-  // Control del modal de crear oferta
-  const [offerModalOpen, setOfferModalOpen] = useState(false);
+  const [loadingOffers, setLoadingOffers] = useState(false);
+  const [editingOffer, setEditingOffer] = useState<ContractedRow | null>(null);
 
-  const loadOffers = useCallback(async () => {
+  const loadOffers = async () => {
     if (!project?.id) return;
     try {
-      const rows = await fetchProjectOffers(project.id);
-      setOffers(rows);
+      setLoadingOffers(true);
+      const data = await fetchProjectOffers(project.id);
+      setOffers(data);
     } catch (e) {
       console.error('❌ Error loading offers:', e);
       showError('Error loading offers');
+    } finally {
+      setLoadingOffers(false);
     }
-  }, [project?.id]);
-
-  const loadCategories = useCallback(async () => {
-    try {
-      const { data, error } = await supabase
-        .from('categories')
-        .select('id, name');
-      if (error) throw error;
-      setCategories((data as Category[]) ?? []);
-    } catch (e) {
-      console.error('❌ Error loading categories:', e);
-      showError('Error loading categories');
-    }
-  }, []);
+  };
 
   useEffect(() => {
-    if (!isOpen) return;
-    loadOffers();
-    loadCategories();
-  }, [isOpen, loadOffers, loadCategories]);
+    if (isOpen && project?.id) loadOffers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, project?.id]);
 
   return (
     <AnimatePresence>
@@ -154,11 +136,13 @@ export default function ProjectEditModal({
                             : Number(values.budget),
                         responsible: values.responsible || null,
                       };
-
                       await updateProject(project.id, payload);
-                      showSuccess('Project updated!');
+                      showSuccess('Project updated');
                       if (onSaved) await onSaved();
                       onClose();
+                    } catch (e) {
+                      console.error('❌ Error updating project:', e);
+                      showError('Error updating project');
                     } finally {
                       setSubmitting(false);
                     }
@@ -168,9 +152,7 @@ export default function ProjectEditModal({
                     <Form className="flex flex-col h-full min-h-0">
                       {/* Header fijo */}
                       <div className="p-6 border-b border-white/10 flex items-center justify-between flex-shrink-0">
-                        <h2 className="text-xl font-bold">
-                          Edit Project — {project.project_name}
-                        </h2>
+                        <h2 className="text-xl font-bold">Edit Project</h2>
                         <button
                           type="button"
                           onClick={onClose}
@@ -183,114 +165,128 @@ export default function ProjectEditModal({
 
                       {/* Contenido scrollable */}
                       <div className="flex-1 min-h-0 overflow-y-auto p-6 space-y-6">
-                        {/* Datos del proyecto */}
-                        <section className="space-y-4">
-                          <FormInput name="project_name" label="Project Name" />
+                        {/* Campos del proyecto */}
+                        <FormInput name="project_name" label="Project Name" />
+                        <FormInput
+                          name="description"
+                          label="Description"
+                          as="textarea"
+                          rows={4}
+                        />
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <FormInput
-                            name="description"
-                            label="Description"
-                            as="textarea"
-                            rows={4}
+                            name="start_date"
+                            type="date"
+                            label="Start Date"
                           />
-
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <FormInput
-                              name="start_date"
-                              type="date"
-                              label="Start Date"
-                            />
-                            <FormInput
-                              name="end_date"
-                              type="date"
-                              label="End Date"
-                            />
-                          </div>
-
                           <FormInput
-                            name="status"
-                            label="Status"
-                            as="select"
-                            options={[
-                              { value: 'Planning', label: 'Planning' },
-                              { value: 'In Progress', label: 'In Progress' },
-                              { value: 'On Hold', label: 'On Hold' },
-                              { value: 'Completed', label: 'Completed' },
-                              { value: 'Cancelled', label: 'Cancelled' },
-                            ]}
+                            name="end_date"
+                            type="date"
+                            label="End Date"
                           />
-
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <FormInput
-                              name="budget"
-                              type="number"
-                              label="Budget (optional)"
-                            />
-                            <FormInput
-                              name="responsible"
-                              label="Responsible (optional)"
-                            />
-                          </div>
-                        </section>
+                        </div>
+                        <FormInput
+                          name="status"
+                          label="Status"
+                          as="select"
+                          options={[
+                            { value: 'Planning', label: 'Planning' },
+                            { value: 'In Progress', label: 'In Progress' },
+                            { value: 'On Hold', label: 'On Hold' },
+                            { value: 'Completed', label: 'Completed' },
+                            { value: 'Cancelled', label: 'Cancelled' },
+                          ]}
+                        />
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <FormInput
+                            name="budget"
+                            type="number"
+                            label="Budget (optional)"
+                          />
+                          <FormInput
+                            name="responsible"
+                            label="Responsible (optional)"
+                          />
+                        </div>
 
                         {/* Ofertas del proyecto */}
-                        <section className="space-y-3">
-                          <div className="flex items-center justify-between">
-                            <h3 className="text-lg font-semibold">
-                              Experts Required (Offers)
-                            </h3>
-                            <Button
-                              type="button"
-                              variant="primary"
-                              onClick={() => setOfferModalOpen(true)}
-                            >
-                              Create Offer
-                            </Button>
-                          </div>
+                        <div className="pt-4">
+                          <h3 className="text-lg font-semibold">
+                            Offers for this project
+                          </h3>
 
-                          {offers.length ? (
-                            <div className="grid grid-cols-1 gap-3">
+                          {loadingOffers ? (
+                            <p className="text-sm text-white/70 mt-2">
+                              Loading offers…
+                            </p>
+                          ) : offers.length ? (
+                            <div className="mt-3 space-y-3">
                               {offers.map((o) => (
                                 <div
                                   key={o.id}
-                                  className="bg-white/10 rounded-lg p-4"
+                                  className="flex items-start justify-between bg-white/5 rounded-lg p-3"
                                 >
-                                  <div className="flex items-start justify-between gap-3">
-                                    <div>
-                                      <p className="text-sm opacity-80">
-                                        {
-                                          o.subcategories?.categories
-                                            ?.name /* category */
-                                        }
-                                        {o.subcategories?.name
-                                          ? ` • ${o.subcategories?.name}` /* subcategory */
-                                          : ''}
-                                      </p>
-                                      {o.description_solution && (
-                                        <p className="text-sm mt-1">
-                                          {o.description_solution}
-                                        </p>
-                                      )}
-                                    </div>
-                                    {/* Botones para próximos pasos (editar/eliminar) */}
-                                    {/* Dejamos solo visualizar por ahora; edición vendrá en el próximo paso */}
-                                  </div>
-                                  {o.contract_date && (
-                                    <p className="text-[12px] opacity-60 mt-2">
-                                      Since:{' '}
-                                      {new Date(
-                                        o.contract_date
-                                      ).toLocaleDateString()}
+                                  <div className="pr-3">
+                                    <p className="font-semibold">
+                                      {(o.subcategories?.categories?.name ??
+                                        'Category') +
+                                        ' — ' +
+                                        (o.subcategories?.name ??
+                                          'Subcategory')}
                                     </p>
-                                  )}
+                                    {o.description_solution && (
+                                      <p className="text-sm text-white/70 mt-1">
+                                        {o.description_solution}
+                                      </p>
+                                    )}
+                                    <p className="text-xs text-white/50 mt-1">
+                                      Active: {o.is_active ? 'Yes' : 'No'}
+                                      {o.contract_date
+                                        ? ` • ${new Date(
+                                            o.contract_date
+                                          ).toLocaleDateString()}`
+                                        : ''}
+                                    </p>
+                                  </div>
+                                  <div className="flex gap-2">
+                                    <Button
+                                      type="button"
+                                      variant="secondary"
+                                      onClick={() => setEditingOffer(o)}
+                                    >
+                                      Edit
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      variant="secondary"
+                                      className="border-red-400 text-red-300 hover:bg-red-400/10"
+                                      onClick={async () => {
+                                        try {
+                                          await deactivateOffer(o.id);
+                                          showSuccess('Offer removed');
+                                          await loadOffers();
+                                          if (onSaved) await onSaved();
+                                        } catch (e) {
+                                          console.error(
+                                            '❌ Error removing offer:',
+                                            e
+                                          );
+                                          showError('Error removing offer');
+                                        }
+                                      }}
+                                    >
+                                      Remove
+                                    </Button>
+                                  </div>
                                 </div>
                               ))}
                             </div>
                           ) : (
-                            <p className="text-sm text-white/70">
-                              No experts requested yet.
+                            <p className="text-sm text-white/70 mt-2">
+                              No offers yet.
                             </p>
                           )}
-                        </section>
+                        </div>
                       </div>
 
                       {/* Footer fijo */}
@@ -342,25 +338,19 @@ export default function ProjectEditModal({
             </div>
           </div>
 
-          {/* Modal de crear oferta usando el mismo CustomerCategoryModal */}
-          <CustomerCategoryModal
-            isOpen={offerModalOpen}
-            onClose={() => setOfferModalOpen(false)}
-            categories={categories}
-            initialValues={{
-              lookingForExpert: true,
-              projectId: project.id, // preseleccionamos el proyecto actual
-              categoryId: '',
-              selectedCategories: [],
-              description: '',
-            }}
-            onSubmit={async () => {
-              // el modal ya guarda; aquí solo refrescamos el listado
-              await loadOffers();
-              showSuccess('Offer created successfully!');
-              setOfferModalOpen(false);
-            }}
-          />
+          {/* Submodal para editar oferta */}
+          {editingOffer && (
+            <OfferEditModal
+              isOpen={!!editingOffer}
+              onClose={() => setEditingOffer(null)}
+              offer={editingOffer}
+              onSaved={async () => {
+                setEditingOffer(null);
+                await loadOffers();
+                if (onSaved) await onSaved();
+              }}
+            />
+          )}
         </Dialog>
       )}
     </AnimatePresence>
