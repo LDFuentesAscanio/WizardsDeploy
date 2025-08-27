@@ -128,3 +128,15 @@ export async function deactivateOffer(offerId: string) {
     .eq('id', offerId);
   if (error) throw error;
 }
+
+export async function updateOffer(
+  offerId: string,
+  updates: { subcategory_id?: string; description_solution?: string }
+) {
+  const { error } = await supabase
+    .from('contracted_solutions')
+    .update({ ...updates, updated_at: new Date().toISOString() })
+    .eq('id', offerId);
+
+  if (error) throw error;
+}

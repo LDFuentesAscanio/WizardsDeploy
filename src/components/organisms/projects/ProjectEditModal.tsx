@@ -8,7 +8,11 @@ import * as Yup from 'yup';
 import type { Tables } from '@/types/supabase';
 import Button from '@/components/atoms/Button';
 import FormInput from '@/components/atoms/FormInput';
+import { fetchProjectOffers, deactivateOffer } from '@/utils/projectsService';
+import type { ContractedRow } from '@/utils/projectsService';
 import { updateProject } from '@/utils/projectsService';
+import { showError, showSuccess } from '@/utils/toastService';
+import OfferEditModal from './OfferEditModal';
 
 type Project = Tables<'it_projects'>;
 
@@ -42,8 +46,28 @@ export default function ProjectEditModal({
   const [submitting, setSubmitting] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
+  // Ofertas del proyecto
+  const [offers, setOffers] = useState<ContractedRow[]>([]);
+  const [loadingOffers, setLoadingOffers] = useState(false);
+  const [editingOffer, setEditingOffer] = useState<ContractedRow | null>(null);
+
+  const loadOffers = async () => {
+    if (!project?.id) return;
+    try {
+      setLoadingOffers(true);
+      const data = await fetchProjectOffers(project.id);
+      setOffers(data);
+    } catch (e) {
+      console.error('❌ Error loading offers:', e);
+      showError('Error loading offers');
+    } finally {
+      setLoadingOffers(false);
+    }
+  };
+
   useEffect(() => {
-    // aquí podrías cargar ofertas del proyecto si quieres mostrarlas dentro del modal
+    if (isOpen && project?.id) loadOffers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, project?.id]);
 
   return (
@@ -112,10 +136,13 @@ export default function ProjectEditModal({
                             : Number(values.budget),
                         responsible: values.responsible || null,
                       };
-
                       await updateProject(project.id, payload);
+                      showSuccess('Project updated');
                       if (onSaved) await onSaved();
                       onClose();
+                    } catch (e) {
+                      console.error('❌ Error updating project:', e);
+                      showError('Error updating project');
                     } finally {
                       setSubmitting(false);
                     }
@@ -137,7 +164,8 @@ export default function ProjectEditModal({
                       </div>
 
                       {/* Contenido scrollable */}
-                      <div className="flex-1 min-h-0 overflow-y-auto p-6 space-y-4">
+                      <div className="flex-1 min-h-0 overflow-y-auto p-6 space-y-6">
+                        {/* Campos del proyecto */}
                         <FormInput name="project_name" label="Project Name" />
                         <FormInput
                           name="description"
@@ -145,7 +173,6 @@ export default function ProjectEditModal({
                           as="textarea"
                           rows={4}
                         />
-
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <FormInput
                             name="start_date"
@@ -158,7 +185,6 @@ export default function ProjectEditModal({
                             label="End Date"
                           />
                         </div>
-
                         <FormInput
                           name="status"
                           label="Status"
@@ -171,7 +197,6 @@ export default function ProjectEditModal({
                             { value: 'Cancelled', label: 'Cancelled' },
                           ]}
                         />
-
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <FormInput
                             name="budget"
@@ -184,7 +209,84 @@ export default function ProjectEditModal({
                           />
                         </div>
 
-                        {/* Aquí podrías renderizar ofertas del proyecto si lo deseas */}
+                        {/* Ofertas del proyecto */}
+                        <div className="pt-4">
+                          <h3 className="text-lg font-semibold">
+                            Offers for this project
+                          </h3>
+
+                          {loadingOffers ? (
+                            <p className="text-sm text-white/70 mt-2">
+                              Loading offers…
+                            </p>
+                          ) : offers.length ? (
+                            <div className="mt-3 space-y-3">
+                              {offers.map((o) => (
+                                <div
+                                  key={o.id}
+                                  className="flex items-start justify-between bg-white/5 rounded-lg p-3"
+                                >
+                                  <div className="pr-3">
+                                    <p className="font-semibold">
+                                      {(o.subcategories?.categories?.name ??
+                                        'Category') +
+                                        ' — ' +
+                                        (o.subcategories?.name ??
+                                          'Subcategory')}
+                                    </p>
+                                    {o.description_solution && (
+                                      <p className="text-sm text-white/70 mt-1">
+                                        {o.description_solution}
+                                      </p>
+                                    )}
+                                    <p className="text-xs text-white/50 mt-1">
+                                      Active: {o.is_active ? 'Yes' : 'No'}
+                                      {o.contract_date
+                                        ? ` • ${new Date(
+                                            o.contract_date
+                                          ).toLocaleDateString()}`
+                                        : ''}
+                                    </p>
+                                  </div>
+                                  <div className="flex gap-2">
+                                    <Button
+                                      type="button"
+                                      variant="secondary"
+                                      onClick={() => setEditingOffer(o)}
+                                    >
+                                      Edit
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      variant="secondary"
+                                      className="border-red-400 text-red-300 hover:bg-red-400/10"
+                                      onClick={async () => {
+                                        try {
+                                          await deactivateOffer(o.id);
+                                          showSuccess('Offer removed');
+                                          await loadOffers();
+                                          if (onSaved) await onSaved();
+                                        } catch (e) {
+                                          console.error(
+                                            '❌ Error removing offer:',
+                                            e
+                                          );
+                                          showError('Error removing offer');
+                                        }
+                                      }}
+                                    >
+                                      Remove
+                                    </Button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-sm text-white/70 mt-2">
+                              No offers yet.
+                            </p>
+                          )}
+                        </div>
                       </div>
 
                       {/* Footer fijo */}
@@ -235,6 +337,20 @@ export default function ProjectEditModal({
               </motion.div>
             </div>
           </div>
+
+          {/* Submodal para editar oferta */}
+          {editingOffer && (
+            <OfferEditModal
+              isOpen={!!editingOffer}
+              onClose={() => setEditingOffer(null)}
+              offer={editingOffer}
+              onSaved={async () => {
+                setEditingOffer(null);
+                await loadOffers();
+                if (onSaved) await onSaved();
+              }}
+            />
+          )}
         </Dialog>
       )}
     </AnimatePresence>
