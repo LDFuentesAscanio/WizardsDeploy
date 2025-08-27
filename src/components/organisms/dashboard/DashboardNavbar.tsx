@@ -107,7 +107,11 @@ export default function DashboardNavbar() {
         icon: <FolderCog size={16} />,
       },
       // Explorar perfiles – placeholder hasta implementar
-      { label: 'Explore Profiles', href: '#', icon: <Search size={16} /> },
+      {
+        label: 'Explore Profiles',
+        href: '/profiles',
+        icon: <Search size={16} />,
+      },
     ];
   }, [role]);
 
