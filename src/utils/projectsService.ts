@@ -224,6 +224,33 @@ export async function fetchProjectOffers(
   return (data as ContractedRow[]) || [];
 }
 
+export async function updateOffer(
+  offerId: string,
+  updates: {
+    subcategory_id?: string | null;
+    description_solution?: string | null;
+  }
+) {
+  // Solo enviamos campos presentes y actualizamos updated_at
+  const payload: Record<string, unknown> = {
+    updated_at: new Date().toISOString(),
+  };
+
+  if (updates.subcategory_id !== undefined) {
+    payload.subcategory_id = updates.subcategory_id;
+  }
+  if (updates.description_solution !== undefined) {
+    payload.description_solution = updates.description_solution;
+  }
+
+  const { error } = await supabase
+    .from('contracted_solutions')
+    .update(payload)
+    .eq('id', offerId);
+
+  if (error) throw error;
+}
+
 export async function deactivateOffer(offerId: string) {
   const { error } = await supabase
     .from('contracted_solutions')
