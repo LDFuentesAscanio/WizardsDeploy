@@ -20,6 +20,21 @@ export type ContractedRow = {
   } | null;
 };
 
+export type ExpertProjectItem = {
+  project: {
+    id: string;
+    project_name: string;
+    description: string | null;
+    status: Project['status'];
+  };
+  offer: {
+    id: string;
+    description_solution: string | null;
+    category_name: string | null;
+    subcategory_name: string | null;
+  };
+};
+
 export async function getUserAndRole() {
   const { data: auth } = await supabase.auth.getUser();
   const user = auth.user;
@@ -49,23 +64,111 @@ export async function getCustomerIdByUser(userId: string) {
   return data?.id ?? null;
 }
 
+/**
+ * Customer → solo sus proyectos
+ * Admin → todos
+ * Expert → [] (la vista de experto usa fetchProjectsForExpert)
+ */
 export async function fetchProjectsByRole(
   userId: string,
   role: string | null
 ): Promise<Project[]> {
-  let query = supabase.from('it_projects').select('*');
+  if (!role) return [];
 
   if (role === 'customer') {
     const customerId = await getCustomerIdByUser(userId);
-    if (customerId) query = query.eq('customer_id', customerId);
+    if (!customerId) return [];
+    const { data, error } = await supabase
+      .from('it_projects')
+      .select('*')
+      .eq('customer_id', customerId)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return (data as Project[]) ?? [];
   }
 
-  // admin → ve todos
-  // expert → (pendiente) join con contracted_solutions si lo necesitas
+  if (role === 'admin') {
+    const { data, error } = await supabase
+      .from('it_projects')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return (data as Project[]) ?? [];
+  }
 
-  const { data, error } = await query;
+  // expert → la vista usa fetchProjectsForExpert
+  return [];
+}
+
+/**
+ * Expert → por ahora no hay asignación explícita.
+ * Mostramos proyectos que tienen ofertas activas (read-only).
+ * Nota: _userId intencionalmente no usado (para futuros filtros),
+ * se mantiene con prefijo "_" para evitar warning de ESLint.
+ */
+export async function fetchProjectsForExpert(
+  userId: string
+): Promise<ExpertProjectItem[]> {
+  // Reservado para cuando haya asignación explícita expert<->project.
+  // Silencia @typescript-eslint/no-unused-vars sin afectar el runtime.
+  void userId;
+
+  const { data, error } = await supabase
+    .from('contracted_solutions')
+    .select(
+      `
+      id,
+      description_solution,
+      is_active,
+      subcategories:subcategory_id (
+        name,
+        categories:category_id (name)
+      ),
+      it_projects:it_projects_id (
+        id,
+        project_name,
+        description,
+        status
+      )
+    `
+    )
+    .eq('is_active', true);
+
   if (error) throw error;
-  return (data as Project[]) || [];
+
+  const rows =
+    (data as unknown as Array<{
+      id: string;
+      description_solution: string | null;
+      is_active: boolean | null;
+      subcategories: {
+        name: string | null;
+        categories: { name: string | null } | null;
+      } | null;
+      it_projects: {
+        id: string;
+        project_name: string;
+        description: string | null;
+        status: Project['status'];
+      } | null;
+    }>) ?? [];
+
+  return rows
+    .filter((r) => !!r.it_projects)
+    .map((r) => ({
+      project: {
+        id: r.it_projects!.id,
+        project_name: r.it_projects!.project_name,
+        description: r.it_projects!.description,
+        status: r.it_projects!.status,
+      },
+      offer: {
+        id: r.id,
+        description_solution: r.description_solution,
+        category_name: r.subcategories?.categories?.name ?? null,
+        subcategory_name: r.subcategories?.name ?? null,
+      },
+    }));
 }
 
 export async function updateProject(
@@ -74,7 +177,7 @@ export async function updateProject(
 ) {
   const { error } = await supabase
     .from('it_projects')
-    .update({ ...updates, id: projectId })
+    .update({ ...updates }) // no mandamos "id" en el update
     .eq('id', projectId);
   if (error) throw error;
 }
@@ -126,17 +229,5 @@ export async function deactivateOffer(offerId: string) {
     .from('contracted_solutions')
     .update({ is_active: false, updated_at: new Date().toISOString() })
     .eq('id', offerId);
-  if (error) throw error;
-}
-
-export async function updateOffer(
-  offerId: string,
-  updates: { subcategory_id?: string; description_solution?: string }
-) {
-  const { error } = await supabase
-    .from('contracted_solutions')
-    .update({ ...updates, updated_at: new Date().toISOString() })
-    .eq('id', offerId);
-
   if (error) throw error;
 }
