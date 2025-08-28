@@ -8,6 +8,7 @@ import { showError } from '@/utils/toastService';
 import { ExpertCardData, fetchExperts } from '@/utils/profilesService';
 import ProfilesList from '@/components/organisms/profiles/ProfilesList';
 import ProfileDetailModal from '@/components/organisms/profiles/ProfileDetailModal';
+import Loader from '@/components/atoms/Loader';
 
 export default function ExploreProfilesPage() {
   const [loading, setLoading] = useState(true);
@@ -62,7 +63,9 @@ export default function ExploreProfilesPage() {
         <ProfilesSearch value={query} onChange={setQuery} />
 
         {loading ? (
-          <p className="mt-6 text-white/70">Loading profiles…</p>
+          <div className="mt-6 flex justify-center">
+            <Loader />
+          </div>
         ) : filtered.length ? (
           <ProfilesList profiles={filtered} onSelect={setSelected} />
         ) : (

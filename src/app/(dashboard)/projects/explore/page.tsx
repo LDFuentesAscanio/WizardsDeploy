@@ -10,6 +10,7 @@ import {
 import ExploreSearch from '@/components/organisms/projects/explore/ExploreSearch';
 import ExploreOfferList from '@/components/organisms/projects/explore/ExploreOfferList';
 import ExploreOfferDetailModal from '@/components/organisms/projects/explore/ExploreOfferDetailModal';
+import Loader from '@/components/atoms/Loader';
 
 export default function ExploreProjectsPage() {
   const [loading, setLoading] = useState(true);
@@ -65,7 +66,9 @@ export default function ExploreProjectsPage() {
         <ExploreSearch value={query} onChange={setQuery} />
 
         {loading ? (
-          <p className="mt-6 text-white/70">Loading offers…</p>
+          <div className="mt-6 flex justify-center">
+            <Loader />
+          </div>
         ) : filtered.length ? (
           <ExploreOfferList offers={filtered} onSelect={setSelected} />
         ) : (
