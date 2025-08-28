@@ -10,23 +10,20 @@ import { showError } from '@/utils/toastService';
 import {
   getUserAndRole,
   fetchProjectsByRole,
-  fetchProjectsForExpert,
   type Project,
-  type ExpertProjectItem,
 } from '@/utils/projectsService';
 
 import ProjectEditModal from '@/components/organisms/projects/ProjectEditModal';
-import ExpertProjectsList from '@/components/organisms/projects/ExpertProjectsList';
+import ExpertEmptyState from '@/components/organisms/projects/ExpertEmptyState';
 
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
-  const [expertItems, setExpertItems] = useState<ExpertProjectItem[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [selected, setSelected] = useState<Project | null>(null);
 
-  // Obtener user + role
+  // user + role
   useEffect(() => {
     (async () => {
       try {
@@ -40,19 +37,17 @@ export default function ProjectsPage() {
     })();
   }, []);
 
-  // Cargar proyectos según rol
+  // proyectos por rol
   const fetchAll = useCallback(async () => {
     if (!userId || !userRole) return;
     try {
       if (userRole === 'expert') {
-        // vista sólo lectura
-        const data = await fetchProjectsForExpert(userId);
-        setExpertItems(data);
-      } else {
-        // customer → sólo sus proyectos; admin → todos
-        const data = await fetchProjectsByRole(userId, userRole);
-        setProjects(data);
+        // Vista estática (sin fetch real por ahora)
+        setProjects([]);
+        return;
       }
+      const data = await fetchProjectsByRole(userId, userRole);
+      setProjects(data);
     } catch (e) {
       console.error('❌ Error fetching projects:', e);
       showError('Error fetching projects');
@@ -78,7 +73,7 @@ export default function ProjectsPage() {
       </div>
 
       {userRole === 'expert' ? (
-        <ExpertProjectsList items={expertItems} />
+        <ExpertEmptyState />
       ) : showForm ? (
         <ProjectForm
           onClose={() => {
@@ -90,7 +85,6 @@ export default function ProjectsPage() {
         <ProjectList projects={projects} onSelect={(p) => setSelected(p)} />
       )}
 
-      {/* Modal de edición: sólo para admin/customer */}
       {selected && userRole !== 'expert' && (
         <ProjectEditModal
           isOpen={!!selected}

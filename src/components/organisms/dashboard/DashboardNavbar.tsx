@@ -93,7 +93,11 @@ export default function DashboardNavbar() {
           icon: <FolderCog size={16} />,
         },
         // Explorar proyectos disponibles para postularse – placeholder hasta implementar
-        { label: 'Explore Projects', href: '#', icon: <Search size={16} /> },
+        {
+          label: 'Explore Projects',
+          href: '/projects/explore',
+          icon: <Search size={16} />,
+        },
       ];
     }
 
