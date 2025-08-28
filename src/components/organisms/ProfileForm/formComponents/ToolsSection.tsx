@@ -1,65 +1,133 @@
 'use client';
-//External libraries
-import { useFormikContext, FieldArray } from 'formik';
-import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { ProfileFormValues } from '../types';
-//Validations, types and interfaces
 
-export default function ToolsSection() {
-  const { values } = useFormikContext<ProfileFormValues>();
-  const [input, setInput] = useState('');
-  const tools = values.tools ?? [];
+import React, {
+  useMemo,
+  useState,
+  ChangeEvent,
+  KeyboardEvent,
+  MouseEvent,
+} from 'react';
+import { useField } from 'formik';
+
+type Option = { value: string; label: string };
+
+interface ToolSectionProps {
+  name?: string; // default: "tools"
+  label?: string; // default: "Tools"
+  placeholder?: string; // default: "Add a tool and press Enter"
+  options?: Option[];
+  maxItems?: number;
+}
+
+export default function ToolSection({
+  name = 'tools',
+  label = 'Tools',
+  placeholder = 'Add a tool and press Enter',
+  options = [],
+  maxItems,
+}: ToolSectionProps) {
+  const [field, meta, helpers] = useField<string[]>(name);
+  const [input, setInput] = useState<string>('');
+
+  const selected = useMemo<string[]>(
+    () => (Array.isArray(field.value) ? field.value : []),
+    [field.value]
+  );
+  const hasError = Boolean(meta.touched && meta.error);
+
+  const remainingOptions = useMemo<Option[]>(
+    () => options.filter((o) => !selected.includes(o.value)),
+    [options, selected]
+  );
+
+  const addItem = (val: string) => {
+    const v = val.trim();
+    if (!v) return;
+    if (maxItems && selected.length >= maxItems) return;
+    if (selected.includes(v)) return;
+    helpers.setValue([...selected, v]);
+    helpers.setTouched(true, true);
+    setInput('');
+  };
+
+  const removeItem = (val: string) => {
+    helpers.setValue(selected.filter((s) => s !== val));
+    helpers.setTouched(true, true);
+  };
+
+  const onInputChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setInput(e.target.value);
+  };
+
+  const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addItem(input);
+    }
+  };
+
+  const onOptionClick = (e: MouseEvent<HTMLButtonElement>, value: string) => {
+    e.preventDefault();
+    addItem(value);
+  };
+
+  const labelFor = (value: string) =>
+    options.find((o) => o.value === value)?.label ?? value;
+
   return (
-    <div className="space-y-4">
-      <h2 className="text-lg font-semibold">Tools</h2>
-      <FieldArray name="tools">
-        {({ push, remove }) => (
-          <div className="space-y-2">
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder="Add a tool"
-                className="flex-1 px-3 py-2 rounded bg-white text-[#2c3d5a]"
-              />
+    <section className="space-y-2">
+      <label className="block text-sm">{label}</label>
+
+      <input
+        type="text"
+        value={input}
+        onChange={onInputChange}
+        onKeyDown={onKeyDown}
+        placeholder={placeholder}
+        className={`w-full px-4 py-3 rounded-xl bg-[#e7e7e7] text-[#2c3d5a] placeholder-[#2c3d5a]/60 ${
+          hasError ? 'border border-red-400' : ''
+        }`}
+      />
+
+      {selected.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {selected.map((val) => (
+            <span
+              key={val}
+              className="inline-flex items-center gap-2 text-xs font-semibold px-3 py-1 rounded-full bg-[#e7e7e7] text-[#1d2c45]"
+            >
+              {labelFor(val)}
               <button
                 type="button"
-                onClick={() => {
-                  const trimmed = input.trim();
-                  if (trimmed !== '' && !tools.includes(trimmed)) {
-                    push(trimmed);
-                    setInput('');
-                  }
-                }}
-                className="bg-[#67ff94] text-[#2c3d5a] px-4 py-2 rounded hover:bg-[#8effd2] transition"
+                aria-label={`Remove ${labelFor(val)}`}
+                onClick={() => removeItem(val)}
+                className="text-[#1d2c45]/70 hover:text-red-600"
               >
-                Add
+                ×
               </button>
-            </div>
+            </span>
+          ))}
+        </div>
+      )}
 
-            <motion.ul layout className="flex flex-wrap gap-2">
-              {tools.map((tool, index) => (
-                <motion.li
-                  layout
-                  key={index}
-                  className="bg-[#67ff94] text-[#2c3d5a] px-3 py-1 rounded-full flex items-center gap-2"
-                >
-                  <span>{tool}</span>
-                  <button
-                    type="button"
-                    onClick={() => remove(index)}
-                    className="text-sm font-bold hover:text-red-600"
-                  >
-                    ✕
-                  </button>
-                </motion.li>
-              ))}
-            </motion.ul>
-          </div>
-        )}
-      </FieldArray>
-    </div>
+      {remainingOptions.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {remainingOptions.slice(0, 10).map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={(e) => onOptionClick(e, opt.value)}
+              className="text-xs px-3 py-1 rounded-full bg-white/10 text-white hover:bg-white/15"
+            >
+              + {opt.label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {hasError && typeof meta.error === 'string' && (
+        <p className="text-sm text-red-400">{meta.error}</p>
+      )}
+    </section>
   );
 }

@@ -28,11 +28,10 @@ export default function FormInput({
   className,
   options = [],
 }: FormInputProps) {
-  // Hook SIEMPRE al tope del componente
   const [field, meta] = useField(name);
-
   const isCheckbox = type === 'checkbox';
   const hasError = Boolean(meta.touched && meta.error);
+  const describedBy = hasError ? `${name}-error` : undefined;
 
   return (
     <div className={className}>
@@ -46,12 +45,16 @@ export default function FormInput({
               onChange={field.onChange}
               onBlur={field.onBlur}
               checked={Boolean(field.value)}
+              aria-invalid={hasError}
+              aria-describedby={describedBy}
               className={`accent-white ${hasError ? 'border border-red-400' : ''}`}
             />
             {label && <span className="text-sm text-white">{label}</span>}
           </label>
           {hasError && (
-            <p className="text-sm text-red-400 mt-1">{meta.error}</p>
+            <p id={`${name}-error`} className="text-sm text-red-400 mt-1">
+              {meta.error}
+            </p>
           )}
         </>
       ) : (
@@ -68,6 +71,8 @@ export default function FormInput({
               {...field}
               placeholder={placeholder}
               rows={rows}
+              aria-invalid={hasError}
+              aria-describedby={describedBy}
               className={`w-full px-4 py-3 rounded-xl bg-[#e7e7e7] text-[#2c3d5a] placeholder-[#2c3d5a]/50 resize-none ${
                 hasError ? 'border border-red-400' : ''
               }`}
@@ -76,6 +81,8 @@ export default function FormInput({
             <select
               id={name}
               {...field}
+              aria-invalid={hasError}
+              aria-describedby={describedBy}
               className={`w-full px-4 py-3 rounded-xl bg-[#e7e7e7] text-[#2c3d5a] ${
                 hasError ? 'border border-red-400' : ''
               }`}
@@ -95,6 +102,8 @@ export default function FormInput({
               {...field}
               type={type}
               placeholder={placeholder}
+              aria-invalid={hasError}
+              aria-describedby={describedBy}
               className={`w-full px-4 py-3 rounded-xl bg-white/20 placeholder-gray-200 text-white ${
                 hasError ? 'border border-red-400' : ''
               }`}
@@ -102,7 +111,9 @@ export default function FormInput({
           )}
 
           {hasError && (
-            <p className="text-sm text-red-400 mt-1">{meta.error}</p>
+            <p id={`${name}-error`} className="text-sm text-red-400 mt-1">
+              {meta.error}
+            </p>
           )}
         </>
       )}

@@ -17,7 +17,9 @@ export const getProfileSchema = (role: string | null) => {
   };
 
   const expertSchema = {
-    bio: Yup.string().required('Bio is required'),
+    bio: Yup.string()
+      .min(20, 'Bio must be at least 20 characters')
+      .required('Bio is required'),
     profession_id: Yup.string().required('Profession is required'),
     expertise: Yup.array()
       .min(1, 'At least one expertise is required')
