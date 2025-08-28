@@ -5,6 +5,8 @@ import { useCallback, useEffect, useState } from 'react';
 import Button from '@/components/atoms/Button';
 import ProjectForm from '@/components/organisms/projects/ProjectForm';
 import ProjectList from '@/components/organisms/projects/ProjectList';
+import ProjectEditModal from '@/components/organisms/projects/ProjectEditModal';
+import ExpertEmptyState from '@/components/organisms/projects/ExpertEmptyState';
 import { showError } from '@/utils/toastService';
 
 import {
@@ -13,9 +15,6 @@ import {
   type Project,
 } from '@/utils/projectsService';
 
-import ProjectEditModal from '@/components/organisms/projects/ProjectEditModal';
-import ExpertEmptyState from '@/components/organisms/projects/ExpertEmptyState';
-
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [showForm, setShowForm] = useState(false);
@@ -23,7 +22,7 @@ export default function ProjectsPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [selected, setSelected] = useState<Project | null>(null);
 
-  // user + role
+  // Obtener user + role
   useEffect(() => {
     (async () => {
       try {
@@ -37,12 +36,12 @@ export default function ProjectsPage() {
     })();
   }, []);
 
-  // proyectos por rol
+  // Traer proyectos según rol
   const fetchAll = useCallback(async () => {
     if (!userId || !userRole) return;
     try {
       if (userRole === 'expert') {
-        // Vista estática (sin fetch real por ahora)
+        // Vista estática para expertos (sin fetch real por ahora)
         setProjects([]);
         return;
       }
