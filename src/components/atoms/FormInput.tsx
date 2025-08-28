@@ -1,4 +1,5 @@
 'use client';
+
 import { useField } from 'formik';
 
 interface Option {
@@ -27,26 +28,32 @@ export default function FormInput({
   className,
   options = [],
 }: FormInputProps) {
+  // Hook SIEMPRE al tope del componente
   const [field, meta] = useField(name);
 
   const isCheckbox = type === 'checkbox';
-  const hasError = meta.touched && meta.error;
+  const hasError = Boolean(meta.touched && meta.error);
 
   return (
     <div className={className}>
       {isCheckbox ? (
-        <label className="inline-flex items-center space-x-2">
-          <input
-            id={name}
-            {...field}
-            type="checkbox"
-            className={`w-full px-4 py-3 rounded-xl bg-[#e7e7e7] text-[#2c3d5a] placeholder-[#2c3d5a]/50 ${
-              hasError ? 'border border-red-400' : ''
-            }`}
-            checked={field.value}
-          />
-          <span className="text-sm text-white">{label}</span>
-        </label>
+        <>
+          <label htmlFor={name} className="inline-flex items-center space-x-2">
+            <input
+              id={name}
+              type="checkbox"
+              name={field.name}
+              onChange={field.onChange}
+              onBlur={field.onBlur}
+              checked={Boolean(field.value)}
+              className={`accent-white ${hasError ? 'border border-red-400' : ''}`}
+            />
+            {label && <span className="text-sm text-white">{label}</span>}
+          </label>
+          {hasError && (
+            <p className="text-sm text-red-400 mt-1">{meta.error}</p>
+          )}
+        </>
       ) : (
         <>
           {label && (
@@ -54,6 +61,7 @@ export default function FormInput({
               {label}
             </label>
           )}
+
           {as === 'textarea' ? (
             <textarea
               id={name}
@@ -72,6 +80,9 @@ export default function FormInput({
                 hasError ? 'border border-red-400' : ''
               }`}
             >
+              <option value="" disabled>
+                Select an option
+              </option>
               {options.map((opt) => (
                 <option key={opt.value} value={opt.value}>
                   {opt.label}
@@ -89,9 +100,12 @@ export default function FormInput({
               }`}
             />
           )}
+
+          {hasError && (
+            <p className="text-sm text-red-400 mt-1">{meta.error}</p>
+          )}
         </>
       )}
-      {hasError && <p className="text-sm text-red-400 mt-1">{meta.error}</p>}
     </div>
   );
 }

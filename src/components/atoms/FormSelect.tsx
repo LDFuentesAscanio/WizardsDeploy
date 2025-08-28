@@ -1,5 +1,5 @@
 'use client';
-//External libraries
+
 import { useField } from 'formik';
 
 interface FormSelectProps {
@@ -15,7 +15,7 @@ export default function FormSelect({
   options,
   disabled,
 }: FormSelectProps) {
-  const [field, meta] = useField(name);
+  const [field, meta] = useField<string>(name);
 
   return (
     <div>
@@ -28,9 +28,9 @@ export default function FormSelect({
         {...field}
         id={name}
         disabled={disabled}
-        className={`w-full px-4 py-3 rounded-xl bg-white text-[#2c3d5a] 
-          focus:outline-none focus:ring-2 focus:ring-[#67ff94] 
-          ${meta.touched && meta.error ? 'border border-red-400' : ''} 
+        className={`w-full px-4 py-3 rounded-xl bg-white text-[#2c3d5a]
+          focus:outline-none focus:ring-2 focus:ring-[#67ff94]
+          ${meta.touched && meta.error ? 'border border-red-400' : ''}
           disabled:opacity-50`}
       >
         <option value="" disabled>

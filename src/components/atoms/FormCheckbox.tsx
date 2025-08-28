@@ -1,13 +1,14 @@
 'use client';
+
 import { useField } from 'formik';
-import { ChangeEvent } from 'react';
+import type { ChangeEvent } from 'react';
 
 interface FormCheckboxProps {
   name: string;
   label?: string | React.ReactNode;
   className?: string;
   onChange?: (e: ChangeEvent<HTMLInputElement>) => void;
-  checked?: boolean; // Añade esta línea
+  checked?: boolean;
 }
 
 export default function FormCheckbox({
@@ -15,30 +16,38 @@ export default function FormCheckbox({
   label,
   className,
   onChange,
-  checked, // Añade esto a las props
+  checked,
 }: FormCheckboxProps) {
+  // Siempre llamamos al hook en el tope del componente
   const [field, meta, helpers] = useField({ name, type: 'checkbox' });
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
-    helpers.setValue(e.target.checked);
-    if (onChange) onChange(e);
+    if (onChange) {
+      // Para casos como selectedCategories (array), dejamos que el padre maneje la lógica
+      onChange(e);
+    } else {
+      // Para boolean simple
+      helpers.setValue(e.target.checked);
+    }
+    helpers.setTouched(true, true);
   };
+
+  const hasError = meta.touched && !!meta.error;
 
   return (
     <div className={className}>
       <label className="flex items-center space-x-2">
         <input
           type="checkbox"
-          {...field}
-          checked={checked !== undefined ? checked : field.value} // Usa checked si está definido
+          name={field.name}
+          onBlur={field.onBlur}
           onChange={handleChange}
-          className="accent-white"
+          checked={checked !== undefined ? checked : Boolean(field.value)}
+          className={`accent-white ${hasError ? 'border border-red-400' : ''}`}
         />
         <span className="text-sm text-white">{label}</span>
       </label>
-      {meta.touched && meta.error && (
-        <p className="text-sm text-red-400 mt-1">{meta.error}</p>
-      )}
+      {hasError && <p className="text-sm text-red-400 mt-1">{meta.error}</p>}
     </div>
   );
 }
