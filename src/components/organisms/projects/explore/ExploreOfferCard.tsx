@@ -35,12 +35,12 @@ export default function ExploreOfferCard({ offer, onClick }: Props) {
 
       <div className="mt-3 flex flex-wrap gap-2">
         {offer.category_name ? (
-          <span className="text-xs font-semibold px-3 py-1 rounded-full bg-[#e7e7e7] text-[#1d2c45]">
+          <span className="text-xs font-semibold px-3 py-1 rounded-full bg-[#8effd2] text-[#1d2c45]">
             {offer.category_name}
           </span>
         ) : null}
         {offer.subcategory_name ? (
-          <span className="text-xs font-semibold px-3 py-1 rounded-full bg-[#e7e7e7] text-[#1d2c45]">
+          <span className="text-xs font-semibold px-3 py-1 rounded-full bg-[#8effd2] text-[#1d2c45]">
             {offer.subcategory_name}
           </span>
         ) : null}
