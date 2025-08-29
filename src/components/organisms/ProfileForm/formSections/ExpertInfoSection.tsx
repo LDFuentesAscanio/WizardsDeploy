@@ -5,13 +5,16 @@ import UploadDocumentField from '@/components/molecules/UploadDocumentField';
 import ExpertiseSection from '../formComponents/ExpertiseSection';
 import SkillsSection from '../formComponents/SkillsSection';
 import ToolsSection from '../formComponents/ToolsSection';
-import { ITProfession } from '../types';
+import type { ITProfession } from '../types';
 
-interface ExpertInfoSectionProps {
-  professions: ITProfession[];
-}
+type Option = { value: string; label: string };
 
-export function ExpertInfoSection({ professions }: ExpertInfoSectionProps) {
+type Props = {
+  professions: ITProfession[]; // de it_professions
+  platforms: Option[]; // mapeadas a {value,label}
+};
+
+export function ExpertInfoSection({ professions, platforms }: Props) {
   return (
     <section className="grid gap-4">
       <UploadDocumentField />
@@ -63,7 +66,7 @@ export function ExpertInfoSection({ professions }: ExpertInfoSectionProps) {
         />
       </div>
 
-      <ExpertiseSection />
+      <ExpertiseSection name="expertise" platforms={platforms} />
       <SkillsSection />
       <ToolsSection />
     </section>

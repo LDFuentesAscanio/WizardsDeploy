@@ -15,6 +15,7 @@ export default function ProfileForm() {
     loading,
     categories,
     professions,
+    platforms, // 👈 ahora disponible
     roleName,
   } = useProfileFormData();
 
@@ -50,11 +51,16 @@ export default function ProfileForm() {
             <CustomerSections categories={categories} roleName={roleName} />
           )}
 
-          {isExpert && <ExpertInfoSection professions={professions} />}
+          {isExpert && (
+            <ExpertInfoSection
+              professions={professions}
+              platforms={platforms}
+            />
+          )}
 
           <button
             type="submit"
-            disabled={isSubmitting} // 👈 ahora solo depende del submit
+            disabled={isSubmitting}
             className="w-full bg-[#67ff94] text-[#2c3d5a] py-3 rounded-xl font-semibold hover:bg-[#8effd2] transition-colors disabled:opacity-50"
           >
             {isSubmitting ? 'Saving...' : 'Save Changes'}

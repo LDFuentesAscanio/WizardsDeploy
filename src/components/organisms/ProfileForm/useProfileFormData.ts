@@ -10,17 +10,20 @@ import {
 import { supabase } from '@/utils/supabase/browserClient';
 import { fetchProfileFormData } from './helpers';
 
+type Option = { value: string; label: string };
+
 export function useProfileFormData() {
   const [initialValues, setInitialValues] = useState<ProfileFormValues | null>(
     null
   );
   const [countries, setCountries] = useState<Country[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]); // Cambiado de solutions a categories
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [professions, setProfessions] = useState<ITProfession[]>([]);
+  const [platforms, setPlatforms] = useState<Option[]>([]);
+  const [roleName, setRoleName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [professions, setProfessions] = useState<ITProfession[]>([]);
-  const [roleName, setRoleName] = useState<string | null>(null);
 
   useEffect(() => {
     const loadProfileData = async () => {
@@ -29,49 +32,62 @@ export function useProfileFormData() {
         if (authError) throw authError;
         if (!auth?.user) throw new Error('No user found');
 
-        // Obtener el rol del usuario primero
+        // Obtener rol del usuario
         const { data: userData, error: userError } = await supabase
           .from('users')
           .select('role_id, user_role:role_id(name)')
           .eq('id', auth.user.id)
           .single();
-
         if (userError) throw userError;
 
         setRoleName(userData.user_role?.name ?? null);
 
-        // Cargar datos según el rol
+        // Cargar datos del formulario (helper centraliza la mayor parte)
         const {
-          initialValues,
+          initialValues: iv,
           countries,
           roles,
           categories,
           professions,
-        } = // Cambiado de solutions a categories
-          await fetchProfileFormData(auth.user.id);
+        } = await fetchProfileFormData(auth.user.id);
 
+        // Nombre de la profesión si aplica
         let professionName = '';
-        if (initialValues.profession_id) {
+        if (iv.profession_id) {
           const { data: profession } = await supabase
             .from('it_professions')
             .select('profession_name')
-            .eq('id', initialValues.profession_id)
+            .eq('id', iv.profession_id)
             .single();
           professionName = profession?.profession_name || '';
         }
 
-        // Filtrar roles y establecer valores iniciales
-        const filteredRoles = roles.filter((role) => role.name !== 'admin');
+        // Filtrar roles (sin admin)
+        const filteredRoles = roles.filter((r) => r.name !== 'admin');
 
         setInitialValues({
-          ...initialValues,
+          ...iv,
           role_id: userData.role_id,
           profession: professionName,
         });
         setCountries(countries);
         setRoles(filteredRoles);
-        setCategories(categories); // Cambiado de setSolutions a setCategories
+        setCategories(categories);
         setProfessions(professions);
+
+        // 🔽 Cargar plataformas (options para ExpertiseSection)
+        const { data: platformsRows, error: platformsErr } = await supabase
+          .from('platforms')
+          .select('id, name');
+        if (platformsErr) throw platformsErr;
+
+        const platformOptions: Option[] = (platformsRows ?? []).map(
+          (p: { id: string; name: string }) => ({
+            value: p.id,
+            label: p.name,
+          })
+        );
+        setPlatforms(platformOptions);
       } catch (err) {
         console.error('Profile data loading error:', err);
         setError(
@@ -89,8 +105,9 @@ export function useProfileFormData() {
     initialValues,
     countries,
     roles,
-    categories, // Cambiado de solutions a categories
+    categories,
     professions,
+    platforms,
     loading,
     error,
     roleName,
