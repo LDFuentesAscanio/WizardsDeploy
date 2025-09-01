@@ -14,6 +14,7 @@ import {
 import { Category } from '../organisms/ProfileForm/types';
 import { ConfirmDialog } from '../organisms/dashboard/ConfirmDialog';
 import CustomerCategoryModal from '../organisms/dashboard/CustomerCategoriesModal';
+import Loader from '../atoms/Loader';
 
 type ProjectIdRow = { id: string };
 
@@ -232,7 +233,7 @@ export default function CustomerDashboardView() {
     }
   };
 
-  if (loading) return <p>Loading dashboard...</p>;
+  if (loading) return <Loader />;
   if (!data) return <p>No data available.</p>;
 
   return (

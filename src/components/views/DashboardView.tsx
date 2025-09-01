@@ -14,6 +14,7 @@ import TasksOverview from '@/components/organisms/dashboard/TasksOverview';
 import SkillsSection from '@/components/organisms/dashboard/SkillsSection';
 import ProfileCompletionCard from '../organisms/dashboard/ProfileCompletionCard';
 import ExperienceSection from '@/components/organisms/dashboard/ExperienceSection';
+import Loader from '../atoms/Loader';
 
 export default function DashboardView() {
   const [loading, setLoading] = useState(true);
@@ -37,7 +38,7 @@ export default function DashboardView() {
   if (loading || !data) {
     return (
       <main className="min-h-screen flex items-center justify-center bg-[#2c3d5a] text-white">
-        <p>Loading dashboard data...</p>
+        <Loader />;
       </main>
     );
   }
