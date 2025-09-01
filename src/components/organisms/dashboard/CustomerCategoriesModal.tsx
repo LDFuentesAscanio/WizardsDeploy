@@ -1,9 +1,9 @@
-// src/components/organisms/dashboard/CustomerCategoryModal.tsx
+// src/components/organisms/dashboard/CustomerCategoriesModal.tsx
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
 import { Dialog } from '@headlessui/react';
-import { Formik, Form } from 'formik';
+import { Formik, Form, FieldArray } from 'formik';
 import { AnimatePresence, motion } from 'framer-motion';
 import FormInput from '@/components/atoms/FormInput';
 import FormCheckbox from '@/components/atoms/FormCheckbox';
@@ -25,6 +25,9 @@ type ProjectLite = { id: string; project_name: string };
 
 type SelectOption = { value: string; label: string };
 
+type SkillItem = { skill_name: string; skill_level: number };
+type ToolItem = { tool_name: string };
+
 type FormValues = {
   lookingForExpert: boolean;
   categoryId: string;
@@ -33,9 +36,8 @@ type FormValues = {
   description: string;
   contracted_profession_id: string;
   contracted_expertise_id: string;
-  // skills/tools se agregan en la Parte 2
-  skills: never[];
-  tools: never[];
+  skills: SkillItem[];
+  tools: ToolItem[];
 };
 
 type Props = {
@@ -57,7 +59,6 @@ export default function CustomerCategoryModal({
   const [subcategories, setSubcategories] = useState<Subcategory[]>([]);
   const [loadingLists, setLoadingLists] = useState<boolean>(false);
 
-  // Opciones para selects de profesión y expertise
   const [professionOpts, setProfessionOpts] = useState<SelectOption[]>([
     { value: '', label: 'Select an option' },
   ]);
@@ -65,7 +66,6 @@ export default function CustomerCategoryModal({
     { value: '', label: 'Select an option' },
   ]);
 
-  // Cargar proyectos del customer + catálogos (professions/expertise)
   useEffect(() => {
     if (!isOpen) return;
     (async () => {
@@ -100,7 +100,6 @@ export default function CustomerCategoryModal({
           }))
         );
 
-        // contracted_professions
         const { data: profs, error: profErr } = await supabase
           .from('contracted_professions')
           .select('id, profession_name')
@@ -118,7 +117,6 @@ export default function CustomerCategoryModal({
             : [{ value: '', label: 'Select an option' }]
         );
 
-        // contracted_expertise
         const { data: exps, error: expErr } = await supabase
           .from('contracted_expertise')
           .select('id, expertise_name')
@@ -174,8 +172,8 @@ export default function CustomerCategoryModal({
       description: initialValues.description ?? '',
       contracted_profession_id: initialValues.contracted_profession_id ?? '',
       contracted_expertise_id: initialValues.contracted_expertise_id ?? '',
-      skills: [], // Parte 2
-      tools: [], // Parte 2
+      skills: (initialValues.skills as SkillItem[] | undefined) ?? [],
+      tools: (initialValues.tools as ToolItem[] | undefined) ?? [],
     }),
     [initialValues]
   );
@@ -233,9 +231,8 @@ export default function CustomerCategoryModal({
                         contracted_profession_id:
                           values.contracted_profession_id,
                         contracted_expertise_id: values.contracted_expertise_id,
-                        // Parte 2: enviaremos los arrays reales
-                        skills: [],
-                        tools: [],
+                        skills: values.skills,
+                        tools: values.tools,
                       });
 
                       if (onSubmit) await onSubmit(values);
@@ -276,6 +273,8 @@ export default function CustomerCategoryModal({
                               setFieldValue('description', '');
                               setFieldValue('contracted_profession_id', '');
                               setFieldValue('contracted_expertise_id', '');
+                              setFieldValue('skills', []);
+                              setFieldValue('tools', []);
                               setSubcategories([]);
                             }
                           }}
@@ -372,6 +371,99 @@ export default function CustomerCategoryModal({
                               placeholder="e.g. We need a Salesforce expert to set up flows..."
                               as="textarea"
                               rows={4}
+                            />
+
+                            {/* Skills */}
+                            <FieldArray
+                              name="skills"
+                              render={({ push, remove }) => (
+                                <div className="space-y-2">
+                                  <div className="flex items-center justify-between">
+                                    <label className="text-sm font-semibold">
+                                      Required Skills
+                                    </label>
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        push({
+                                          skill_name: '',
+                                          skill_level: 5,
+                                        } as SkillItem)
+                                      }
+                                      className="px-3 py-1 rounded-lg bg-white text-[#2c3d5a] text-sm font-semibold hover:bg-gray-100"
+                                    >
+                                      Add Skill
+                                    </button>
+                                  </div>
+
+                                  {values.skills.map((_, idx) => (
+                                    <div
+                                      key={`skill-${idx}`}
+                                      className="grid grid-cols-3 gap-2"
+                                    >
+                                      <FormInput
+                                        name={`skills[${idx}].skill_name`}
+                                        placeholder="Skill name"
+                                      />
+                                      <FormInput
+                                        name={`skills[${idx}].skill_level`}
+                                        type="number"
+                                        placeholder="1-10"
+                                      />
+                                      <button
+                                        type="button"
+                                        onClick={() => remove(idx)}
+                                        className="px-3 py-2 rounded-lg border border-white/40 hover:bg-white/10"
+                                      >
+                                        Remove
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            />
+
+                            {/* Tools */}
+                            <FieldArray
+                              name="tools"
+                              render={({ push, remove }) => (
+                                <div className="space-y-2 mt-4">
+                                  <div className="flex items-center justify-between">
+                                    <label className="text-sm font-semibold">
+                                      Required Tools
+                                    </label>
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        push({ tool_name: '' } as ToolItem)
+                                      }
+                                      className="px-3 py-1 rounded-lg bg-white text-[#2c3d5a] text-sm font-semibold hover:bg-gray-100"
+                                    >
+                                      Add Tool
+                                    </button>
+                                  </div>
+
+                                  {values.tools.map((_, idx) => (
+                                    <div
+                                      key={`tool-${idx}`}
+                                      className="grid grid-cols-3 gap-2"
+                                    >
+                                      <FormInput
+                                        name={`tools[${idx}].tool_name`}
+                                        placeholder="Tool name"
+                                      />
+                                      <div />
+                                      <button
+                                        type="button"
+                                        onClick={() => remove(idx)}
+                                        className="px-3 py-2 rounded-lg border border-white/40 hover:bg-white/10"
+                                      >
+                                        Remove
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
                             />
                           </>
                         )}
