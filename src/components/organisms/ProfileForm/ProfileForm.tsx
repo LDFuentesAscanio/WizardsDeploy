@@ -13,9 +13,8 @@ export default function ProfileForm() {
     countries,
     roles,
     loading,
-    categories,
     professions,
-    platforms, // 👈 ahora disponible
+    platforms,
     roleName,
   } = useProfileFormData();
 
@@ -47,9 +46,7 @@ export default function ProfileForm() {
             roleName={roleName}
           />
 
-          {isCustomer && (
-            <CustomerSections categories={categories} roleName={roleName} />
-          )}
+          {isCustomer && <CustomerSections roleName={roleName} />}
 
           {isExpert && (
             <ExpertInfoSection
