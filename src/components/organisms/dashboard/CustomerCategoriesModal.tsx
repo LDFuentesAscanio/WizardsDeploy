@@ -25,7 +25,7 @@ type ProjectLite = { id: string; project_name: string };
 
 type SelectOption = { value: string; label: string };
 
-type SkillItem = { skill_name: string; skill_level: number };
+type SkillItem = { skill_name: string }; // ← sin level
 type ToolItem = { tool_name: string };
 
 type FormValues = {
@@ -231,7 +231,7 @@ export default function CustomerCategoryModal({
                         contracted_profession_id:
                           values.contracted_profession_id,
                         contracted_expertise_id: values.contracted_expertise_id,
-                        skills: values.skills,
+                        skills: values.skills, // ← solo nombre
                         tools: values.tools,
                       });
 
@@ -373,7 +373,7 @@ export default function CustomerCategoryModal({
                               rows={4}
                             />
 
-                            {/* Skills */}
+                            {/* Skills (solo nombre) */}
                             <FieldArray
                               name="skills"
                               render={({ push, remove }) => (
@@ -385,10 +385,7 @@ export default function CustomerCategoryModal({
                                     <button
                                       type="button"
                                       onClick={() =>
-                                        push({
-                                          skill_name: '',
-                                          skill_level: 5,
-                                        } as SkillItem)
+                                        push({ skill_name: '' } as SkillItem)
                                       }
                                       className="px-3 py-1 rounded-lg bg-white text-[#2c3d5a] text-sm font-semibold hover:bg-gray-100"
                                     >
@@ -405,11 +402,7 @@ export default function CustomerCategoryModal({
                                         name={`skills[${idx}].skill_name`}
                                         placeholder="Skill name"
                                       />
-                                      <FormInput
-                                        name={`skills[${idx}].skill_level`}
-                                        type="number"
-                                        placeholder="1-10"
-                                      />
+                                      <div className="col-span-2" />
                                       <button
                                         type="button"
                                         onClick={() => remove(idx)}
@@ -452,7 +445,7 @@ export default function CustomerCategoryModal({
                                         name={`tools[${idx}].tool_name`}
                                         placeholder="Tool name"
                                       />
-                                      <div />
+                                      <div className="col-span-2" />
                                       <button
                                         type="button"
                                         onClick={() => remove(idx)}

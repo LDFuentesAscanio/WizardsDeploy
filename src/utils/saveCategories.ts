@@ -1,3 +1,4 @@
+// src/utils/saveCategories.ts
 import { SupabaseClient } from '@supabase/supabase-js';
 import { Database, TablesInsert } from '@/types/supabase';
 
@@ -11,10 +12,10 @@ export async function saveCustomerCategories(params: {
   projectId: string;
   subcategoryId: string;
   description: string;
-
   contracted_profession_id: string;
   contracted_expertise_id: string;
-  skills: { skill_name: string; skill_level: number }[];
+  // ← skills solo con nombre
+  skills: { skill_name: string }[];
   tools: { tool_name: string }[];
 }) {
   const {
@@ -62,11 +63,11 @@ export async function saveCustomerCategories(params: {
 
   const contracted_solutions_id = inserted.id;
 
-  // 3) Insertar skills (si hay)
+  // 3) Insertar skills (solo nombre; level queda null)
   if (skills?.length) {
     const rows: NewSkill[] = skills.map((s) => ({
       skill_name: s.skill_name,
-      skill_level: s.skill_level,
+      // skill_level: null, // opcional; al no enviarlo queda NULL
       contracted_solutions_id,
     }));
     const { error: skillErr } = await supabase
@@ -75,7 +76,7 @@ export async function saveCustomerCategories(params: {
     if (skillErr) throw skillErr;
   }
 
-  // 4) Insertar tools (si hay)
+  // 4) Insertar tools
   if (tools?.length) {
     const rows: NewTool[] = tools.map((t) => ({
       tool_name: t.tool_name,

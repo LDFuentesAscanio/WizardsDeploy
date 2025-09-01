@@ -38,7 +38,6 @@ export const categoryModalSchema = Yup.object().shape({
     otherwise: (s) => s.notRequired(),
   }),
 
-  // Siempre requeridos (si tu UX lo necesita condicional, también puedes envolverlos con .when)
   contracted_profession_id: Yup.string()
     .uuid('Invalid selection')
     .required('Profession is required'),
@@ -46,17 +45,12 @@ export const categoryModalSchema = Yup.object().shape({
     .uuid('Invalid selection')
     .required('Expertise is required'),
 
-  // Arreglos de items
+  // Arreglos
   skills: Yup.array()
     .of(
       Yup.object({
         skill_name: Yup.string().trim().required('Skill is required'),
-        skill_level: Yup.number()
-          .typeError('Level must be a number')
-          .integer('Level must be an integer')
-          .min(1, 'Min is 1')
-          .max(10, 'Max is 10')
-          .required('Level is required'),
+        // sin level
       })
     )
     .default([]),
