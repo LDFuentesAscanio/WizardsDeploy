@@ -527,6 +527,7 @@ export type Database = {
       it_projects: {
         Row: {
           budget: number | null
+          created_at: string
           customer_id: string | null
           description: string | null
           end_date: string | null
@@ -535,9 +536,11 @@ export type Database = {
           responsible: string | null
           start_date: string | null
           status: string | null
+          updated_at: string
         }
         Insert: {
           budget?: number | null
+          created_at?: string
           customer_id?: string | null
           description?: string | null
           end_date?: string | null
@@ -546,9 +549,11 @@ export type Database = {
           responsible?: string | null
           start_date?: string | null
           status?: string | null
+          updated_at?: string
         }
         Update: {
           budget?: number | null
+          created_at?: string
           customer_id?: string | null
           description?: string | null
           end_date?: string | null
@@ -557,6 +562,7 @@ export type Database = {
           responsible?: string | null
           start_date?: string | null
           status?: string | null
+          updated_at?: string
         }
         Relationships: [
           {
