@@ -38,7 +38,7 @@ export default function DashboardView() {
   if (loading || !data) {
     return (
       <main className="min-h-screen flex items-center justify-center bg-[#2c3d5a] text-white">
-        <Loader />;
+        <Loader />
       </main>
     );
   }
