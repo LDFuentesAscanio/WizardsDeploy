@@ -36,4 +36,29 @@ export const categoryModalSchema = Yup.object().shape({
         .required('Description is required'),
     otherwise: (s) => s.notRequired(),
   }),
+
+  contracted_profession_id: Yup.string()
+    .uuid()
+    .required('Profession is required'),
+  contracted_expertise_id: Yup.string()
+    .uuid()
+    .required('Expertise is required'),
+
+  // Arreglos de items
+  skills: Yup.array()
+    .of(
+      Yup.object({
+        skill_name: Yup.string().trim().required('Skill is required'),
+        skill_level: Yup.number().min(1).max(10).required('Level is required'),
+      })
+    )
+    .default([]),
+
+  tools: Yup.array()
+    .of(
+      Yup.object({
+        tool_name: Yup.string().trim().required('Tool is required'),
+      })
+    )
+    .default([]),
 });

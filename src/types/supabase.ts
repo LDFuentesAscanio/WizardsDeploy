@@ -35,9 +35,97 @@ export type Database = {
         }
         Relationships: []
       }
+      contracted_expertise: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          expertise_name: string
+          id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          expertise_name: string
+          id?: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          expertise_name?: string
+          id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      contracted_professions: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          profession_name: string
+          updated_at: string | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          profession_name: string
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          profession_name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      contracted_skills: {
+        Row: {
+          contracted_solutions_id: string
+          created_at: string
+          id: string
+          skill_level: number | null
+          skill_name: string
+          updated_at: string
+        }
+        Insert: {
+          contracted_solutions_id: string
+          created_at?: string
+          id?: string
+          skill_level?: number | null
+          skill_name: string
+          updated_at?: string
+        }
+        Update: {
+          contracted_solutions_id?: string
+          created_at?: string
+          id?: string
+          skill_level?: number | null
+          skill_name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contracted_skills_contracted_solutions_id_fkey"
+            columns: ["contracted_solutions_id"]
+            isOneToOne: false
+            referencedRelation: "contracted_solutions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contracted_solutions: {
         Row: {
           contract_date: string | null
+          contracted_expertise_id: string | null
+          contracted_profession_id: string | null
           created_at: string | null
           description_solution: string | null
           id: string
@@ -48,6 +136,8 @@ export type Database = {
         }
         Insert: {
           contract_date?: string | null
+          contracted_expertise_id?: string | null
+          contracted_profession_id?: string | null
           created_at?: string | null
           description_solution?: string | null
           id?: string
@@ -58,6 +148,8 @@ export type Database = {
         }
         Update: {
           contract_date?: string | null
+          contracted_expertise_id?: string | null
+          contracted_profession_id?: string | null
           created_at?: string | null
           description_solution?: string | null
           id?: string
@@ -67,6 +159,20 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_contracted_solutions_contrated_expertise"
+            columns: ["contracted_expertise_id"]
+            isOneToOne: false
+            referencedRelation: "contracted_expertise"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_contracted_solutions_professions"
+            columns: ["contracted_profession_id"]
+            isOneToOne: false
+            referencedRelation: "contracted_professions"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "fk_it_projects"
             columns: ["it_projects_id"]
@@ -79,6 +185,38 @@ export type Database = {
             columns: ["subcategory_id"]
             isOneToOne: false
             referencedRelation: "subcategories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contracted_tools: {
+        Row: {
+          contracted_solutions_id: string
+          created_at: string
+          id: string
+          tool_name: string
+          updated_at: string
+        }
+        Insert: {
+          contracted_solutions_id: string
+          created_at?: string
+          id?: string
+          tool_name: string
+          updated_at?: string
+        }
+        Update: {
+          contracted_solutions_id?: string
+          created_at?: string
+          id?: string
+          tool_name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contracted_tools_contracted_solutions_id_fkey"
+            columns: ["contracted_solutions_id"]
+            isOneToOne: false
+            referencedRelation: "contracted_solutions"
             referencedColumns: ["id"]
           },
         ]
@@ -442,93 +580,6 @@ export type Database = {
         Update: {
           id?: string
           name?: string
-        }
-        Relationships: []
-      }
-      service_request_subcategories: {
-        Row: {
-          created_at: string | null
-          id: string
-          service_request_id: string | null
-          subcategory_id: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          service_request_id?: string | null
-          subcategory_id?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          service_request_id?: string | null
-          subcategory_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "service_request_subcategories_service_request_id_fkey"
-            columns: ["service_request_id"]
-            isOneToOne: false
-            referencedRelation: "service_requests"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "service_request_subcategories_subcategory_id_fkey"
-            columns: ["subcategory_id"]
-            isOneToOne: false
-            referencedRelation: "subcategories"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      service_requests: {
-        Row: {
-          budget_range: string | null
-          certifications_details: string | null
-          client_name: string
-          company: string | null
-          created_at: string | null
-          email: string
-          id: string
-          modality: string | null
-          phone: string | null
-          project_description: string
-          requires_certifications: boolean | null
-          seniority_level: string | null
-          status: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          budget_range?: string | null
-          certifications_details?: string | null
-          client_name: string
-          company?: string | null
-          created_at?: string | null
-          email: string
-          id?: string
-          modality?: string | null
-          phone?: string | null
-          project_description: string
-          requires_certifications?: boolean | null
-          seniority_level?: string | null
-          status?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          budget_range?: string | null
-          certifications_details?: string | null
-          client_name?: string
-          company?: string | null
-          created_at?: string | null
-          email?: string
-          id?: string
-          modality?: string | null
-          phone?: string | null
-          project_description?: string
-          requires_certifications?: boolean | null
-          seniority_level?: string | null
-          status?: string | null
-          updated_at?: string | null
         }
         Relationships: []
       }

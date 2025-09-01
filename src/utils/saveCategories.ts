@@ -1,99 +1,91 @@
-import { supabase } from '@/utils/supabase/browserClient';
-import type { PostgrestError } from '@supabase/supabase-js';
+import { SupabaseClient } from '@supabase/supabase-js';
+import { Database, TablesInsert } from '@/types/supabase';
 
-export type SaveCustomerCategoriesParams = {
-  user_id: string;
-  projectId: string; // ← obligatorio ahora
-  selectedCategories: string[]; // ← contiene 1 subcategory_id
+type NewSolution = TablesInsert<'contracted_solutions'>;
+type NewSkill = TablesInsert<'contracted_skills'>;
+type NewTool = TablesInsert<'contracted_tools'>;
+
+export async function saveCustomerCategories(params: {
+  supabase: SupabaseClient<Database>;
+  userId: string;
+  projectId: string;
+  subcategoryId: string;
   description: string;
-};
 
-type SupabaseResponse = { error: PostgrestError | null };
+  contracted_profession_id: string;
+  contracted_expertise_id: string;
+  skills: { skill_name: string; skill_level: number }[];
+  tools: { tool_name: string }[];
+}) {
+  const {
+    supabase,
+    userId,
+    projectId,
+    subcategoryId,
+    description,
+    contracted_profession_id,
+    contracted_expertise_id,
+    skills,
+    tools,
+  } = params;
 
-/**
- * Inserta/activa una oferta (contracted_solutions) asociada a:
- *   it_projects_id + subcategory_id + description_solution
- * Devuelve el customer_id del dueño del project para compatibilidad con llamadas previas.
- */
-export async function saveCustomerCategories({
-  user_id,
-  projectId,
-  selectedCategories,
-  description,
-}: SaveCustomerCategoriesParams): Promise<string> {
-  if (!projectId) throw new Error('Project is required');
-  if (!selectedCategories?.length) throw new Error('Subcategory is required');
-  const subcategory_id = selectedCategories[0];
-
-  // 1) Obtener customer_id del usuario
-  const { data: customerRow, error: customerError } = await supabase
-    .from('customers')
-    .select('id')
-    .eq('user_id', user_id)
-    .maybeSingle();
-
-  if (customerError || !customerRow?.id) {
-    throw new Error('Customer not found for this user');
-  }
-  const customer_id = customerRow.id;
-
-  // 2) Validar que el proyecto pertenezca a este customer
-  const { data: projectRow, error: projErr } = await supabase
+  // 1) Validar que el proyecto pertenezca al customer autenticado
+  const { data: project, error: projectErr } = await supabase
     .from('it_projects')
-    .select('id, customer_id')
+    .select('id, customer_id, customers(user_id)')
     .eq('id', projectId)
     .maybeSingle();
 
-  if (projErr) throw projErr;
-  if (!projectRow?.id || projectRow.customer_id !== customer_id) {
-    throw new Error('Project does not belong to current customer');
+  if (projectErr) throw projectErr;
+  if (!project?.customers || project.customers.user_id !== userId) {
+    throw new Error('You are not allowed to publish offers for this project.');
   }
 
-  // 3) ¿Existe una fila con misma combinación y misma descripción?
-  const { data: existingRow, error: existErr } = await supabase
+  // 2) Insertar contracted_solution
+  const newSolution: NewSolution = {
+    it_projects_id: projectId,
+    subcategory_id: subcategoryId,
+    description_solution: description,
+    is_active: true,
+    contracted_profession_id,
+    contracted_expertise_id,
+  };
+
+  const { data: inserted, error: insertErr } = await supabase
     .from('contracted_solutions')
-    .select('id, is_active')
-    .eq('it_projects_id', projectId)
-    .eq('subcategory_id', subcategory_id)
-    .eq('description_solution', description)
+    .insert(newSolution)
+    .select('id')
     .maybeSingle();
 
-  if (existErr && existErr.code !== 'PGRST116') throw existErr;
+  if (insertErr) throw insertErr;
+  if (!inserted?.id) throw new Error('Failed to create contracted_solution.');
 
-  let op: PromiseLike<SupabaseResponse>;
+  const contracted_solutions_id = inserted.id;
 
-  if (existingRow?.id) {
-    // Reactivar si estaba inactiva
-    op = supabase
-      .from('contracted_solutions')
-      .update({
-        is_active: true,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', existingRow.id)
-      .then(({ error }): SupabaseResponse => ({ error }));
-  } else {
-    // Crear nueva
-    op = supabase
-      .from('contracted_solutions')
-      .insert({
-        it_projects_id: projectId,
-        subcategory_id,
-        description_solution: description,
-        is_active: true,
-        contract_date: new Date().toISOString(),
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .then(({ error }): SupabaseResponse => ({ error }));
+  // 3) Insertar skills (si hay)
+  if (skills?.length) {
+    const rows: NewSkill[] = skills.map((s) => ({
+      skill_name: s.skill_name,
+      skill_level: s.skill_level,
+      contracted_solutions_id,
+    }));
+    const { error: skillErr } = await supabase
+      .from('contracted_skills')
+      .insert(rows);
+    if (skillErr) throw skillErr;
   }
 
-  const { error } = await op;
-  if (error) {
-    console.error('Error in saveCustomerCategories:', error);
-    throw new Error('Failed to save the offer');
+  // 4) Insertar tools (si hay)
+  if (tools?.length) {
+    const rows: NewTool[] = tools.map((t) => ({
+      tool_name: t.tool_name,
+      contracted_solutions_id,
+    }));
+    const { error: toolErr } = await supabase
+      .from('contracted_tools')
+      .insert(rows);
+    if (toolErr) throw toolErr;
   }
 
-  // ⚠️ Compatibilidad: algunos llamados antiguos esperaban customer_id
-  return customer_id;
+  return { id: contracted_solutions_id };
 }

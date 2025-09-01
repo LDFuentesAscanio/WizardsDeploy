@@ -1,11 +1,13 @@
+// src/components/organisms/dashboard/CustomerCategoryModal.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Dialog } from '@headlessui/react';
-import { Formik, Form, FieldArray } from 'formik';
+import { Formik, Form } from 'formik';
 import { AnimatePresence, motion } from 'framer-motion';
 import FormInput from '@/components/atoms/FormInput';
 import FormCheckbox from '@/components/atoms/FormCheckbox';
+import FormSelect from '@/components/atoms/FormSelect';
 import { showError, showSuccess } from '@/utils/toastService';
 import { supabase } from '@/utils/supabase/browserClient';
 import { categoryModalSchema } from '@/validations/CategoryModalSchema';
@@ -21,12 +23,19 @@ type Subcategory = {
 
 type ProjectLite = { id: string; project_name: string };
 
+type SelectOption = { value: string; label: string };
+
 type FormValues = {
   lookingForExpert: boolean;
   categoryId: string;
-  selectedCategories: string[];
+  selectedCategories: string[]; // tomamos el primero
   projectId: string;
   description: string;
+  contracted_profession_id: string;
+  contracted_expertise_id: string;
+  // skills/tools se agregan en la Parte 2
+  skills: never[];
+  tools: never[];
 };
 
 type Props = {
@@ -46,13 +55,23 @@ export default function CustomerCategoryModal({
 }: Props) {
   const [projects, setProjects] = useState<ProjectLite[]>([]);
   const [subcategories, setSubcategories] = useState<Subcategory[]>([]);
-  const [loadingLists, setLoadingLists] = useState(false);
+  const [loadingLists, setLoadingLists] = useState<boolean>(false);
 
+  // Opciones para selects de profesión y expertise
+  const [professionOpts, setProfessionOpts] = useState<SelectOption[]>([
+    { value: '', label: 'Select an option' },
+  ]);
+  const [expertiseOpts, setExpertiseOpts] = useState<SelectOption[]>([
+    { value: '', label: 'Select an option' },
+  ]);
+
+  // Cargar proyectos del customer + catálogos (professions/expertise)
   useEffect(() => {
     if (!isOpen) return;
     (async () => {
       try {
         setLoadingLists(true);
+
         const {
           data: { user },
           error: authErr,
@@ -80,9 +99,45 @@ export default function CustomerCategoryModal({
             project_name: p.project_name,
           }))
         );
+
+        // contracted_professions
+        const { data: profs, error: profErr } = await supabase
+          .from('contracted_professions')
+          .select('id, profession_name')
+          .order('profession_name', { ascending: true });
+        if (profErr) throw profErr;
+        setProfessionOpts(
+          (profs ?? []).length
+            ? [
+                { value: '', label: 'Select an option' },
+                ...(profs ?? []).map((p) => ({
+                  value: p.id,
+                  label: p.profession_name,
+                })),
+              ]
+            : [{ value: '', label: 'Select an option' }]
+        );
+
+        // contracted_expertise
+        const { data: exps, error: expErr } = await supabase
+          .from('contracted_expertise')
+          .select('id, expertise_name')
+          .order('expertise_name', { ascending: true });
+        if (expErr) throw expErr;
+        setExpertiseOpts(
+          (exps ?? []).length
+            ? [
+                { value: '', label: 'Select an option' },
+                ...(exps ?? []).map((e) => ({
+                  value: e.id,
+                  label: e.expertise_name,
+                })),
+              ]
+            : [{ value: '', label: 'Select an option' }]
+        );
       } catch (e) {
-        console.error('❌ Error loading projects:', e);
-        showError('Error loading projects list');
+        console.error('❌ Error loading lists:', e);
+        showError('Error loading lists');
       } finally {
         setLoadingLists(false);
       }
@@ -100,7 +155,6 @@ export default function CustomerCategoryModal({
         .from('subcategories')
         .select('id, name, category_id')
         .eq('category_id', categoryId);
-
       if (error) throw error;
       setSubcategories((data as Subcategory[]) ?? []);
     } catch (e) {
@@ -110,6 +164,21 @@ export default function CustomerCategoryModal({
       setLoadingLists(false);
     }
   };
+
+  const resolvedInitialValues: FormValues = useMemo(
+    () => ({
+      lookingForExpert: initialValues.lookingForExpert ?? false,
+      categoryId: initialValues.categoryId ?? '',
+      selectedCategories: initialValues.selectedCategories ?? [],
+      projectId: initialValues.projectId ?? '',
+      description: initialValues.description ?? '',
+      contracted_profession_id: initialValues.contracted_profession_id ?? '',
+      contracted_expertise_id: initialValues.contracted_expertise_id ?? '',
+      skills: [], // Parte 2
+      tools: [], // Parte 2
+    }),
+    [initialValues]
+  );
 
   return (
     <AnimatePresence>
@@ -136,30 +205,43 @@ export default function CustomerCategoryModal({
                 className="bg-[#2c3d5a] text-white rounded-xl w-full max-w-lg h-[85vh] overflow-hidden flex flex-col"
               >
                 <Formik<FormValues>
-                  initialValues={{
-                    lookingForExpert: initialValues.lookingForExpert ?? false,
-                    categoryId: initialValues.categoryId ?? '',
-                    selectedCategories: initialValues.selectedCategories ?? [],
-                    projectId: initialValues.projectId ?? '',
-                    description: initialValues.description ?? '',
-                  }}
+                  initialValues={resolvedInitialValues}
                   validationSchema={categoryModalSchema}
-                  onSubmit={async (values, { setSubmitting }) => {
+                  onSubmit={async (values, { setSubmitting, resetForm }) => {
                     try {
-                      const { data: authUser } = await supabase.auth.getUser();
-                      const user_id = authUser.user?.id;
-                      if (!user_id) throw new Error('No user authenticated');
+                      const {
+                        data: { user },
+                        error: authErr,
+                      } = await supabase.auth.getUser();
+                      if (authErr) throw authErr;
+                      const userId = user?.id;
+                      if (!userId) throw new Error('No user authenticated');
+
+                      const subcategoryId =
+                        values.selectedCategories?.[0] ?? '';
+                      if (!subcategoryId)
+                        throw new Error('Please select one subcategory');
+                      if (!values.projectId)
+                        throw new Error('Please select a project');
 
                       await saveCustomerCategories({
-                        user_id,
+                        supabase,
+                        userId,
                         projectId: values.projectId,
-                        selectedCategories: values.selectedCategories,
+                        subcategoryId,
                         description: values.description,
+                        contracted_profession_id:
+                          values.contracted_profession_id,
+                        contracted_expertise_id: values.contracted_expertise_id,
+                        // Parte 2: enviaremos los arrays reales
+                        skills: [],
+                        tools: [],
                       });
 
                       if (onSubmit) await onSubmit(values);
 
                       showSuccess('Offer created successfully!');
+                      resetForm();
                       onClose();
                     } catch (error) {
                       console.error('Modal save error:', error);
@@ -172,25 +254,28 @@ export default function CustomerCategoryModal({
                 >
                   {({ values, setFieldValue, isValid, isSubmitting }) => (
                     <Form className="flex flex-col h-full min-h-0">
-                      {' '}
-                      {/* Cambiado a h-full */}
-                      {/* Header fijo */}
+                      {/* Header */}
                       <div className="p-6 border-b border-white/10 flex-shrink-0">
                         <h2 id="modal-title" className="text-xl font-bold">
                           Looking for experts?
                         </h2>
                       </div>
-                      {/* Scrollable content */}
+
+                      {/* Content */}
                       <div className="flex-1 min-h-0 overflow-y-auto p-6 space-y-6">
                         <FormCheckbox
                           name="lookingForExpert"
                           label="Yes, I'm looking for experts"
                           onChange={(e) => {
-                            if (!e.target.checked) {
+                            const checked = e.target.checked;
+                            setFieldValue('lookingForExpert', checked);
+                            if (!checked) {
                               setFieldValue('categoryId', '');
                               setFieldValue('selectedCategories', []);
                               setFieldValue('projectId', '');
                               setFieldValue('description', '');
+                              setFieldValue('contracted_profession_id', '');
+                              setFieldValue('contracted_expertise_id', '');
                               setSubcategories([]);
                             }
                           }}
@@ -200,89 +285,87 @@ export default function CustomerCategoryModal({
                         {values.lookingForExpert && (
                           <>
                             {/* Project */}
-                            <div className="grid gap-2">
-                              <label className="text-sm">Project</label>
-                              <select
-                                name="projectId"
-                                value={values.projectId}
-                                onChange={(e) =>
-                                  setFieldValue('projectId', e.target.value)
-                                }
-                                disabled={loadingLists}
-                                className="w-full px-4 py-3 rounded-xl bg-[#e7e7e7] text-[#2c3d5a]"
-                              >
-                                <option value="">Select a project</option>
-                                {projects.map((p) => (
-                                  <option key={p.id} value={p.id}>
-                                    {p.project_name}
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
+                            <FormSelect
+                              name="projectId"
+                              label="Project"
+                              disabled={loadingLists}
+                              options={[
+                                { value: '', label: 'Select an option' },
+                                ...projects.map((p) => ({
+                                  value: p.id,
+                                  label: p.project_name,
+                                })),
+                              ]}
+                            />
 
                             {/* Category */}
-                            <div className="grid gap-2">
-                              <label className="text-sm">Category</label>
-                              <select
-                                name="categoryId"
-                                value={values.categoryId}
-                                onChange={async (e) => {
-                                  const newCat = e.target.value;
-                                  setFieldValue('categoryId', newCat);
-                                  setFieldValue('selectedCategories', []);
-                                  await fetchSubcategories(newCat);
-                                }}
-                                disabled={loadingLists}
-                                className="w-full px-4 py-3 rounded-xl bg-[#e7e7e7] text-[#2c3d5a]"
-                              >
-                                <option value="">Select a category</option>
-                                {categories.map((c) => (
-                                  <option key={c.id} value={c.id}>
-                                    {c.name}
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
+                            <FormSelect
+                              name="categoryId"
+                              label="Category"
+                              disabled={loadingLists}
+                              onChangeValue={async (val) => {
+                                setFieldValue('categoryId', val);
+                                setFieldValue('selectedCategories', []);
+                                await fetchSubcategories(val);
+                              }}
+                              options={[
+                                { value: '', label: 'Select an option' },
+                                ...categories.map((c) => ({
+                                  value: c.id,
+                                  label: c.name,
+                                })),
+                              ]}
+                            />
 
-                            {/* Subcategories */}
+                            {/* Subcategories (single-select) */}
                             {values.categoryId && (
                               <div>
                                 <p className="text-sm font-semibold mb-2">
                                   Subcategories
                                 </p>
                                 <div className="space-y-2">
-                                  <FieldArray name="selectedCategories">
-                                    {() => (
-                                      <>
-                                        {subcategories.map((sub) => {
-                                          const isChecked =
-                                            values.selectedCategories.includes(
-                                              sub.id
-                                            );
-                                          return (
-                                            <FormCheckbox
-                                              key={sub.id}
-                                              name="selectedCategories"
-                                              label={sub.name}
-                                              onChange={(e) => {
-                                                const checked =
-                                                  e.target.checked;
-                                                setFieldValue(
-                                                  'selectedCategories',
-                                                  checked ? [sub.id] : []
-                                                );
-                                              }}
-                                              checked={isChecked}
-                                            />
+                                  {subcategories.map((sub) => {
+                                    const isChecked =
+                                      values.selectedCategories.includes(
+                                        sub.id
+                                      );
+                                    return (
+                                      <FormCheckbox
+                                        key={sub.id}
+                                        name="selectedCategories"
+                                        label={sub.name}
+                                        checked={isChecked}
+                                        onChange={(e) => {
+                                          const checked = e.target.checked;
+                                          setFieldValue(
+                                            'selectedCategories',
+                                            checked ? [sub.id] : []
                                           );
-                                        })}
-                                      </>
-                                    )}
-                                  </FieldArray>
+                                        }}
+                                      />
+                                    );
+                                  })}
                                 </div>
                               </div>
                             )}
 
+                            {/* Required Profession */}
+                            <FormSelect
+                              name="contracted_profession_id"
+                              label="Required Profession"
+                              disabled={loadingLists}
+                              options={professionOpts}
+                            />
+
+                            {/* Required Expertise */}
+                            <FormSelect
+                              name="contracted_expertise_id"
+                              label="Required Expertise"
+                              disabled={loadingLists}
+                              options={expertiseOpts}
+                            />
+
+                            {/* Description */}
                             <FormInput
                               name="description"
                               label="Describe your need"
@@ -293,7 +376,8 @@ export default function CustomerCategoryModal({
                           </>
                         )}
                       </div>
-                      {/* Footer fijo */}
+
+                      {/* Footer */}
                       <div className="p-6 border-t border-white/10 flex-shrink-0">
                         <div className="flex gap-3">
                           <button
