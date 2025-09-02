@@ -35,7 +35,7 @@ export default function TasksOverview({
             Want to discover open opportunities?
           </p>
           <Link
-            href="/explore"
+            href="/projects/explore"
             className="inline-block mt-4 px-4 py-2 rounded-lg bg-[#2c3d5a] text-white font-semibold hover:bg-[#22324b] transition-colors"
           >
             Explore Projects
