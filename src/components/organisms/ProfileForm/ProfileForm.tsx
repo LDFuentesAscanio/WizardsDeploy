@@ -6,6 +6,7 @@ import { useProfileSubmit } from '@/hooks/useProfileSubmit';
 import { CommonSection } from './formSections/CommonSection';
 import CustomerSections from './formSections/CustomerSections';
 import { ExpertInfoSection } from './formSections/ExpertInfoSection';
+import Loader from '@/components/atoms/Loader';
 
 export default function ProfileForm() {
   const {
@@ -20,7 +21,7 @@ export default function ProfileForm() {
 
   const { handleSubmit } = useProfileSubmit();
 
-  if (loading) return <div>Loading...</div>;
+  if (loading) return <Loader />;
   if (!initialValues) return <div>Error loading profile</div>;
 
   const isCustomer = roleName?.toLowerCase() === 'customer';
