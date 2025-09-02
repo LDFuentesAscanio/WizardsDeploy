@@ -9,6 +9,22 @@ import {
   ProfileFormValues,
 } from '@/components/organisms/ProfileForm/types';
 
+function sanitizeList(items?: string[]): string[] {
+  if (!Array.isArray(items)) return [];
+  const trimmed = items.map((s) => s.trim()).filter(Boolean);
+  // Dedupe case-insensitive, pero preservando el valor original del primero
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const s of trimmed) {
+    const key = s.toLowerCase();
+    if (!seen.has(key)) {
+      seen.add(key);
+      result.push(s);
+    }
+  }
+  return result;
+}
+
 export function useProfileSubmit() {
   const router = useRouter();
   const pathname = usePathname();
@@ -26,9 +42,8 @@ export function useProfileSubmit() {
       } = await supabase.auth.getUser();
       if (authError || !user) throw authError;
 
-      // ✅ Si no hay cambios
+      // ✅ Sin cambios
       if (JSON.stringify(values) === JSON.stringify(initialValues)) {
-        // Verificamos si ya está completo (en caso de estar en force-profile)
         const basicComplete = Boolean(
           values.first_name?.trim() &&
             values.last_name?.trim() &&
@@ -54,9 +69,7 @@ export function useProfileSubmit() {
           roleComplete &&
           pathname === '/force-profile/edit'
         ) {
-          if (localStorage.getItem('forcedToCompleteProfile')) {
-            localStorage.removeItem('forcedToCompleteProfile');
-          }
+          localStorage.removeItem('forcedToCompleteProfile');
           router.replace('/dashboard');
         } else {
           showInfo('No changes detected');
@@ -64,7 +77,7 @@ export function useProfileSubmit() {
         return;
       }
 
-      // 1️⃣ Update base user
+      // 1) Users
       const { error: userError } = await supabase.from('users').upsert(
         {
           id: user.id,
@@ -79,7 +92,7 @@ export function useProfileSubmit() {
       );
       if (userError) throw userError;
 
-      // 2️⃣ Customer update
+      // 2) Customer
       if (isCustomer) {
         const customerData: CustomerInsert = {
           user_id: user.id,
@@ -97,9 +110,9 @@ export function useProfileSubmit() {
         if (customerError) throw customerError;
       }
 
-      // 3️⃣ Expert update
+      // 3) Expert
       if (isExpert) {
-        // Obtener profession_id basado en el nombre
+        // Resolver profession_id si viene por nombre
         let professionId = values.profession_id || '';
         if (!professionId && values.profession) {
           const { data: profession, error: profError } = await supabase
@@ -107,13 +120,12 @@ export function useProfileSubmit() {
             .select('id')
             .eq('profession_name', values.profession)
             .single();
-
           if (profError) throw profError;
           if (!profession) throw new Error('Selected profession not found');
           professionId = profession.id;
         }
 
-        // Upsert expert y obtener su ID
+        // Upsert expert
         const { data: expertRecord, error: expertError } = await supabase
           .from('experts')
           .upsert(
@@ -130,11 +142,10 @@ export function useProfileSubmit() {
           )
           .select('id')
           .single();
-
         if (expertError) throw expertError;
         const expertId = expertRecord.id;
 
-        // Profile picture
+        // Avatar (opcional)
         if (values.photo_url) {
           await supabase.from('expert_media').upsert(
             {
@@ -147,7 +158,7 @@ export function useProfileSubmit() {
           );
         }
 
-        // Expertise
+        // Expertise (replace)
         await supabase
           .from('expert_expertise')
           .delete()
@@ -164,32 +175,34 @@ export function useProfileSubmit() {
           if (error) throw error;
         }
 
-        // Skills
+        // ✅ Skills (replace) — SIN user_id
+        const safeSkills = sanitizeList(values.skills);
         await supabase.from('skills').delete().eq('expert_id', expertId);
-        if (values.skills?.length) {
-          await supabase.from('skills').insert(
-            values.skills.map((skill: string) => ({
+        if (safeSkills.length) {
+          const { error } = await supabase.from('skills').insert(
+            safeSkills.map((skill: string) => ({
               expert_id: expertId,
-              user_id: user.id,
               skill_name: skill,
-              skill_level: null,
+              // skill_level: null // no lo usamos ya, y no es NOT NULL
             }))
           );
+          if (error) throw error;
         }
 
-        // Tools
+        // ✅ Tools (replace) — SIN user_id
+        const safeTools = sanitizeList(values.tools);
         await supabase.from('tools').delete().eq('expert_id', expertId);
-        if (values.tools?.length) {
-          await supabase.from('tools').insert(
-            values.tools.map((tool: string) => ({
+        if (safeTools.length) {
+          const { error } = await supabase.from('tools').insert(
+            safeTools.map((tool: string) => ({
               expert_id: expertId,
-              user_id: user.id,
               tool_name: tool,
             }))
           );
+          if (error) throw error;
         }
 
-        // Documents
+        // Document (opcional)
         if (values.cv_url) {
           await supabase.from('expert_documents').upsert(
             {
@@ -202,10 +215,8 @@ export function useProfileSubmit() {
         }
       }
 
-      // ✅ Si todo fue bien
       showSuccess('Profile updated successfully');
 
-      // 🔑 Chequeo de perfil completo
       const basicComplete = Boolean(
         values.first_name?.trim() &&
           values.last_name?.trim() &&
@@ -228,10 +239,7 @@ export function useProfileSubmit() {
 
       const profileComplete = basicComplete && roleComplete;
 
-      // Limpia flag si existe
-      if (localStorage.getItem('forcedToCompleteProfile')) {
-        localStorage.removeItem('forcedToCompleteProfile');
-      }
+      localStorage.removeItem('forcedToCompleteProfile');
 
       if (profileComplete) {
         router.replace('/dashboard');
